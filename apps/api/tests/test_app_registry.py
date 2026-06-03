@@ -69,3 +69,48 @@ def test_external_apps_are_registry_only_not_connected() -> None:
         assert apps_by_id[app_id]["status"] == "external"
         assert apps_by_id[app_id]["touch_policy"] == "no_touch_external"
 
+
+def test_app_detail_returns_single_registered_app() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/v1/apps/forja")
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload == {
+        "id": "forja",
+        "name": "FORJA",
+        "type": "ecosystem_orchestrator",
+        "status": "external",
+        "depends_on": [],
+        "description": (
+            "Construction and execution cabin referenced by the ecosystem. "
+            "Not connected by this API yet."
+        ),
+        "touch_policy": "no_touch_external",
+    }
+
+
+def test_app_detail_normalizes_app_id() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/v1/apps/CEREBRO%20")
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["id"] == "cerebro"
+    assert payload["name"] == "CEREBRO"
+
+
+def test_app_detail_returns_controlled_404_for_unknown_app() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/v1/apps/nonexistent")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": {
+            "error": "app_not_found",
+            "app_id": "nonexistent",
+        }
+    }
