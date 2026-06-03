@@ -149,3 +149,23 @@ Base estable:
 Uso de rollback:
 
 Si observabilidad local falla de forma no recuperable, volver a `3c098df` o crear una rama desde `backup/autopilot-v1-observability-20260603-084320`.
+
+## 2026-06-03 08:45 America/Lima
+
+Bloque: `INTEGRATION_CONTRACTS_BLOCK_008`
+
+Rama de respaldo:
+
+`backup/autopilot-v1-integration-20260603-084530`
+
+Commit de seguridad:
+
+`f7a0c55 backup: recovery point before integration contracts`
+
+Base estable:
+
+`9532e88 feat: add local observability status api`
+
+Uso de rollback:
+
+Si contratos de integracion fallan de forma no recuperable, volver a `9532e88` o crear una rama desde `backup/autopilot-v1-integration-20260603-084530`.
