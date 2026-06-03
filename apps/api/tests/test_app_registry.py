@@ -114,3 +114,39 @@ def test_app_detail_returns_controlled_404_for_unknown_app() -> None:
             "app_id": "nonexistent",
         }
     }
+
+
+def test_app_registry_status_summary() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/v1/apps/status/summary")
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload == {
+        "total": 13,
+        "by_status": {
+            "planned": 8,
+            "internal": 0,
+            "external": 3,
+            "blocked": 0,
+            "unknown": 2,
+        },
+        "app_ids": [
+            "forja",
+            "cerebro",
+            "centinela",
+            "pluma",
+            "lente",
+            "buscador_de_tendencias",
+            "comercio_autonomo",
+            "marca_personal",
+            "marketing",
+            "web_factory",
+            "doctor_contable_financiero_tributario",
+            "auditor",
+            "hermes",
+        ],
+        "source": "local_controlled_registry",
+        "external_connections_enabled": False,
+    }

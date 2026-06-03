@@ -1,7 +1,11 @@
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.app_registry import EcosystemApp
-from app.services.app_registry import get_registered_app, list_registered_apps
+from app.schemas.app_registry import AppRegistrySummary, EcosystemApp
+from app.services.app_registry import (
+    get_registered_app,
+    list_registered_apps,
+    summarize_registered_apps,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["app-registry"])
 
@@ -9,6 +13,11 @@ router = APIRouter(prefix="/api/v1", tags=["app-registry"])
 @router.get("/apps", response_model=list[EcosystemApp])
 def get_apps() -> list[EcosystemApp]:
     return list(list_registered_apps())
+
+
+@router.get("/apps/status/summary", response_model=AppRegistrySummary)
+def get_apps_status_summary() -> AppRegistrySummary:
+    return summarize_registered_apps()
 
 
 @router.get("/apps/{app_id}", response_model=EcosystemApp)

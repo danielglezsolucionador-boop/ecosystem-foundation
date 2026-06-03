@@ -20,3 +20,10 @@ class EcosystemApp(BaseModel):
     description: str = Field(min_length=1)
     touch_policy: str = Field(min_length=1)
 
+
+class AppRegistrySummary(BaseModel):
+    total: int
+    by_status: dict[str, int]
+    app_ids: list[str]
+    source: str
+    external_connections_enabled: bool

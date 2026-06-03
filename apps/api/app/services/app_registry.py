@@ -2,7 +2,7 @@ from functools import lru_cache
 import json
 from pathlib import Path
 
-from app.schemas.app_registry import EcosystemApp
+from app.schemas.app_registry import AppRegistrySummary, AppStatus, EcosystemApp
 
 REGISTRY_PATH = Path(__file__).resolve().parents[1] / "data" / "apps_registry.json"
 
@@ -18,4 +18,20 @@ def get_registered_app(app_id: str) -> EcosystemApp | None:
     return next(
         (app for app in list_registered_apps() if app.id == normalized_id),
         None,
+    )
+
+
+def summarize_registered_apps() -> AppRegistrySummary:
+    apps = list_registered_apps()
+    by_status = {status.value: 0 for status in AppStatus}
+
+    for app in apps:
+        by_status[app.status.value] += 1
+
+    return AppRegistrySummary(
+        total=len(apps),
+        by_status=by_status,
+        app_ids=[app.id for app in apps],
+        source="local_controlled_registry",
+        external_connections_enabled=False,
     )
