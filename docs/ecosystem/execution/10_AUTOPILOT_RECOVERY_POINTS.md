@@ -109,3 +109,23 @@ Base estable:
 Uso de rollback:
 
 Si memoria local falla de forma no recuperable, volver a `297b807` o crear una rama desde `backup/autopilot-v1-memory-20260603-083813`.
+
+## 2026-06-03 08:40 America/Lima
+
+Bloque: `LOCAL_AUDIT_BLOCK_006`
+
+Rama de respaldo:
+
+`backup/autopilot-v1-audit-20260603-084052`
+
+Commit de seguridad:
+
+`03ba5cc backup: recovery point before audit api`
+
+Base estable:
+
+`ebf4325 feat: add local shared memory api`
+
+Uso de rollback:
+
+Si auditoria automatica falla de forma no recuperable, volver a `ebf4325` o crear una rama desde `backup/autopilot-v1-audit-20260603-084052`.
