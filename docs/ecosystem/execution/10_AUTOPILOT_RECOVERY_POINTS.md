@@ -89,3 +89,23 @@ Base estable:
 Uso de rollback:
 
 Si storage/base local falla de forma no recuperable, volver a `1e7bed9` o crear una rama desde `backup/autopilot-v1-local-db-20260603-083524`.
+
+## 2026-06-03 08:38 America/Lima
+
+Bloque: `LOCAL_MEMORY_BLOCK_005`
+
+Rama de respaldo:
+
+`backup/autopilot-v1-memory-20260603-083813`
+
+Commit de seguridad:
+
+`1e21271 backup: recovery point before local memory`
+
+Base estable:
+
+`297b807 feat: add local sqlite storage status`
+
+Uso de rollback:
+
+Si memoria local falla de forma no recuperable, volver a `297b807` o crear una rama desde `backup/autopilot-v1-memory-20260603-083813`.
