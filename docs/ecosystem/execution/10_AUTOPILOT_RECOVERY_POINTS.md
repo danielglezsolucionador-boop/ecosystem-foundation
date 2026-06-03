@@ -30,3 +30,22 @@ Uso de rollback:
 
 Si un bloque falla de forma no recuperable, volver a la rama `main` en `52f6525` o crear una rama desde `backup/autopilot-v1-20260603-082741`.
 
+## 2026-06-03 08:30 America/Lima
+
+Bloque: `CONTROL_CENTER_API_BLOCK_002`
+
+Rama de respaldo:
+
+`backup/autopilot-v1-control-center-20260603-083034`
+
+Commit de seguridad:
+
+`99d4afd backup: recovery point before control center api`
+
+Base estable:
+
+`9b249b3 feat: add app registry status summary`
+
+Uso de rollback:
+
+Si Control Center falla de forma no recuperable, volver a `9b249b3` o crear una rama desde `backup/autopilot-v1-control-center-20260603-083034`.
