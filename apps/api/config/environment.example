@@ -1,0 +1,11 @@
+# Ecosystem Foundation API environment template.
+# Copy values into a local .env file or shell environment.
+# Do not place real credentials in this template.
+
+ECOSYSTEM_API_ENVIRONMENT=local
+ECOSYSTEM_API_SERVICE_NAME=ecosystem-foundation-api
+ECOSYSTEM_API_VERSION=0.1.0
+ECOSYSTEM_API_COMMIT=local
+ECOSYSTEM_API_CORS_ORIGINS=http://localhost:5173
+ECOSYSTEM_API_DEBUG=false
+
