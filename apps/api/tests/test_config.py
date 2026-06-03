@@ -15,6 +15,29 @@ def test_settings_default_to_safe_local_values() -> None:
     assert settings.database_url == "sqlite:///./var/ecosystem_foundation.db"
 
 
+def test_settings_accept_database_url_alias_for_vercel() -> None:
+    settings = Settings.from_mapping(
+        {
+            "ECOSYSTEM_API_ENVIRONMENT": "staging",
+            "DATABASE_URL": "postgresql://user:pass@example.com:5432/ecosystem",
+        }
+    )
+
+    assert settings.environment == "staging"
+    assert settings.database_url == "postgresql://user:pass@example.com:5432/ecosystem"
+
+
+def test_explicit_ecosystem_database_url_wins_over_alias() -> None:
+    settings = Settings.from_mapping(
+        {
+            "DATABASE_URL": "postgresql://user:pass@example.com:5432/cloud",
+            "ECOSYSTEM_API_DATABASE_URL": "sqlite:///:memory:",
+        }
+    )
+
+    assert settings.database_url == "sqlite:///:memory:"
+
+
 def test_settings_reject_invalid_environment() -> None:
     with pytest.raises(RuntimeError):
         Settings.from_mapping({"ECOSYSTEM_API_ENVIRONMENT": "demo"})

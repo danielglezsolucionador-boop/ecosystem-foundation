@@ -9,3 +9,6 @@ ECOSYSTEM_API_COMMIT=local
 ECOSYSTEM_API_CORS_ORIGINS=http://localhost:5173
 ECOSYSTEM_API_DEBUG=false
 
+# Local default. For Vercel Postgres, configure DATABASE_URL in Vercel instead.
+ECOSYSTEM_API_DATABASE_URL=sqlite:///./var/ecosystem_foundation.db
+# DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DBNAME

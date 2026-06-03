@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 import json
 from uuid import uuid4
 
-from app.core.database import connect, initialize_database
+from app.core.database import connect, initialize_database, sql_placeholder
 from app.schemas.memory import MemoryEntry, MemoryEntryCreate, MemoryStatus
 
 
@@ -57,6 +57,7 @@ def list_memory_entries() -> list[MemoryEntry]:
 
 def create_memory_entry(entry: MemoryEntryCreate) -> MemoryEntry:
     ensure_memory_schema()
+    placeholder = sql_placeholder()
 
     memory_entry = MemoryEntry(
         id=str(uuid4()),
@@ -73,8 +74,11 @@ def create_memory_entry(entry: MemoryEntryCreate) -> MemoryEntry:
             INSERT INTO ecosystem_memory_entries (
                 id, title, content, source, tags_json, created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
+            VALUES (
+                {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}
+            )
+            """.format(placeholder=placeholder),
             (
                 memory_entry.id,
                 memory_entry.title,
@@ -103,4 +107,3 @@ def get_memory_status() -> MemoryStatus:
         entries=row["count"],
         external_sources_connected=False,
     )
-

@@ -4,11 +4,13 @@ from app.schemas.control_center import (
     ControlCenterOverview,
 )
 from app.services.app_registry import summarize_registered_apps
+from app.services.storage import get_storage_status
 
 
 def get_control_center_overview() -> ControlCenterOverview:
     registry = summarize_registered_apps()
     by_status = registry.by_status
+    storage = get_storage_status()
 
     metrics = [
         ControlCenterMetric(
@@ -30,10 +32,10 @@ def get_control_center_overview() -> ControlCenterOverview:
             status="controlled",
         ),
         ControlCenterMetric(
-            id="blocked_apps",
-            label="Blocked apps",
-            value=by_status["blocked"],
-            status="ok",
+            id="storage_backend",
+            label="Storage backend",
+            value=storage.backend,
+            status="ok" if storage.status == "connected" else "fail",
         ),
     ]
 
@@ -66,7 +68,6 @@ def get_control_center_overview() -> ControlCenterOverview:
         next_actions=next_actions,
         risks=[
             "External app runtime is not connected by design.",
-            "No database is enabled yet for platform state.",
+            "Production Postgres requires DATABASE_URL in Vercel before cloud deploy.",
         ],
     )
-

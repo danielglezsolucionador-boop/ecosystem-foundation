@@ -40,9 +40,10 @@ class Settings:
                 source.get("ECOSYSTEM_API_CORS_ORIGINS", "http://localhost:5173")
             ),
             debug=parse_bool(source.get("ECOSYSTEM_API_DEBUG", "false")),
-            database_url=source.get(
-                "ECOSYSTEM_API_DATABASE_URL",
-                "sqlite:///./var/ecosystem_foundation.db",
+            database_url=(
+                source.get("ECOSYSTEM_API_DATABASE_URL")
+                or source.get("DATABASE_URL")
+                or "sqlite:///./var/ecosystem_foundation.db"
             ).strip(),
         )
 

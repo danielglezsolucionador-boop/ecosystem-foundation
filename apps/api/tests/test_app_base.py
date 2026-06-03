@@ -40,8 +40,21 @@ def test_runtime_status_contract() -> None:
     assert payload["service"] == APP_NAME
     assert payload["environment"] == "local"
     assert payload["version"] == APP_VERSION
-    assert payload["database"] == "not_required"
-    assert payload["storage"] == "not_required"
+    assert payload["database"]["status"] == "connected"
+    assert payload["database"]["backend"] == "sqlite"
+    assert payload["storage"] == "database_backed"
     assert payload["provider"] == "not_required"
-    assert payload["memory"] == "not_required"
+    assert payload["memory"] == "database_backed"
     assert "updated_at" in payload
+
+
+def test_readiness_reports_database_dependency() -> None:
+    client = TestClient(app)
+
+    response = client.get("/readiness")
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["status"] == "ready"
+    assert payload["dependencies"]["database"]["status"] == "connected"
+    assert payload["dependencies"]["database"]["backend"] == "sqlite"

@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 import json
 from uuid import uuid4
 
-from app.core.database import connect, initialize_database
+from app.core.database import connect, initialize_database, sql_placeholder
 from app.schemas.audit import AuditCheck, AuditReport
 from app.services.app_registry import summarize_registered_apps
 from app.services.memory import get_memory_status
@@ -33,6 +33,7 @@ def ensure_audit_schema() -> None:
 
 def run_local_audit() -> AuditReport:
     ensure_audit_schema()
+    placeholder = sql_placeholder()
 
     registry = summarize_registered_apps()
     storage = get_storage_status()
@@ -80,8 +81,8 @@ def run_local_audit() -> AuditReport:
         connection.execute(
             """
             INSERT INTO audit_reports (id, status, payload_json, created_at)
-            VALUES (?, ?, ?, ?)
-            """,
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+            """.format(placeholder=placeholder),
             (
                 report.id,
                 report.status,
@@ -107,4 +108,3 @@ def list_audit_reports() -> list[AuditReport]:
         ).fetchall()
 
     return [AuditReport(**json.loads(row["payload_json"])) for row in rows]
-

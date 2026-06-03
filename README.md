@@ -8,7 +8,9 @@ Estado actual:
 - estructura base del proyecto creada;
 - backend Python/FastAPI base creado en `apps/api/`;
 - healthcheck local disponible;
-- configuracion por entorno sin secrets reales.
+- configuracion por entorno sin secrets reales;
+- Plataforma V1 local operativa;
+- preparacion Vercel/Postgres versionada.
 
 Fuera de alcance en esta fase:
 
@@ -43,6 +45,7 @@ Las dependencias esperadas estan declaradas en:
 
 ```text
 apps/api/pyproject.toml
+requirements.txt
 ```
 
 ## Configuracion Local
@@ -62,9 +65,21 @@ ECOSYSTEM_API_VERSION=0.1.0
 ECOSYSTEM_API_COMMIT=local
 ECOSYSTEM_API_CORS_ORIGINS=http://localhost:5173
 ECOSYSTEM_API_DEBUG=false
+ECOSYSTEM_API_DATABASE_URL=sqlite:///./var/ecosystem_foundation.db
 ```
 
 No guardar secrets reales en el repositorio.
+
+Para Vercel/Postgres, configurar en Vercel:
+
+```text
+DATABASE_URL=postgresql://...
+ECOSYSTEM_API_ENVIRONMENT=staging
+ECOSYSTEM_API_SERVICE_NAME=ecosystem-foundation-api
+ECOSYSTEM_API_VERSION=0.1.0
+ECOSYSTEM_API_COMMIT=<git commit sha>
+ECOSYSTEM_API_DEBUG=false
+```
 
 ## Ejecutar Backend Local
 
@@ -95,10 +110,10 @@ cd apps/api
 python -m pytest -q
 ```
 
-Resultado esperado actual:
+Validacion fuerte desde la raiz:
 
-```text
-6 passed
+```powershell
+python scripts/validate_v1.py
 ```
 
 ## Contrato de Salud
@@ -111,12 +126,12 @@ docs/ecosystem/execution/operations/HEALTHCHECK_CONTRACT.md
 
 Estado actual de dependencias:
 
-- database: `not_required`
-- storage: `not_required`
+- database: `connected`
+- storage: `database_backed`
 - provider: `not_required`
-- memory: `not_required`
+- memory: `database_backed`
 
-Esto es intencional: la primera version ejecutable no conecta todavia dependencias externas.
+Esto es intencional: la primera version ejecutable no conecta todavia aplicaciones externas, pero si prepara almacenamiento local/cloud.
 
 ## Seguridad
 
@@ -132,11 +147,9 @@ Reglas vigentes:
 
 ## Siguiente Trabajo Recomendado
 
-Continuar con `ECO-031` ampliando el scaffold ejecutable hacia:
+Siguiente paso recomendado:
 
-1. App Registry API local;
-2. modelos y persistencia local;
-3. migraciones;
-4. frontend Control Center;
-5. smoke tests end-to-end locales.
-
+1. Configurar `DATABASE_URL` en Vercel.
+2. Ejecutar primer deployment staging desde el commit/tag estable.
+3. Validar `/health`, `/readiness`, `/runtime/status`, `/api/v1/platform/status`.
+4. Mantener FORJA y CEREBRO fuera de alcance hasta contratos externos aprobados.

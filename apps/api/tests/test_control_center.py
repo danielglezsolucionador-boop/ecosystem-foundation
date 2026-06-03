@@ -27,7 +27,7 @@ def test_control_center_overview_uses_app_registry_counts() -> None:
     assert metrics["registered_apps"]["value"] == 13
     assert metrics["planned_apps"]["value"] == 8
     assert metrics["external_references"]["value"] == 3
-    assert metrics["blocked_apps"]["value"] == 0
+    assert metrics["storage_backend"]["value"] == "sqlite"
 
 
 def test_control_center_does_not_enable_external_connections() -> None:
@@ -38,4 +38,4 @@ def test_control_center_does_not_enable_external_connections() -> None:
 
     assert payload["external_connections_enabled"] is False
     assert any("External app runtime is not connected" in risk for risk in payload["risks"])
-
+    assert any("DATABASE_URL" in risk for risk in payload["risks"])
