@@ -1,0 +1,41 @@
+[
+  {
+    "id": "viewer",
+    "label": "Viewer",
+    "scope": "read_only",
+    "permissions": [
+      "apps:read",
+      "control_center:read",
+      "permissions:read"
+    ],
+    "can_touch_external_apps": false
+  },
+  {
+    "id": "operator",
+    "label": "Operator",
+    "scope": "local_operations",
+    "permissions": [
+      "apps:read",
+      "control_center:read",
+      "permissions:read",
+      "memory:read",
+      "audit:read"
+    ],
+    "can_touch_external_apps": false
+  },
+  {
+    "id": "admin",
+    "label": "Admin",
+    "scope": "local_platform_admin",
+    "permissions": [
+      "apps:read",
+      "control_center:read",
+      "permissions:read",
+      "memory:read",
+      "memory:write",
+      "audit:read",
+      "observability:read"
+    ],
+    "can_touch_external_apps": false
+  }
+]
