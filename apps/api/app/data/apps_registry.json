@@ -1,0 +1,119 @@
+[
+  {
+    "id": "forja",
+    "name": "FORJA",
+    "type": "ecosystem_orchestrator",
+    "status": "external",
+    "depends_on": [],
+    "description": "Construction and execution cabin referenced by the ecosystem. Not connected by this API yet.",
+    "touch_policy": "no_touch_external"
+  },
+  {
+    "id": "cerebro",
+    "name": "CEREBRO",
+    "type": "executive_chief_of_staff",
+    "status": "external",
+    "depends_on": [],
+    "description": "Executive Chief of Staff application referenced by the ecosystem. Not connected by this API yet.",
+    "touch_policy": "no_touch_external"
+  },
+  {
+    "id": "centinela",
+    "name": "CENTINELA",
+    "type": "monitoring_app",
+    "status": "planned",
+    "depends_on": [],
+    "description": "Monitoring and vigilance application reserved in the ecosystem registry.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "pluma",
+    "name": "PLUMA",
+    "type": "content_app",
+    "status": "planned",
+    "depends_on": [],
+    "description": "Content and writing application reserved in the ecosystem registry.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "lente",
+    "name": "LENTE",
+    "type": "analysis_app",
+    "status": "planned",
+    "depends_on": [],
+    "description": "Observation and analysis application reserved in the ecosystem registry.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "buscador_de_tendencias",
+    "name": "BUSCADOR_DE_TENDENCIAS",
+    "type": "research_app",
+    "status": "planned",
+    "depends_on": [],
+    "description": "Trend discovery application reserved in the ecosystem registry.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "comercio_autonomo",
+    "name": "COMERCIO_AUTONOMO",
+    "type": "commerce_app",
+    "status": "planned",
+    "depends_on": [],
+    "description": "Autonomous commerce application reserved in the ecosystem registry.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "marca_personal",
+    "name": "MARCA_PERSONAL",
+    "type": "brand_app",
+    "status": "planned",
+    "depends_on": [],
+    "description": "Personal brand application reserved in the ecosystem registry.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "marketing",
+    "name": "MARKETING",
+    "type": "growth_app",
+    "status": "planned",
+    "depends_on": [],
+    "description": "Marketing and growth application reserved in the ecosystem registry.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "web_factory",
+    "name": "WEB_FACTORY",
+    "type": "production_app",
+    "status": "planned",
+    "depends_on": [],
+    "description": "Web production factory reserved in the ecosystem registry.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "doctor_contable_financiero_tributario",
+    "name": "Doctor Contable Financiero Tributario",
+    "type": "business_health_app",
+    "status": "external",
+    "depends_on": [],
+    "description": "Business financial, accounting and tax health product referenced by the ecosystem. Not connected by this API yet.",
+    "touch_policy": "no_touch_external"
+  },
+  {
+    "id": "auditor",
+    "name": "Auditor",
+    "type": "audit_app",
+    "status": "unknown",
+    "depends_on": [],
+    "description": "Audit capability reserved in the ecosystem registry pending formal evidence.",
+    "touch_policy": "registry_only"
+  },
+  {
+    "id": "hermes",
+    "name": "Hermes",
+    "type": "knowledge_app",
+    "status": "unknown",
+    "depends_on": [],
+    "description": "Knowledge and memory capability reserved in the ecosystem registry pending formal evidence.",
+    "touch_policy": "registry_only"
+  }
+]
