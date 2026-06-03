@@ -8,6 +8,7 @@ from app.api.integrations import router as integrations_router
 from app.api.memory import router as memory_router
 from app.api.observability import router as observability_router
 from app.api.permissions import router as permissions_router
+from app.api.platform import router as platform_router
 from app.api.storage import router as storage_router
 from app.core.metadata import APP_NAME, APP_VERSION
 
@@ -25,6 +26,7 @@ app.include_router(integrations_router)
 app.include_router(memory_router)
 app.include_router(observability_router)
 app.include_router(permissions_router)
+app.include_router(platform_router)
 app.include_router(storage_router)
 
 
