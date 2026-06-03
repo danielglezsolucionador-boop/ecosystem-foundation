@@ -49,3 +49,23 @@ Base estable:
 Uso de rollback:
 
 Si Control Center falla de forma no recuperable, volver a `9b249b3` o crear una rama desde `backup/autopilot-v1-control-center-20260603-083034`.
+
+## 2026-06-03 08:32 America/Lima
+
+Bloque: `PERMISSIONS_API_BLOCK_003`
+
+Rama de respaldo:
+
+`backup/autopilot-v1-permissions-20260603-083259`
+
+Commit de seguridad:
+
+`c70ae41 backup: recovery point before permissions api`
+
+Base estable:
+
+`0916bcc feat: add control center overview api`
+
+Uso de rollback:
+
+Si permisos falla de forma no recuperable, volver a `0916bcc` o crear una rama desde `backup/autopilot-v1-permissions-20260603-083259`.
