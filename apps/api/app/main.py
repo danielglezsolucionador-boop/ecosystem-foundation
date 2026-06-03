@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.apps import router as apps_router
+from app.api.control_center import router as control_center_router
 from app.api.health import router as health_router
 from app.core.metadata import APP_NAME, APP_VERSION
 
@@ -11,6 +12,7 @@ app = FastAPI(
 )
 
 app.include_router(apps_router)
+app.include_router(control_center_router)
 app.include_router(health_router)
 
 
