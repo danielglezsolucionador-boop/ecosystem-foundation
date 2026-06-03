@@ -30,7 +30,7 @@ flowchart TB
 | Bloqueo | Severidad | Estado | Salida |
 |---|---:|---|---|
 | No hay repositorio Git detectado | Alta | Resuelto | Git inicializado localmente; documentacion versionada en `997962e` |
-| No hay inventario real de apps en este workspace | Media | Activo | Crear App Registry futuro con datos reales |
+| No hay inventario real de apps en este workspace | Media | Controlado | App Registry V1 inicializado; falta primer manifest aprobado con evidencia real |
 | No hay stack aplicativo en este workspace | Media | Activo | Mantener fase documental hasta seleccionar repo real |
 | No hay proveedor cloud definitivo | Baja | Aceptado | Mantener arquitectura cloud-agnostic |
 
@@ -94,6 +94,9 @@ Ejecutadas:
 - crear backlog ejecutable;
 - crear contratos del Control Center;
 - crear contratos de integracion.
+- inicializar App Registry V1;
+- crear plantilla de manifest por aplicacion;
+- validar registry documental.
 
 ## 8. Ruta Cloud-Ready Minima
 
@@ -101,7 +104,7 @@ Para que el ecosistema este listo para una futura implementacion cloud:
 
 1. Repositorio Git real local inicializado.
 2. App Registry inicial.
-3. Manifest por app.
+3. Primer manifest por app con evidencia real.
 4. Politica de entornos aprobada.
 5. Secrets fuera del repo.
 6. Health/runtime contract aplicado por app.
@@ -126,4 +129,4 @@ Para que el ecosistema este listo para una futura implementacion cloud:
 
 Siguiente paso tecnico real:
 
-Crear `App Registry` con inventario real de aplicaciones dentro del repositorio oficial `ecosystem-foundation`.
+Crear `FIRST_APP_MANIFEST_V1` para la primera aplicacion autorizada, usando el template versionado y evidencia real.

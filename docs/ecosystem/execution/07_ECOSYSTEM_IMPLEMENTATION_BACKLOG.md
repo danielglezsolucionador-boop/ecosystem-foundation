@@ -51,6 +51,10 @@ Transformar los seis documentos base del ecosistema en un backlog ejecutable, se
 | ECO-021 | Git | Commit Fase 4 | P0 | ECO-010..012 | Git | Medio | Control Center base versionado en commit consolidado `997962e` | DONE |
 | ECO-022 | Git | Commit Fase 5 | P0 | ECO-013..016 | Git | Medio | Integration layer versionada en commit consolidado `997962e` | DONE |
 | ECO-023 | Git | Commit Fase 6 | P0 | ECO-017 | Git | Medio | Audit report versionado en commit consolidado `997962e` | DONE |
+| ECO-024 | App Registry | Inicializar App Registry V1 | P0 | ECO-009 | `app-registry/APP_REGISTRY_V1.md` | Medio | Registro inicial creado sin inventar apps activas | DONE |
+| ECO-025 | App Registry | Crear plantilla de manifest por aplicacion | P0 | ECO-024 | `app-registry/APP_MANIFEST_TEMPLATE.md` | Bajo | Template completo y sin secrets | DONE |
+| ECO-026 | App Registry | Validar App Registry documental | P0 | ECO-024..025 | `app-registry/APP_REGISTRY_VALIDATION.md` | Bajo | Validacion documental creada | DONE |
+| ECO-027 | App Registry | Registrar primera app con evidencia real | P0 | ECO-024..026 | `app-registry/apps/{app_id}.md` | Medio | Manifest aprobado por app y evidencia versionada | READY |
 
 ## 4. Tareas Seguras Ejecutadas
 
@@ -61,6 +65,7 @@ Ejecutadas:
 Ejecutadas posteriormente:
 
 - ECO-018 a ECO-023 mediante inicializacion local de Git y commit consolidado `997962e docs: add ecosystem cloud execution plan`.
+- ECO-024 a ECO-026 mediante inicializacion documental de App Registry V1, plantilla de manifest y validacion documental.
 
 ## 5. Auditoria Interna
 
@@ -79,4 +84,4 @@ Ejecutadas posteriormente:
 
 ## 6. Recomendacion
 
-Continuar con `ECOSYSTEM_APP_REGISTRY_V1` usando `docs/ecosystem/` como fuente de verdad y sin tocar FORJA ni CEREBRO.
+Continuar con `FIRST_APP_MANIFEST_V1`: registrar la primera aplicacion autorizada con evidencia real usando `APP_MANIFEST_TEMPLATE.md`, sin tocar FORJA ni CEREBRO salvo autorizacion explicita.

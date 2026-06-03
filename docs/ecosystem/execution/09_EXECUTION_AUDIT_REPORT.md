@@ -157,7 +157,7 @@ Ningun archivo existente fue modificado.
 | Riesgo | Severidad | Estado | Recomendacion |
 |---|---:|---|---|
 | No hay repositorio Git | Alta | Resuelto | Git local inicializado; commit consolidado `997962e` creado |
-| No hay App Registry real | Media | Activo | Crear inventario real como siguiente fase |
+| No hay App Registry real | Media | Controlado | App Registry V1 inicializado; falta primer manifest aprobado |
 | No hay stack aplicativo | Media | Activo | Mantener contratos hasta elegir repositorio de implementacion |
 | No hay cloud real | Baja | Aceptado | Fase actual prohibe recursos reales |
 
@@ -168,7 +168,7 @@ Ninguna tarea Git queda bloqueada tras la inicializacion local.
 ## 8. Recomendaciones
 
 1. Mantener `ecosystem-foundation` como repositorio documental oficial.
-2. Crear `App Registry` con aplicaciones reales.
+2. Crear primer manifest por app con evidencia real.
 3. Ejecutar auditoria de secrets antes de cualquier staging.
 4. No conectar FORJA ni CEREBRO sin aprobacion explicita.
 
@@ -176,8 +176,26 @@ Ninguna tarea Git queda bloqueada tras la inicializacion local.
 
 Siguiente fase real recomendada:
 
-`ECOSYSTEM_APP_REGISTRY_V1`
+`FIRST_APP_MANIFEST_V1`
 
 Objetivo:
 
-Crear el inventario operativo real de aplicaciones con owner, rutas, health, runtime/status, dependencias, estado de produccion y riesgos.
+Crear el primer manifest aprobado por aplicacion con owner, rutas, health, runtime/status, dependencias, estado de produccion, riesgos y evidencia versionada.
+
+## 10. Fase 7 - App Registry V1
+
+Estado: `DOCUMENTAL_PASS`
+
+Archivos:
+
+- [app-registry/APP_REGISTRY_V1.md](./app-registry/APP_REGISTRY_V1.md)
+- [app-registry/APP_MANIFEST_TEMPLATE.md](./app-registry/APP_MANIFEST_TEMPLATE.md)
+- [app-registry/APP_REGISTRY_VALIDATION.md](./app-registry/APP_REGISTRY_VALIDATION.md)
+
+Resultado:
+
+- App Registry inicializado.
+- Template de manifest por aplicacion creado.
+- Referencias externas a FORJA y CEREBRO mantenidas como no registradas activas.
+- No se inventaron URLs productivas ni estados live.
+- No se modificaron aplicaciones.
