@@ -14,6 +14,7 @@ class Settings:
     commit: str
     cors_origins: tuple[str, ...]
     debug: bool
+    database_url: str
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str] | None = None) -> "Settings":
@@ -39,6 +40,10 @@ class Settings:
                 source.get("ECOSYSTEM_API_CORS_ORIGINS", "http://localhost:5173")
             ),
             debug=parse_bool(source.get("ECOSYSTEM_API_DEBUG", "false")),
+            database_url=source.get(
+                "ECOSYSTEM_API_DATABASE_URL",
+                "sqlite:///./var/ecosystem_foundation.db",
+            ).strip(),
         )
 
 
@@ -53,4 +58,3 @@ def parse_csv(value: str) -> tuple[str, ...]:
 @lru_cache
 def get_settings() -> Settings:
     return Settings.from_mapping()
-

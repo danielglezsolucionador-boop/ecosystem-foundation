@@ -12,6 +12,7 @@ def test_settings_default_to_safe_local_values() -> None:
     assert settings.commit == "unknown"
     assert settings.cors_origins == ("http://localhost:5173",)
     assert settings.debug is False
+    assert settings.database_url == "sqlite:///./var/ecosystem_foundation.db"
 
 
 def test_settings_reject_invalid_environment() -> None:
@@ -26,4 +27,3 @@ def test_parse_helpers() -> None:
         "http://localhost:5173",
         "https://example.test",
     )
-

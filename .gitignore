@@ -11,3 +11,4 @@ venv/
 *.log
 outputs/
 work/
+apps/api/var/
