@@ -1,0 +1,62 @@
+[
+  {
+    "id": "app-registry.v1",
+    "name": "App Registry V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/apps",
+    "method": "GET",
+    "status": "ready_local",
+    "external_dependency": false,
+    "description": "Local controlled registry for ecosystem applications."
+  },
+  {
+    "id": "control-center-overview.v1",
+    "name": "Control Center Overview V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/control-center/overview",
+    "method": "GET",
+    "status": "ready_local",
+    "external_dependency": false,
+    "description": "Executive local overview aggregated from internal services."
+  },
+  {
+    "id": "permissions.v1",
+    "name": "Permissions V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/permissions/roles",
+    "method": "GET",
+    "status": "ready_local",
+    "external_dependency": false,
+    "description": "Local role and permission matrix."
+  },
+  {
+    "id": "memory.v1",
+    "name": "Shared Memory V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/memory/entries",
+    "method": "GET",
+    "status": "ready_local",
+    "external_dependency": false,
+    "description": "Local shared memory entries stored in SQLite."
+  },
+  {
+    "id": "audit.v1",
+    "name": "Audit V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/audit/run",
+    "method": "POST",
+    "status": "ready_local",
+    "external_dependency": false,
+    "description": "Local automatic audit runner and report history."
+  },
+  {
+    "id": "external-app-runtime.v1",
+    "name": "External App Runtime V1",
+    "provider": "external-apps",
+    "endpoint": "not_connected",
+    "method": "NONE",
+    "status": "prepared_not_connected",
+    "external_dependency": true,
+    "description": "Future runtime contract for FORJA, CEREBRO and other apps. Not connected in Platform V1 local."
+  }
+]
