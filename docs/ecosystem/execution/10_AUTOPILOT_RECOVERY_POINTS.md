@@ -69,3 +69,23 @@ Base estable:
 Uso de rollback:
 
 Si permisos falla de forma no recuperable, volver a `0916bcc` o crear una rama desde `backup/autopilot-v1-permissions-20260603-083259`.
+
+## 2026-06-03 08:35 America/Lima
+
+Bloque: `LOCAL_DATABASE_BLOCK_004`
+
+Rama de respaldo:
+
+`backup/autopilot-v1-local-db-20260603-083524`
+
+Commit de seguridad:
+
+`5a56953 backup: recovery point before local database`
+
+Base estable:
+
+`1e7bed9 feat: add local permissions api`
+
+Uso de rollback:
+
+Si storage/base local falla de forma no recuperable, volver a `1e7bed9` o crear una rama desde `backup/autopilot-v1-local-db-20260603-083524`.
