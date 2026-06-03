@@ -129,3 +129,23 @@ Base estable:
 Uso de rollback:
 
 Si auditoria automatica falla de forma no recuperable, volver a `ebf4325` o crear una rama desde `backup/autopilot-v1-audit-20260603-084052`.
+
+## 2026-06-03 08:43 America/Lima
+
+Bloque: `OBSERVABILITY_BLOCK_007`
+
+Rama de respaldo:
+
+`backup/autopilot-v1-observability-20260603-084320`
+
+Commit de seguridad:
+
+`5a3ca25 backup: recovery point before observability api`
+
+Base estable:
+
+`3c098df feat: add local audit run api`
+
+Uso de rollback:
+
+Si observabilidad local falla de forma no recuperable, volver a `3c098df` o crear una rama desde `backup/autopilot-v1-observability-20260603-084320`.
