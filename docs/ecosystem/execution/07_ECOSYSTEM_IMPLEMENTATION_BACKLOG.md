@@ -55,6 +55,10 @@ Transformar los seis documentos base del ecosistema en un backlog ejecutable, se
 | ECO-025 | App Registry | Crear plantilla de manifest por aplicacion | P0 | ECO-024 | `app-registry/APP_MANIFEST_TEMPLATE.md` | Bajo | Template completo y sin secrets | DONE |
 | ECO-026 | App Registry | Validar App Registry documental | P0 | ECO-024..025 | `app-registry/APP_REGISTRY_VALIDATION.md` | Bajo | Validacion documental creada | DONE |
 | ECO-027 | App Registry | Registrar primera app con evidencia real | P0 | ECO-024..026 | `app-registry/apps/{app_id}.md` | Medio | Manifest aprobado por app y evidencia versionada | READY |
+| ECO-028 | Implementation | Descubrir estado tecnico real del repo | P0 | ECO-024 | `implementation/01_REPOSITORY_DISCOVERY_REPORT.md` | Bajo | Discovery documentado sin asumir stack | DONE |
+| ECO-029 | Implementation | Proponer primera plataforma ejecutable | P0 | ECO-028 | `implementation/02_IMPLEMENTATION_PROPOSAL.md` | Medio | Stack recomendado con justificacion | DONE |
+| ECO-030 | Implementation | Auditar discovery y propuesta | P0 | ECO-028..029 | `implementation/03_IMPLEMENTATION_AUDIT_REPORT.md` | Bajo | Auditoria documental PASS | DONE |
+| ECO-031 | Implementation | Crear scaffold ejecutable V1 | P0 | ECO-028..030 | `apps/`, `packages/`, `infra/` | Medio | Backend, frontend, health, runtime y tests locales PASS | READY |
 
 ## 4. Tareas Seguras Ejecutadas
 
@@ -66,6 +70,7 @@ Ejecutadas posteriormente:
 
 - ECO-018 a ECO-023 mediante inicializacion local de Git y commit consolidado `997962e docs: add ecosystem cloud execution plan`.
 - ECO-024 a ECO-026 mediante inicializacion documental de App Registry V1, plantilla de manifest y validacion documental.
+- ECO-028 a ECO-030 mediante discovery tecnico real, propuesta de implementacion y auditoria documental.
 
 ## 5. Auditoria Interna
 
@@ -84,4 +89,4 @@ Ejecutadas posteriormente:
 
 ## 6. Recomendacion
 
-Continuar con `FIRST_APP_MANIFEST_V1`: registrar la primera aplicacion autorizada con evidencia real usando `APP_MANIFEST_TEMPLATE.md`, sin tocar FORJA ni CEREBRO salvo autorizacion explicita.
+Continuar con `EXECUTABLE_PLATFORM_SCAFFOLD_V1` solo cuando se autorice programar codigo: crear backend, frontend, DB local, health/runtime y tests minimos sin deploy, sin infraestructura real y sin tocar FORJA/CEREBRO.
