@@ -1,0 +1,46 @@
+[
+  {
+    "id": "no_secret_exposure",
+    "label": "No Secret Exposure",
+    "status": "active",
+    "enforced": true,
+    "rules": [
+      "No API key value is stored in repository data.",
+      "No role can view secret material.",
+      "Endpoints may report secret configuration status only as booleans."
+    ]
+  },
+  {
+    "id": "external_app_isolation",
+    "label": "External App Isolation",
+    "status": "active",
+    "enforced": true,
+    "rules": [
+      "No role can touch FORJA, CEREBRO or DCFT in the backbone stage.",
+      "External app resources are denied by the Access Control Engine.",
+      "Integration contracts are required before real external connections."
+    ]
+  },
+  {
+    "id": "critical_action_human_approval",
+    "label": "Critical Action Human Approval",
+    "status": "active",
+    "enforced": true,
+    "rules": [
+      "Critical writes require human approval.",
+      "manage:system requires human approval.",
+      "write:permissions requires human approval."
+    ]
+  },
+  {
+    "id": "audit_all_access_validation",
+    "label": "Audit All Access Validation",
+    "status": "active",
+    "enforced": true,
+    "rules": [
+      "Every access validation attempt is recorded.",
+      "Denied attempts are stored with reason.",
+      "Audit events must not include secret values."
+    ]
+  }
+]

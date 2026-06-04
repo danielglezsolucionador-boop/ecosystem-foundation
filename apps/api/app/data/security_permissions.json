@@ -1,0 +1,107 @@
+[
+  {
+    "id": "read:control_center",
+    "label": "Read Control Center",
+    "category": "control_center",
+    "critical": false,
+    "description": "Read executive and operational Control Center views."
+  },
+  {
+    "id": "write:control_center",
+    "label": "Write Control Center",
+    "category": "control_center",
+    "critical": true,
+    "description": "Create or modify local Control Center state."
+  },
+  {
+    "id": "read:apps",
+    "label": "Read Apps",
+    "category": "apps",
+    "critical": false,
+    "description": "Read controlled application registry data."
+  },
+  {
+    "id": "write:apps",
+    "label": "Write Apps",
+    "category": "apps",
+    "critical": true,
+    "description": "Modify the controlled application registry."
+  },
+  {
+    "id": "read:memory",
+    "label": "Read Memory",
+    "category": "memory",
+    "critical": false,
+    "description": "Read local ecosystem memory."
+  },
+  {
+    "id": "write:memory",
+    "label": "Write Memory",
+    "category": "memory",
+    "critical": true,
+    "description": "Create or update local ecosystem memory records."
+  },
+  {
+    "id": "read:events",
+    "label": "Read Events",
+    "category": "events",
+    "critical": false,
+    "description": "Read local internal event history."
+  },
+  {
+    "id": "write:events",
+    "label": "Write Events",
+    "category": "events",
+    "critical": true,
+    "description": "Publish local internal events."
+  },
+  {
+    "id": "read:audit",
+    "label": "Read Audit",
+    "category": "audit",
+    "critical": false,
+    "description": "Read local audit records."
+  },
+  {
+    "id": "write:audit",
+    "label": "Write Audit",
+    "category": "audit",
+    "critical": true,
+    "description": "Create or modify local audit records."
+  },
+  {
+    "id": "read:observability",
+    "label": "Read Observability",
+    "category": "observability",
+    "critical": false,
+    "description": "Read local observability signals."
+  },
+  {
+    "id": "write:observability",
+    "label": "Write Observability",
+    "category": "observability",
+    "critical": true,
+    "description": "Create or modify local observability signals."
+  },
+  {
+    "id": "read:permissions",
+    "label": "Read Permissions",
+    "category": "security",
+    "critical": false,
+    "description": "Read roles, permissions and policy registries."
+  },
+  {
+    "id": "write:permissions",
+    "label": "Write Permissions",
+    "category": "security",
+    "critical": true,
+    "description": "Modify roles, permissions or policies."
+  },
+  {
+    "id": "manage:system",
+    "label": "Manage System",
+    "category": "system",
+    "critical": true,
+    "description": "Approve or coordinate critical platform operations."
+  }
+]

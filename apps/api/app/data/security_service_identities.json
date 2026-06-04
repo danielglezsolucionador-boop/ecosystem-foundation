@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ecosystem-foundation-api",
+    "service": "ecosystem-foundation-api",
+    "role_id": "service",
+    "status": "placeholder_ready",
+    "allowed_permissions": [
+      "read:control_center",
+      "read:apps",
+      "read:events",
+      "write:events",
+      "read:observability"
+    ],
+    "api_key_placeholder_id": "svc-ecosystem-foundation-api-key",
+    "secret_material_present": false
+  },
+  {
+    "id": "control-center-service",
+    "service": "control-center",
+    "role_id": "service",
+    "status": "placeholder_ready",
+    "allowed_permissions": [
+      "read:control_center",
+      "read:apps",
+      "read:observability"
+    ],
+    "api_key_placeholder_id": "svc-control-center-key",
+    "secret_material_present": false
+  }
+]

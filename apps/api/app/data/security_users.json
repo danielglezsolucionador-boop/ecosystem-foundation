@@ -1,0 +1,34 @@
+[
+  {
+    "id": "ceo-local",
+    "display_name": "CEO Local",
+    "role_id": "ceo",
+    "status": "reserved",
+    "authentication_mode": "future_auth",
+    "notes": "Reserved human executive principal. No login implementation yet."
+  },
+  {
+    "id": "admin-local",
+    "display_name": "Admin Local",
+    "role_id": "admin",
+    "status": "reserved",
+    "authentication_mode": "future_auth",
+    "notes": "Reserved platform administrator principal. No password stored."
+  },
+  {
+    "id": "operator-local",
+    "display_name": "Operator Local",
+    "role_id": "operator",
+    "status": "reserved",
+    "authentication_mode": "future_auth",
+    "notes": "Reserved operations principal for future authenticated workflows."
+  },
+  {
+    "id": "auditor-local",
+    "display_name": "Auditor Local",
+    "role_id": "auditor",
+    "status": "reserved",
+    "authentication_mode": "future_auth",
+    "notes": "Reserved audit principal for future authenticated workflows."
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "id": "future-session-model",
+  "status": "prepared_not_issuing",
+  "issuing_strategy": "future_authenticated_session_after_identity_provider_selection",
+  "expiration_policy": "short_lived_sessions_required",
+  "secret_material_present": false
+}

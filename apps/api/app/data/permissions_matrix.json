@@ -1,41 +1,117 @@
 [
   {
-    "id": "viewer",
-    "label": "Viewer",
-    "scope": "read_only",
+    "id": "ceo",
+    "label": "CEO",
+    "scope": "executive_control",
+    "description": "Executive authority for strategic oversight and controlled approvals.",
     "permissions": [
-      "apps:read",
-      "control_center:read",
-      "permissions:read"
+      "read:control_center",
+      "write:control_center",
+      "read:apps",
+      "write:apps",
+      "read:memory",
+      "write:memory",
+      "read:events",
+      "write:events",
+      "read:audit",
+      "write:audit",
+      "read:observability",
+      "write:observability",
+      "read:permissions",
+      "write:permissions",
+      "manage:system"
     ],
-    "can_touch_external_apps": false
-  },
-  {
-    "id": "operator",
-    "label": "Operator",
-    "scope": "local_operations",
-    "permissions": [
-      "apps:read",
-      "control_center:read",
-      "permissions:read",
-      "memory:read",
-      "audit:read"
-    ],
-    "can_touch_external_apps": false
+    "can_touch_external_apps": false,
+    "can_view_secrets": false,
+    "requires_human_approval_for": [
+      "write:apps",
+      "write:permissions",
+      "manage:system"
+    ]
   },
   {
     "id": "admin",
-    "label": "Admin",
+    "label": "ADMIN",
     "scope": "local_platform_admin",
+    "description": "Local platform administration without external app touch permission.",
     "permissions": [
-      "apps:read",
-      "control_center:read",
-      "permissions:read",
-      "memory:read",
-      "memory:write",
-      "audit:read",
-      "observability:read"
+      "read:control_center",
+      "write:control_center",
+      "read:apps",
+      "read:memory",
+      "write:memory",
+      "read:events",
+      "write:events",
+      "read:audit",
+      "write:audit",
+      "read:observability",
+      "write:observability",
+      "read:permissions"
     ],
-    "can_touch_external_apps": false
+    "can_touch_external_apps": false,
+    "can_view_secrets": false,
+    "requires_human_approval_for": [
+      "write:audit",
+      "write:observability"
+    ]
+  },
+  {
+    "id": "operator",
+    "label": "OPERATOR",
+    "scope": "local_operations",
+    "description": "Operational execution role for local platform signals and events.",
+    "permissions": [
+      "read:control_center",
+      "write:control_center",
+      "read:apps",
+      "read:memory",
+      "write:memory",
+      "read:events",
+      "write:events",
+      "read:audit",
+      "read:observability"
+    ],
+    "can_touch_external_apps": false,
+    "can_view_secrets": false,
+    "requires_human_approval_for": [
+      "write:control_center",
+      "write:events"
+    ]
+  },
+  {
+    "id": "auditor",
+    "label": "AUDITOR",
+    "scope": "audit_read_only",
+    "description": "Independent read-only oversight role for audit and observability.",
+    "permissions": [
+      "read:control_center",
+      "read:apps",
+      "read:memory",
+      "read:events",
+      "read:audit",
+      "read:observability",
+      "read:permissions"
+    ],
+    "can_touch_external_apps": false,
+    "can_view_secrets": false,
+    "requires_human_approval_for": []
+  },
+  {
+    "id": "service",
+    "label": "SERVICE",
+    "scope": "internal_service_identity",
+    "description": "Machine identity for internal platform services only.",
+    "permissions": [
+      "read:control_center",
+      "read:apps",
+      "read:events",
+      "write:events",
+      "read:observability"
+    ],
+    "can_touch_external_apps": false,
+    "can_view_secrets": false,
+    "requires_human_approval_for": [
+      "write:events"
+    ]
   }
 ]

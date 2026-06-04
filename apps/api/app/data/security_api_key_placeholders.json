@@ -1,0 +1,16 @@
+[
+  {
+    "id": "svc-ecosystem-foundation-api-key",
+    "service_identity_id": "ecosystem-foundation-api",
+    "status": "placeholder_only",
+    "storage_policy": "future_secret_manager_required",
+    "secret_material_present": false
+  },
+  {
+    "id": "svc-control-center-key",
+    "service_identity_id": "control-center-service",
+    "status": "placeholder_only",
+    "storage_policy": "future_secret_manager_required",
+    "secret_material_present": false
+  }
+]
