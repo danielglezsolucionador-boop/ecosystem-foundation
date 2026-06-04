@@ -4,6 +4,7 @@ from app.schemas.audit import AuditEvent
 from app.schemas.governance import (
     ApprovalTransitionRequest,
     DecisionTransitionRequest,
+    GovernanceAuthBoundary,
     GovernanceApproval,
     GovernanceApprovalCreate,
     GovernanceDecision,
@@ -14,6 +15,7 @@ from app.schemas.governance import (
     GovernanceRisk,
     GovernanceRiskCreate,
     GovernanceRiskUpdate,
+    GovernanceRole,
     IntegrationGate,
     IntegrationGateTransitionRequest,
     PolicyEvaluationRequest,
@@ -34,8 +36,10 @@ from app.services.governance import (
     create_decision,
     create_risk,
     evaluate_policy,
+    escalate_approval,
     get_approval,
     get_decision,
+    get_governance_auth_boundary,
     get_governance_overview,
     get_governance_report,
     get_integration_gate,
@@ -67,6 +71,13 @@ def read_governance_overview() -> GovernanceOverview:
     return get_governance_overview()
 
 
+@router.get("/auth-boundary", response_model=GovernanceAuthBoundary)
+def read_governance_auth_boundary(
+    role_id: GovernanceRole = GovernanceRole.ceo,
+) -> GovernanceAuthBoundary:
+    return get_governance_auth_boundary(role_id)
+
+
 @router.get("/decisions", response_model=list[GovernanceDecision])
 def read_decisions() -> list[GovernanceDecision]:
     return list_decisions()
@@ -78,7 +89,10 @@ def read_decisions() -> list[GovernanceDecision]:
     status_code=status.HTTP_201_CREATED,
 )
 def write_decision(request: GovernanceDecisionCreate) -> GovernanceDecision:
-    return create_decision(request)
+    try:
+        return create_decision(request)
+    except GovernanceError as error:
+        raise_governance_error(error)
 
 
 @router.get("/decisions/{decision_id}", response_model=GovernanceDecision)
@@ -136,7 +150,10 @@ def read_approvals() -> list[GovernanceApproval]:
     status_code=status.HTTP_201_CREATED,
 )
 def write_approval(request: GovernanceApprovalCreate) -> GovernanceApproval:
-    return create_approval(request)
+    try:
+        return create_approval(request)
+    except GovernanceError as error:
+        raise_governance_error(error)
 
 
 @router.get("/approvals/pending", response_model=list[GovernanceApproval])
@@ -173,6 +190,17 @@ def reject_governance_approval(
 ) -> GovernanceApproval:
     try:
         return reject_approval(approval_id, request)
+    except GovernanceError as error:
+        raise_governance_error(error)
+
+
+@router.post("/approvals/{approval_id}/escalate", response_model=GovernanceApproval)
+def escalate_governance_approval(
+    approval_id: str,
+    request: ApprovalTransitionRequest,
+) -> GovernanceApproval:
+    try:
+        return escalate_approval(approval_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
 
@@ -257,7 +285,10 @@ def read_policies() -> list[GovernancePolicy]:
 def evaluate_governance_policy(
     request: PolicyEvaluationRequest,
 ) -> PolicyEvaluationResult:
-    return evaluate_policy(request)
+    try:
+        return evaluate_policy(request)
+    except GovernanceError as error:
+        raise_governance_error(error)
 
 
 @router.get("/risks", response_model=list[GovernanceRisk])
@@ -271,7 +302,10 @@ def read_risks() -> list[GovernanceRisk]:
     status_code=status.HTTP_201_CREATED,
 )
 def write_risk(request: GovernanceRiskCreate) -> GovernanceRisk:
-    return create_risk(request)
+    try:
+        return create_risk(request)
+    except GovernanceError as error:
+        raise_governance_error(error)
 
 
 @router.get("/risks/{risk_id}", response_model=GovernanceRisk)

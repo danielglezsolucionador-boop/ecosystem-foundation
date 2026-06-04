@@ -17,6 +17,10 @@
       "write:audit",
       "read:observability",
       "write:observability",
+      "read:governance",
+      "write:governance",
+      "approve:governance",
+      "audit:governance",
       "read:permissions",
       "write:permissions",
       "manage:system"
@@ -46,6 +50,10 @@
       "write:audit",
       "read:observability",
       "write:observability",
+      "read:governance",
+      "write:governance",
+      "approve:governance",
+      "audit:governance",
       "read:permissions"
     ],
     "can_touch_external_apps": false,
@@ -69,7 +77,9 @@
       "read:events",
       "write:events",
       "read:audit",
-      "read:observability"
+      "read:observability",
+      "read:governance",
+      "write:governance"
     ],
     "can_touch_external_apps": false,
     "can_view_secrets": false,
@@ -90,6 +100,8 @@
       "read:events",
       "read:audit",
       "read:observability",
+      "read:governance",
+      "audit:governance",
       "read:permissions"
     ],
     "can_touch_external_apps": false,

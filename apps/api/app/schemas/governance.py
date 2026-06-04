@@ -27,6 +27,7 @@ class ApprovalStatus(StrEnum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
+    escalated = "escalated"
     expired = "expired"
     cancelled = "cancelled"
 
@@ -185,6 +186,31 @@ class PolicyEvaluationResult(BaseModel):
     reason: str
     requires_human_approval: bool
     audit_event_id: str
+    evaluated_at: str
+
+
+class GovernanceActionDefinition(BaseModel):
+    id: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    section: str = Field(min_length=1)
+    method: str = Field(min_length=1)
+    endpoint: str = Field(min_length=1)
+    allowed: bool
+    reason: str = Field(min_length=1)
+    requires_reason: bool = False
+    requires_evidence: bool = False
+    critical: bool = False
+    payload_template: dict[str, Any] = Field(default_factory=dict)
+
+
+class GovernanceAuthBoundary(BaseModel):
+    role_id: GovernanceRole
+    role_label: str = Field(min_length=1)
+    views_allowed: list[str]
+    actions: list[GovernanceActionDefinition]
+    denied_message: str = Field(min_length=1)
+    external_connections_enabled: bool
     evaluated_at: str
 
 

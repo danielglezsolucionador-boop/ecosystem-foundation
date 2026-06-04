@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="dark" />
     <title>Control Center | Ecosystem Foundation</title>
     <link rel="stylesheet" href="/control-center/assets/styles.css" />
   </head>
@@ -11,12 +11,25 @@
     <div id="app" class="shell" aria-live="polite">
       <aside class="sidebar" aria-label="Navegacion principal">
         <a class="brand" href="#top" aria-label="Control Center inicio">
-          <span class="brand-mark">EC</span>
+          <span class="brand-mark">CC</span>
           <span>
             <strong>CONTROL CENTER</strong>
-            <small>Ecosystem Foundation</small>
+            <small>Human Governance OS</small>
           </span>
         </a>
+
+        <label class="role-card">
+          <span>Rol activo</span>
+          <select id="role-select" aria-label="Seleccionar rol activo">
+            <option value="ceo">CEO</option>
+            <option value="admin">ADMIN</option>
+            <option value="operator">OPERATOR</option>
+            <option value="auditor">AUDITOR</option>
+            <option value="service">SERVICE</option>
+          </select>
+          <small id="role-boundary-copy">Cargando permisos del rol.</small>
+        </label>
+
         <nav class="nav" id="view-tabs" aria-label="Vistas">
           <button class="active" data-view="ceo" type="button">Vista CEO</button>
           <button data-view="governance" type="button">Governance</button>
@@ -24,6 +37,7 @@
           <button data-view="auditor" type="button">Vista Auditor</button>
           <button data-view="system" type="button">Vista Sistema</button>
         </nav>
+
         <div class="sidebar-card">
           <span>Readiness</span>
           <strong id="sidebar-readiness">Cargando</strong>
@@ -36,12 +50,12 @@
           <div>
             <span class="eyebrow">Cabina humana premium</span>
             <h1>Control Center</h1>
-            <p>Supervision ejecutiva del ecosistema sin tocar aplicaciones externas.</p>
+            <p>Gobierno ejecutivo del ecosistema con acciones humanas, permisos por rol y trazabilidad completa.</p>
           </div>
           <div class="topbar-actions">
             <label class="search-box">
               <span>Buscar</span>
-              <input id="search" type="search" placeholder="Apps, eventos, contratos..." autocomplete="off" />
+              <input id="search" type="search" placeholder="Apps, riesgos, decisiones..." autocomplete="off" />
             </label>
             <button id="refresh" class="primary-action" type="button">Actualizar</button>
           </div>
@@ -49,8 +63,8 @@
 
         <section id="state-banner" class="state-banner loading">
           <span class="pulse"></span>
-          <strong>Conectando con backbone staging...</strong>
-          <small>Health, readiness, apps, memoria, eventos y observabilidad.</small>
+          <strong>Conectando con backbone...</strong>
+          <small>Health, readiness, governance, memoria, eventos y observabilidad.</small>
         </section>
 
         <section class="hero-grid">
@@ -59,7 +73,8 @@
             <h2 id="global-status">Cargando</h2>
             <p id="global-summary">Leyendo datos reales del backbone.</p>
             <div class="hero-actions">
-              <button class="ghost-action" data-view-jump="readiness" type="button">Ver readiness</button>
+              <button class="ghost-action" data-action="create_decision" type="button">Crear decision</button>
+              <button class="ghost-action" data-action="evaluate_policy" type="button">Evaluar politica</button>
               <button class="ghost-action" data-view-jump="alerts" type="button">Ver alertas</button>
             </div>
           </article>
@@ -114,15 +129,15 @@
           </div>
           <div class="dashboard-grid">
             <article class="panel">
-              <h3>Prioridades</h3>
-              <div id="next-actions" class="stack-list"></div>
+              <h3>Decisiones pendientes</h3>
+              <div id="ceo-decisions" class="stack-list"></div>
             </article>
             <article class="panel">
-              <h3>Dependencias</h3>
-              <div id="dependencies-list" class="stack-list"></div>
+              <h3>Riesgos criticos</h3>
+              <div id="ceo-risks" class="stack-list"></div>
             </article>
             <article class="panel">
-              <h3>Timeline operativo</h3>
+              <h3>Salud del ecosistema</h3>
               <div id="timeline" class="timeline"></div>
             </article>
           </div>
@@ -130,33 +145,95 @@
 
         <section class="view-panel" data-panel="governance">
           <div class="section-title">
-            <span class="eyebrow">Governance V1</span>
+            <span class="eyebrow">Governance UI Actions</span>
             <h2>Control humano de decisiones e integraciones</h2>
           </div>
-          <div class="dashboard-grid governance-grid">
-            <article class="panel">
-              <h3>Decisiones pendientes</h3>
+
+          <article class="panel command-panel">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Governance Overview</span>
+                <h3>Acciones disponibles para el rol activo</h3>
+              </div>
+              <button class="primary-action" data-action="create_decision" type="button">Nueva decision</button>
+            </div>
+            <div id="action-matrix" class="action-matrix"></div>
+            <div id="action-feedback" class="feedback" role="status">Selecciona una accion para ejecutarla con confirmacion visual.</div>
+          </article>
+
+          <div class="governance-sections">
+            <article class="panel" data-section="Decision Center">
+              <div class="panel-head">
+                <div>
+                  <span class="eyebrow">Decision Center</span>
+                  <h3>Decisiones</h3>
+                </div>
+                <button class="ghost-action" data-action="create_decision" type="button">Crear</button>
+              </div>
               <div id="governance-decisions" class="stack-list"></div>
             </article>
-            <article class="panel">
-              <h3>Aprobaciones humanas</h3>
+
+            <article class="panel" data-section="Approval Center">
+              <div class="panel-head">
+                <div>
+                  <span class="eyebrow">Approval Center</span>
+                  <h3>Solicitudes</h3>
+                </div>
+                <button class="ghost-action" data-action="create_approval" type="button">Crear solicitud</button>
+              </div>
               <div id="governance-approvals" class="stack-list"></div>
             </article>
-            <article class="panel">
-              <h3>Apps bloqueadas</h3>
+
+            <article class="panel" data-section="Integration Gates">
+              <div class="panel-head">
+                <div>
+                  <span class="eyebrow">Integration Gates</span>
+                  <h3>Apps protegidas y discovery</h3>
+                </div>
+              </div>
               <div id="governance-gates" class="stack-list"></div>
             </article>
-            <article class="panel">
-              <h3>Listas para discovery</h3>
-              <div id="governance-ready" class="stack-list"></div>
+
+            <article class="panel" data-section="Policy Center">
+              <div class="panel-head">
+                <div>
+                  <span class="eyebrow">Policy Center</span>
+                  <h3>Politicas</h3>
+                </div>
+                <button class="ghost-action" data-action="evaluate_policy" type="button">Evaluar</button>
+              </div>
+              <div id="governance-policies" class="stack-list"></div>
             </article>
-            <article class="panel">
-              <h3>Riesgos abiertos</h3>
+
+            <article class="panel" data-section="Risk Center">
+              <div class="panel-head">
+                <div>
+                  <span class="eyebrow">Risk Center</span>
+                  <h3>Riesgos</h3>
+                </div>
+                <button class="ghost-action" data-action="create_risk" type="button">Crear riesgo</button>
+              </div>
               <div id="governance-risks" class="stack-list"></div>
             </article>
-            <article class="panel">
-              <h3>Historial auditado</h3>
+
+            <article class="panel" data-section="Governance Audit">
+              <div class="panel-head">
+                <div>
+                  <span class="eyebrow">Governance Audit</span>
+                  <h3>Trazabilidad</h3>
+                </div>
+              </div>
               <div id="governance-history" class="stack-list"></div>
+            </article>
+
+            <article class="panel" data-section="Governance Reports">
+              <div class="panel-head">
+                <div>
+                  <span class="eyebrow">Governance Reports</span>
+                  <h3>Reporte ejecutivo</h3>
+                </div>
+              </div>
+              <div id="governance-report" class="stack-list"></div>
             </article>
           </div>
         </section>
@@ -225,6 +302,26 @@
         </section>
       </main>
     </div>
+
+    <dialog id="action-dialog" class="action-dialog">
+      <form method="dialog">
+        <span class="eyebrow" id="dialog-section">Governance Action</span>
+        <h2 id="dialog-title">Confirmar accion</h2>
+        <p id="dialog-copy">La accion se ejecutara contra la API real del backbone.</p>
+        <label id="reason-field">
+          <span>Razon</span>
+          <textarea id="action-reason" rows="3" placeholder="Explica la decision humana."></textarea>
+        </label>
+        <label id="evidence-field">
+          <span>Evidencia</span>
+          <textarea id="action-evidence" rows="3" placeholder="Describe la evidencia verificada."></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button class="ghost-action" value="cancel" type="submit">Cancelar</button>
+          <button id="confirm-action" class="primary-action" value="confirm" type="button">Ejecutar accion</button>
+        </div>
+      </form>
+    </dialog>
 
     <script type="module" src="/control-center/assets/app.js"></script>
   </body>

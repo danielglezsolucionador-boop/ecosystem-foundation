@@ -84,6 +84,34 @@
     "description": "Create or modify local observability signals."
   },
   {
+    "id": "read:governance",
+    "label": "Read Governance",
+    "category": "governance",
+    "critical": false,
+    "description": "Read decisions, approvals, risks, integration gates and governance reports."
+  },
+  {
+    "id": "write:governance",
+    "label": "Write Governance",
+    "category": "governance",
+    "critical": true,
+    "description": "Create governance records such as decisions, approvals, risk mitigations and discovery requests."
+  },
+  {
+    "id": "approve:governance",
+    "label": "Approve Governance",
+    "category": "governance",
+    "critical": true,
+    "description": "Approve, reject, block or close governance items with human authority."
+  },
+  {
+    "id": "audit:governance",
+    "label": "Audit Governance",
+    "category": "governance",
+    "critical": false,
+    "description": "Inspect governance traceability, reports and audit history."
+  },
+  {
     "id": "read:permissions",
     "label": "Read Permissions",
     "category": "security",

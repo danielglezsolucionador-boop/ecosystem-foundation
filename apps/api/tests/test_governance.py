@@ -64,6 +64,7 @@ def create_risk(severity: str = "high") -> dict:
 def test_governance_required_endpoints_exist() -> None:
     for path in [
         "/api/v1/governance",
+        "/api/v1/governance/auth-boundary",
         "/api/v1/governance/decisions",
         "/api/v1/governance/approvals",
         "/api/v1/governance/approvals/pending",
@@ -77,6 +78,56 @@ def test_governance_required_endpoints_exist() -> None:
     ]:
         response = client.get(path)
         assert response.status_code == 200
+
+
+def test_governance_auth_boundary_shapes_actions_by_role() -> None:
+    ceo = client.get("/api/v1/governance/auth-boundary?role_id=ceo")
+    auditor = client.get("/api/v1/governance/auth-boundary?role_id=auditor")
+    service = client.get("/api/v1/governance/auth-boundary?role_id=service")
+
+    assert ceo.status_code == 200
+    assert auditor.status_code == 200
+    assert service.status_code == 200
+
+    ceo_actions = {item["id"]: item for item in ceo.json()["actions"]}
+    auditor_actions = {item["id"]: item for item in auditor.json()["actions"]}
+    service_actions = {item["id"]: item for item in service.json()["actions"]}
+
+    assert "ceo" in ceo.json()["views_allowed"]
+    assert ceo_actions["approve_decision"]["allowed"] is True
+    assert ceo_actions["close_risk"]["allowed"] is True
+    assert auditor_actions["approve_decision"]["allowed"] is False
+    assert auditor_actions["create_risk"]["allowed"] is False
+    assert ceo_actions["escalate_approval"]["allowed"] is True
+    assert service_actions["create_decision"]["allowed"] is False
+    assert service_actions["evaluate_policy"]["allowed"] is True
+    assert service.json()["external_connections_enabled"] is False
+
+
+def test_governance_create_actions_respect_auth_boundary() -> None:
+    auditor_decision = client.post(
+        "/api/v1/governance/decisions",
+        json={
+            "title": unique_title("Auditor decision attempt"),
+            "description": "Auditor must not create governance decisions.",
+            "requested_by": "auditor",
+        },
+    )
+    service_risk = client.post(
+        "/api/v1/governance/risks",
+        json={
+            "title": unique_title("Service risk attempt"),
+            "description": "Service identity must not create human risks.",
+            "risk_type": "operational",
+            "severity": "medium",
+            "owner": "service",
+        },
+    )
+
+    assert auditor_decision.status_code == 403
+    assert auditor_decision.json()["detail"]["error"] == "role_not_authorized"
+    assert service_risk.status_code == 403
+    assert service_risk.json()["detail"]["reason"] == "service_role_has_no_human_ui_authority"
 
 
 def test_protected_apps_are_blocked_by_default() -> None:
@@ -168,6 +219,20 @@ def test_approval_can_be_approved_by_ceo() -> None:
     assert response.status_code == 200
     assert payload["status"] == "approved"
     assert payload["approved_by"] == "ceo"
+
+
+def test_approval_can_be_escalated_by_operator_with_reason() -> None:
+    approval = create_approval()
+    response = client.post(
+        f"/api/v1/governance/approvals/{approval['id']}/escalate",
+        json={"role_id": "operator", "reason": "Needs CEO context."},
+    )
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["status"] == "escalated"
+    assert payload["reason"] == "Needs CEO context."
+    assert payload["metadata"]["escalated_by"] == "operator"
 
 
 def test_integration_gate_approval_requires_evidence() -> None:

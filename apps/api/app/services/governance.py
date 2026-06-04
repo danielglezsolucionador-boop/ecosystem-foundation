@@ -11,6 +11,8 @@ from app.schemas.governance import (
     DecisionStatus,
     GovernanceApproval,
     GovernanceApprovalCreate,
+    GovernanceActionDefinition,
+    GovernanceAuthBoundary,
     GovernanceDecision,
     GovernanceDecisionCreate,
     GovernanceOverview,
@@ -40,6 +42,233 @@ RISKS_TABLE = "governance_risks"
 PROTECTED_APP_IDS = {"forja", "cerebro", "doctor_contable_financiero_tributario"}
 APP_ALIASES = {"dcft": "doctor_contable_financiero_tributario"}
 APPROVER_ROLES = {GovernanceRole.ceo, GovernanceRole.admin}
+ACTION_ROLES: dict[str, set[GovernanceRole]] = {
+    "create_decision": {GovernanceRole.ceo, GovernanceRole.admin, GovernanceRole.operator},
+    "approve_decision": {GovernanceRole.ceo, GovernanceRole.admin},
+    "reject_decision": {GovernanceRole.ceo, GovernanceRole.admin},
+    "block_decision": {GovernanceRole.ceo, GovernanceRole.admin},
+    "create_approval": {GovernanceRole.ceo, GovernanceRole.admin, GovernanceRole.operator},
+    "approve_approval": {GovernanceRole.ceo, GovernanceRole.admin},
+    "reject_approval": {GovernanceRole.ceo, GovernanceRole.admin},
+    "escalate_approval": {GovernanceRole.ceo, GovernanceRole.admin, GovernanceRole.operator},
+    "request_discovery": {GovernanceRole.ceo, GovernanceRole.admin, GovernanceRole.operator},
+    "approve_discovery": {GovernanceRole.ceo, GovernanceRole.admin},
+    "approve_connection": {GovernanceRole.ceo, GovernanceRole.admin},
+    "block_gate": {GovernanceRole.ceo, GovernanceRole.admin},
+    "suspend_gate": {GovernanceRole.ceo, GovernanceRole.admin},
+    "create_risk": {GovernanceRole.ceo, GovernanceRole.admin, GovernanceRole.operator},
+    "mitigate_risk": {GovernanceRole.ceo, GovernanceRole.admin, GovernanceRole.operator},
+    "close_risk": {GovernanceRole.ceo, GovernanceRole.admin},
+    "evaluate_policy": {
+        GovernanceRole.ceo,
+        GovernanceRole.admin,
+        GovernanceRole.operator,
+        GovernanceRole.auditor,
+        GovernanceRole.service,
+    },
+}
+ROLE_VIEWS: dict[GovernanceRole, list[str]] = {
+    GovernanceRole.ceo: ["ceo", "governance", "operator", "auditor", "system"],
+    GovernanceRole.admin: ["ceo", "governance", "operator", "auditor", "system"],
+    GovernanceRole.operator: ["operator", "system", "governance"],
+    GovernanceRole.auditor: ["auditor", "governance", "system"],
+    GovernanceRole.service: ["system"],
+}
+ACTION_CATALOG: tuple[dict[str, object], ...] = (
+    {
+        "id": "create_decision",
+        "label": "Crear decision",
+        "description": "Registra una decision humana para revision controlada.",
+        "section": "Decision Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/decisions",
+        "payload_template": {
+            "title": "Decision operativa de prueba",
+            "description": "Decision creada desde Control Center con boundary de rol.",
+            "requested_by": "{role_id}",
+            "evidence": "Evidencia generada desde la cabina.",
+        },
+    },
+    {
+        "id": "approve_decision",
+        "label": "Aprobar decision",
+        "description": "Aprueba una decision pendiente con rol autorizado.",
+        "section": "Decision Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/decisions/{decision_id}/approve",
+        "requires_evidence": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "evidence": "Evidencia de aprobacion."},
+    },
+    {
+        "id": "reject_decision",
+        "label": "Rechazar decision",
+        "description": "Rechaza una decision y exige razon humana.",
+        "section": "Decision Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/decisions/{decision_id}/reject",
+        "requires_reason": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "reason": "Razon de rechazo."},
+    },
+    {
+        "id": "block_decision",
+        "label": "Bloquear decision",
+        "description": "Bloquea una decision con razon auditable.",
+        "section": "Decision Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/decisions/{decision_id}/block",
+        "requires_reason": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "reason": "Riesgo detectado."},
+    },
+    {
+        "id": "create_approval",
+        "label": "Crear solicitud",
+        "description": "Crea una solicitud de aprobacion humana.",
+        "section": "Approval Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/approvals",
+        "payload_template": {
+            "title": "Solicitud de governance",
+            "description": "Solicitud creada desde Control Center.",
+            "approval_type": "integration_discovery",
+            "requested_by": "{role_id}",
+            "target_id": "pluma",
+            "evidence": "Evidencia inicial.",
+        },
+    },
+    {
+        "id": "approve_approval",
+        "label": "Aprobar solicitud",
+        "description": "Aprueba una solicitud pendiente.",
+        "section": "Approval Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/approvals/{approval_id}/approve",
+        "requires_evidence": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "evidence": "Aprobacion validada."},
+    },
+    {
+        "id": "reject_approval",
+        "label": "Rechazar solicitud",
+        "description": "Rechaza una solicitud pendiente con razon.",
+        "section": "Approval Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/approvals/{approval_id}/reject",
+        "requires_reason": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "reason": "Solicitud no aprobada."},
+    },
+    {
+        "id": "escalate_approval",
+        "label": "Escalar solicitud",
+        "description": "Escala una solicitud pendiente para atencion ejecutiva.",
+        "section": "Approval Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/approvals/{approval_id}/escalate",
+        "requires_reason": True,
+        "payload_template": {"role_id": "{role_id}", "reason": "Requiere criterio ejecutivo."},
+    },
+    {
+        "id": "request_discovery",
+        "label": "Solicitar discovery",
+        "description": "Solicita discovery de una app no protegida sin conectar apps reales.",
+        "section": "Integration Gates",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/integration-gates/{app_id}/request-discovery",
+        "payload_template": {"role_id": "{role_id}", "reason": "Discovery solicitado desde cabina."},
+    },
+    {
+        "id": "approve_discovery",
+        "label": "Aprobar discovery",
+        "description": "Aprueba discovery con evidencia sin abrir conexion real.",
+        "section": "Integration Gates",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/integration-gates/{app_id}/approve-discovery",
+        "requires_evidence": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "evidence": "Discovery validado."},
+    },
+    {
+        "id": "approve_connection",
+        "label": "Aprobar conexion futura",
+        "description": "Marca una conexion como aprobada para fase futura; no conecta apps reales.",
+        "section": "Integration Gates",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/integration-gates/{app_id}/approve-connection",
+        "requires_evidence": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "evidence": "Conexion futura aprobada."},
+    },
+    {
+        "id": "block_gate",
+        "label": "Bloquear app",
+        "description": "Bloquea una app dentro de governance.",
+        "section": "Integration Gates",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/integration-gates/{app_id}/block",
+        "requires_reason": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "reason": "Bloqueo preventivo."},
+    },
+    {
+        "id": "suspend_gate",
+        "label": "Suspender app",
+        "description": "Suspende una app no protegida por razon humana.",
+        "section": "Integration Gates",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/integration-gates/{app_id}/suspend",
+        "requires_reason": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "reason": "Suspension temporal."},
+    },
+    {
+        "id": "create_risk",
+        "label": "Crear riesgo",
+        "description": "Crea un riesgo controlado en Risk Center.",
+        "section": "Risk Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/risks",
+        "payload_template": {
+            "title": "Riesgo operativo de prueba",
+            "description": "Riesgo creado desde Control Center.",
+            "risk_type": "operational",
+            "severity": "medium",
+            "owner": "{role_id}",
+            "evidence": "Evidencia inicial.",
+        },
+    },
+    {
+        "id": "mitigate_risk",
+        "label": "Mitigar riesgo",
+        "description": "Registra mitigacion sobre un riesgo abierto.",
+        "section": "Risk Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/risks/{risk_id}/mitigate",
+        "payload_template": {"role_id": "{role_id}", "mitigation": "Mitigacion aplicada desde cabina."},
+    },
+    {
+        "id": "close_risk",
+        "label": "Cerrar riesgo",
+        "description": "Cierra un riesgo con evidencia verificable.",
+        "section": "Risk Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/risks/{risk_id}/close",
+        "requires_evidence": True,
+        "critical": True,
+        "payload_template": {"role_id": "{role_id}", "evidence": "Riesgo cerrado con evidencia."},
+    },
+    {
+        "id": "evaluate_policy",
+        "label": "Evaluar politica",
+        "description": "Evalua si un rol puede realizar una accion sobre un recurso.",
+        "section": "Policy Center",
+        "method": "POST",
+        "endpoint": "/api/v1/governance/policies/evaluate",
+        "payload_template": {"role_id": "{role_id}", "action": "approve", "resource": "platform"},
+    },
+)
 
 
 class GovernanceError(Exception):
@@ -166,6 +395,92 @@ def require_approval_role(role_id: GovernanceRole, action: str) -> None:
         )
 
 
+def action_allowed(role_id: GovernanceRole, action: str) -> bool:
+    return role_id in ACTION_ROLES.get(action, set())
+
+
+def action_denied_reason(role_id: GovernanceRole, action: str) -> str:
+    if role_id == GovernanceRole.service and action not in {"evaluate_policy"}:
+        return "service_role_has_no_human_ui_authority"
+    if action in {"approve_connection", "approve_discovery", "block_gate", "suspend_gate"}:
+        return "integration_gate_action_requires_ceo_or_admin"
+    if action.startswith("approve") or action.startswith("reject") or action.startswith("block"):
+        return "human_governance_action_requires_ceo_or_admin"
+    return "role_not_authorized_for_action"
+
+
+def require_action_role(role_id: GovernanceRole, action: str) -> None:
+    if action_allowed(role_id, action):
+        return
+
+    reason = action_denied_reason(role_id, action)
+    event = audit_governance(
+        source="governance.auth_boundary",
+        action=action,
+        status="denied",
+        detail=f"Role {role_id.value} is not authorized for {action}.",
+        metadata={"role_id": role_id.value, "reason": reason},
+        severity=AuditSeverity.medium,
+    )
+    raise GovernanceError(
+        status_code=403,
+        detail={
+            "error": "role_not_authorized",
+            "role_id": role_id.value,
+            "action": action,
+            "reason": reason,
+            "audit_event_id": event.id,
+        },
+    )
+
+
+def render_action_template(value: object, role_id: GovernanceRole) -> object:
+    if isinstance(value, dict):
+        return {key: render_action_template(nested, role_id) for key, nested in value.items()}
+    if isinstance(value, list):
+        return [render_action_template(item, role_id) for item in value]
+    if value == "{role_id}":
+        return role_id.value
+    return value
+
+
+def get_governance_auth_boundary(role_id: GovernanceRole) -> GovernanceAuthBoundary:
+    actions: list[GovernanceActionDefinition] = []
+    for item in ACTION_CATALOG:
+        action_id = str(item["id"])
+        allowed = action_allowed(role_id, action_id)
+        reason = "allowed" if allowed else action_denied_reason(role_id, action_id)
+        actions.append(
+            GovernanceActionDefinition(
+                id=action_id,
+                label=str(item["label"]),
+                description=str(item["description"]),
+                section=str(item["section"]),
+                method=str(item["method"]),
+                endpoint=str(item["endpoint"]),
+                allowed=allowed,
+                reason=reason,
+                requires_reason=bool(item.get("requires_reason", False)),
+                requires_evidence=bool(item.get("requires_evidence", False)),
+                critical=bool(item.get("critical", False)),
+                payload_template=render_action_template(
+                    item.get("payload_template", {}),
+                    role_id,
+                ),
+            )
+        )
+
+    return GovernanceAuthBoundary(
+        role_id=role_id,
+        role_label=role_id.value.upper(),
+        views_allowed=ROLE_VIEWS.get(role_id, []),
+        actions=actions,
+        denied_message="Tu rol puede ver esta informacion, pero no ejecutar esta accion.",
+        external_connections_enabled=False,
+        evaluated_at=utc_now(),
+    )
+
+
 def require_reason(reason: str | None, action: str) -> str:
     if not reason or not reason.strip():
         event = audit_governance(
@@ -268,6 +583,7 @@ def save_decision(decision: GovernanceDecision) -> GovernanceDecision:
 
 def create_decision(request: GovernanceDecisionCreate) -> GovernanceDecision:
     ensure_governance_schema()
+    require_action_role(request.requested_by, "create_decision")
     now = utc_now()
     decision = GovernanceDecision(
         id=str(uuid4()),
@@ -314,6 +630,7 @@ def approve_decision(
     decision_id: str,
     request: DecisionTransitionRequest,
 ) -> GovernanceDecision:
+    require_action_role(request.role_id, "approve_decision")
     require_approval_role(request.role_id, "approve_decision")
     decision = require_decision(decision_id)
     decision.status = DecisionStatus.approved
@@ -335,6 +652,7 @@ def reject_decision(
     request: DecisionTransitionRequest,
 ) -> GovernanceDecision:
     reason = require_reason(request.reason, "reject_decision")
+    require_action_role(request.role_id, "reject_decision")
     require_approval_role(request.role_id, "reject_decision")
     decision = require_decision(decision_id)
     decision.status = DecisionStatus.rejected
@@ -357,6 +675,7 @@ def block_decision(
     request: DecisionTransitionRequest,
 ) -> GovernanceDecision:
     reason = require_reason(request.reason, "block_decision")
+    require_action_role(request.role_id, "block_decision")
     require_approval_role(request.role_id, "block_decision")
     decision = require_decision(decision_id)
     decision.status = DecisionStatus.blocked
@@ -382,6 +701,7 @@ def save_approval(approval: GovernanceApproval) -> GovernanceApproval:
 
 def create_approval(request: GovernanceApprovalCreate) -> GovernanceApproval:
     ensure_governance_schema()
+    require_action_role(request.requested_by, "create_approval")
     now = utc_now()
     approval = GovernanceApproval(
         id=str(uuid4()),
@@ -466,6 +786,7 @@ def approve_approval(
     approval_id: str,
     request: ApprovalTransitionRequest,
 ) -> GovernanceApproval:
+    require_action_role(request.role_id, "approve_approval")
     require_approval_role(request.role_id, "approve_approval")
     approval = require_approval(approval_id)
     if approval.status != ApprovalStatus.pending:
@@ -496,6 +817,7 @@ def reject_approval(
     request: ApprovalTransitionRequest,
 ) -> GovernanceApproval:
     reason = require_reason(request.reason, "reject_approval")
+    require_action_role(request.role_id, "reject_approval")
     require_approval_role(request.role_id, "reject_approval")
     approval = require_approval(approval_id)
     approval.status = ApprovalStatus.rejected
@@ -506,6 +828,37 @@ def reject_approval(
         action="reject_approval",
         status="rejected",
         detail=f"Approval rejected by {request.role_id.value}: {reason}",
+        metadata={"approval_id": approval.id, "role_id": request.role_id.value},
+        severity=AuditSeverity.medium,
+    )
+    append_audit_id(approval, event)
+    return save_approval(approval)
+
+
+def escalate_approval(
+    approval_id: str,
+    request: ApprovalTransitionRequest,
+) -> GovernanceApproval:
+    reason = require_reason(request.reason, "escalate_approval")
+    require_action_role(request.role_id, "escalate_approval")
+    approval = require_approval(approval_id)
+    if approval.status != ApprovalStatus.pending:
+        raise GovernanceError(
+            status_code=409,
+            detail={
+                "error": "approval_not_pending",
+                "approval_id": approval.id,
+                "status": approval.status.value,
+            },
+        )
+    approval.status = ApprovalStatus.escalated
+    approval.reason = reason
+    approval.metadata["escalated_by"] = request.role_id.value
+    event = audit_governance(
+        source="governance.approvals",
+        action="escalate_approval",
+        status="escalated",
+        detail=f"Approval escalated by {request.role_id.value}: {reason}",
         metadata={"approval_id": approval.id, "role_id": request.role_id.value},
         severity=AuditSeverity.medium,
     )
@@ -546,6 +899,7 @@ def request_gate_discovery(
     app_id: str,
     request: IntegrationGateTransitionRequest,
 ) -> IntegrationGate:
+    require_action_role(request.role_id, "request_discovery")
     gate = require_gate(app_id)
     if gate.protected:
         event = audit_governance(
@@ -589,6 +943,7 @@ def approve_gate_discovery(
     request: IntegrationGateTransitionRequest,
 ) -> IntegrationGate:
     evidence = require_evidence(request.evidence, "approve_gate_discovery")
+    require_action_role(request.role_id, "approve_discovery")
     require_approval_role(request.role_id, "approve_gate_discovery")
     gate = require_gate(app_id)
     if gate.protected:
@@ -620,6 +975,7 @@ def approve_gate_connection(
     request: IntegrationGateTransitionRequest,
 ) -> IntegrationGate:
     evidence = require_evidence(request.evidence, "approve_gate_connection")
+    require_action_role(request.role_id, "approve_connection")
     require_approval_role(request.role_id, "approve_gate_connection")
     gate = require_gate(app_id)
     if gate.protected:
@@ -651,6 +1007,7 @@ def approve_gate_connection(
 
 def block_gate(app_id: str, request: IntegrationGateTransitionRequest) -> IntegrationGate:
     reason = require_reason(request.reason, "block_integration_gate")
+    require_action_role(request.role_id, "block_gate")
     require_approval_role(request.role_id, "block_integration_gate")
     gate = require_gate(app_id)
     gate.state = IntegrationGateState.blocked
@@ -672,6 +1029,7 @@ def suspend_gate(
     request: IntegrationGateTransitionRequest,
 ) -> IntegrationGate:
     reason = require_reason(request.reason, "suspend_integration_gate")
+    require_action_role(request.role_id, "suspend_gate")
     require_approval_role(request.role_id, "suspend_integration_gate")
     gate = require_gate(app_id)
     gate.state = IntegrationGateState.suspended
@@ -728,6 +1086,7 @@ def list_policies() -> list[GovernancePolicy]:
 
 
 def evaluate_policy(request: PolicyEvaluationRequest) -> PolicyEvaluationResult:
+    require_action_role(request.role_id, "evaluate_policy")
     action = request.action.strip().lower()
     resource = normalize_id(request.resource)
     allowed = False
@@ -793,6 +1152,7 @@ def save_risk(risk: GovernanceRisk) -> GovernanceRisk:
 
 def create_risk(request: GovernanceRiskCreate) -> GovernanceRisk:
     ensure_governance_schema()
+    require_action_role(request.owner, "create_risk")
     now = utc_now()
     risk = GovernanceRisk(
         id=str(uuid4()),
@@ -860,6 +1220,7 @@ def update_risk(risk_id: str, request: GovernanceRiskUpdate) -> GovernanceRisk:
 
 
 def mitigate_risk(risk_id: str, request: RiskMitigationRequest) -> GovernanceRisk:
+    require_action_role(request.role_id, "mitigate_risk")
     risk = require_risk(risk_id)
     risk.status = RiskStatus.mitigated
     risk.mitigation = request.mitigation
@@ -877,6 +1238,7 @@ def mitigate_risk(risk_id: str, request: RiskMitigationRequest) -> GovernanceRis
 
 
 def close_risk(risk_id: str, request: RiskCloseRequest) -> GovernanceRisk:
+    require_action_role(request.role_id, "close_risk")
     require_approval_role(request.role_id, "close_risk")
     risk = require_risk(risk_id)
     evidence = require_evidence(request.evidence, "close_risk")
