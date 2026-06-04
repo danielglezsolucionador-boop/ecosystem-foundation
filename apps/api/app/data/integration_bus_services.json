@@ -1,0 +1,58 @@
+[
+  {
+    "id": "app-registry",
+    "name": "App Registry",
+    "category": "registry",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "control-center",
+    "name": "Control Center",
+    "category": "operations",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "security",
+    "name": "Security Foundation",
+    "category": "security",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "memory",
+    "name": "Shared Memory",
+    "category": "memory",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "events",
+    "name": "Internal Events",
+    "category": "events",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "audit",
+    "name": "Audit",
+    "category": "audit",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "observability",
+    "name": "Observability",
+    "category": "observability",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "storage",
+    "name": "Storage",
+    "category": "database",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  }
+]
