@@ -1,0 +1,30 @@
+[
+  {
+    "id": "audit-consumer",
+    "event_type": "platform.audit.completed",
+    "service": "audit",
+    "status": "registered_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "memory-consumer",
+    "event_type": "platform.memory.created",
+    "service": "memory",
+    "status": "registered_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "security-consumer",
+    "event_type": "platform.security.access_validated",
+    "service": "security",
+    "status": "registered_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "control-center-consumer",
+    "event_type": "platform.control_center.read",
+    "service": "control-center",
+    "status": "registered_local",
+    "external_connection_enabled": false
+  }
+]

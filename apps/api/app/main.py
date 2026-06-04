@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.api.audit import router as audit_router
 from app.api.apps import router as apps_router
 from app.api.control_center import router as control_center_router
+from app.api.events import router as events_router
 from app.api.health import router as health_router
 from app.api.integrations import router as integrations_router
 from app.api.memory import router as memory_router
@@ -22,6 +23,7 @@ app = FastAPI(
 app.include_router(apps_router)
 app.include_router(audit_router)
 app.include_router(control_center_router)
+app.include_router(events_router)
 app.include_router(health_router)
 app.include_router(integrations_router)
 app.include_router(memory_router)

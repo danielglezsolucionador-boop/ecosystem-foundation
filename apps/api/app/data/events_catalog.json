@@ -1,0 +1,32 @@
+[
+  {
+    "id": "platform.memory.created",
+    "description": "A local ecosystem memory record was created.",
+    "required_payload_fields": ["memory_id"],
+    "status": "active"
+  },
+  {
+    "id": "platform.memory.updated",
+    "description": "A local ecosystem memory record was updated.",
+    "required_payload_fields": ["memory_id", "version"],
+    "status": "active"
+  },
+  {
+    "id": "platform.security.access_validated",
+    "description": "A security access validation was evaluated.",
+    "required_payload_fields": ["role_id", "permission", "allowed"],
+    "status": "active"
+  },
+  {
+    "id": "platform.control_center.read",
+    "description": "A Control Center read operation was executed.",
+    "required_payload_fields": ["status"],
+    "status": "active"
+  },
+  {
+    "id": "platform.audit.completed",
+    "description": "A local platform audit was completed.",
+    "required_payload_fields": ["audit_id", "status"],
+    "status": "active"
+  }
+]
