@@ -39,7 +39,7 @@ class Settings:
             ),
             environment=environment,
             version=env_value(source, "ECOSYSTEM_API_VERSION", "0.1.0"),
-            commit=env_value(source, "ECOSYSTEM_API_COMMIT", "unknown"),
+            commit=resolve_commit(source),
             cors_origins=parse_csv(
                 env_value(source, "ECOSYSTEM_API_CORS_ORIGINS", "http://localhost:5173")
             ),
@@ -79,6 +79,14 @@ def resolve_environment(source: Mapping[str, str]) -> str:
         return "staging"
 
     return "local"
+
+
+def resolve_commit(source: Mapping[str, str]) -> str:
+    vercel_commit = optional_env_value(source, "VERCEL_GIT_COMMIT_SHA")
+    if vercel_commit:
+        return vercel_commit[:7]
+
+    return env_value(source, "ECOSYSTEM_API_COMMIT", "unknown")
 
 
 def resolve_database_url(source: Mapping[str, str]) -> tuple[str, str]:

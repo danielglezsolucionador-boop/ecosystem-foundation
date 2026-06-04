@@ -75,6 +75,17 @@ def test_settings_derive_production_environment_from_vercel() -> None:
     assert settings.environment == "production"
 
 
+def test_settings_prefer_vercel_git_commit_sha_over_manual_commit() -> None:
+    settings = Settings.from_mapping(
+        {
+            "ECOSYSTEM_API_COMMIT": "oldsha1",
+            "VERCEL_GIT_COMMIT_SHA": "1234567890abcdef",
+        }
+    )
+
+    assert settings.commit == "1234567"
+
+
 def test_settings_reject_invalid_environment() -> None:
     with pytest.raises(RuntimeError):
         Settings.from_mapping({"ECOSYSTEM_API_ENVIRONMENT": "demo"})
