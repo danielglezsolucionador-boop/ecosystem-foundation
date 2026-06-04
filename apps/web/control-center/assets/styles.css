@@ -500,9 +500,23 @@ button:focus-visible {
 
 .badge.blocked,
 .badge.error,
-.badge.external {
+.badge.external,
+.badge.critical,
+.badge.high {
   color: var(--red);
   background: var(--red-soft);
+}
+
+.badge.medium {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.badge.low,
+.badge.mitigated,
+.badge.closed {
+  color: var(--green);
+  background: var(--green-soft);
 }
 
 .badge.unknown {
@@ -601,7 +615,7 @@ button:focus-visible {
   }
 
   .nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   }
 
   .nav button {
@@ -648,6 +662,7 @@ button:focus-visible {
   .hero-grid,
   .workspace,
   .dashboard-grid,
+  .governance-grid,
   .metric-grid,
   .apps-grid {
     grid-template-columns: 1fr;

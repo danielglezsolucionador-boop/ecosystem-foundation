@@ -19,6 +19,7 @@
         </a>
         <nav class="nav" id="view-tabs" aria-label="Vistas">
           <button class="active" data-view="ceo" type="button">Vista CEO</button>
+          <button data-view="governance" type="button">Governance</button>
           <button data-view="operator" type="button">Vista Operador</button>
           <button data-view="auditor" type="button">Vista Auditor</button>
           <button data-view="system" type="button">Vista Sistema</button>
@@ -123,6 +124,39 @@
             <article class="panel">
               <h3>Timeline operativo</h3>
               <div id="timeline" class="timeline"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-panel" data-panel="governance">
+          <div class="section-title">
+            <span class="eyebrow">Governance V1</span>
+            <h2>Control humano de decisiones e integraciones</h2>
+          </div>
+          <div class="dashboard-grid governance-grid">
+            <article class="panel">
+              <h3>Decisiones pendientes</h3>
+              <div id="governance-decisions" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Aprobaciones humanas</h3>
+              <div id="governance-approvals" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Apps bloqueadas</h3>
+              <div id="governance-gates" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Listas para discovery</h3>
+              <div id="governance-ready" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Riesgos abiertos</h3>
+              <div id="governance-risks" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Historial auditado</h3>
+              <div id="governance-history" class="stack-list"></div>
             </article>
           </div>
         </section>

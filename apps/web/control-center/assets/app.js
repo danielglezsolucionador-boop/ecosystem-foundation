@@ -11,7 +11,8 @@ const endpoints = {
   integrationBus: "/api/v1/integration-bus",
   contracts: "/api/v1/contracts",
   audit: "/api/v1/audit",
-  observability: "/api/v1/observability"
+  observability: "/api/v1/observability",
+  governance: "/api/v1/governance/reports"
 };
 
 const state = {
@@ -49,7 +50,22 @@ function label(value) {
     staging: "Staging",
     production: "Produccion",
     sqlite: "SQLite",
-    postgresql: "PostgreSQL"
+    postgresql: "PostgreSQL",
+    governance_attention_required: "Atencion requerida",
+    governance_ready: "Governance listo",
+    pending_review: "Revision pendiente",
+    pending_approval: "Aprobacion pendiente",
+    approved_for_discovery: "Discovery aprobado",
+    approved_for_connection: "Conexion aprobada",
+    not_ready: "No lista",
+    suspended: "Suspendida",
+    open: "Abierto",
+    mitigated: "Mitigado",
+    closed: "Cerrado",
+    critical: "Critico",
+    high: "Alto",
+    medium: "Medio",
+    low: "Bajo"
   };
   if (translated[String(value || "").toLowerCase()]) {
     return translated[String(value || "").toLowerCase()];
@@ -156,6 +172,7 @@ function render() {
   renderApps();
   renderAlerts();
   renderCeo();
+  renderGovernance();
   renderOperator();
   renderAuditor();
   renderSystem();
@@ -235,9 +252,11 @@ function renderAlerts() {
   const alerts = state.data.controlCenter?.alerts || [];
   const rawIncidents = state.data.observability?.incidents;
   const incidents = Array.isArray(rawIncidents) ? rawIncidents : [];
+  const criticalRisks = state.data.governance?.critical_risks || [];
   const combined = [
     ...alerts.map((item) => ({ title: item.message, body: item.source, status: item.status || item.severity, meta: label(item.severity) })),
-    ...incidents.map((item) => ({ title: item.title || item.id, body: item.description, status: item.status, meta: "Incidente" }))
+    ...incidents.map((item) => ({ title: item.title || item.id, body: item.description, status: item.status, meta: "Incidente" })),
+    ...criticalRisks.map((item) => ({ title: item.title, body: item.description, status: item.severity, meta: "Riesgo governance" }))
   ];
 
   $("#alerts-list").innerHTML = combined.length ? combined.map(listItem).join("") : emptyState("Sin alertas ni incidentes abiertos.");
@@ -270,6 +289,76 @@ function renderCeo() {
       <small>${item.meta}</small>
     </article>
   `).join("");
+}
+
+function renderGovernance() {
+  const governance = state.data.governance || {};
+  const decisions = governance.pending_decisions || [];
+  const approvals = governance.pending_approvals || [];
+  const blockedApps = governance.blocked_apps || [];
+  const readyForDiscovery = governance.ready_for_discovery || [];
+  const openRisks = governance.open_risks || [];
+  const criticalRisks = governance.critical_risks || [];
+  const auditHistory = [
+    ...(governance.decision_audit || []),
+    ...(governance.approval_history || [])
+  ].slice(0, 6);
+
+  $("#governance-decisions").innerHTML = decisions.length ? decisions.map((item) => listItem({
+    title: item.title,
+    body: item.description,
+    status: item.status,
+    meta: `Solicita: ${label(item.requested_by)}`
+  })).join("") : emptyState("Sin decisiones pendientes de revision humana.");
+
+  $("#governance-approvals").innerHTML = approvals.length ? approvals.map((item) => listItem({
+    title: item.title,
+    body: item.description,
+    status: item.status,
+    meta: label(item.approval_type)
+  })).join("") : emptyState("Sin aprobaciones humanas pendientes.");
+
+  $("#governance-gates").innerHTML = blockedApps.length ? blockedApps.map((item) => listItem({
+    title: item.app_name,
+    body: item.reason || "Aplicacion bloqueada por politica de gobierno humano.",
+    status: item.state,
+    meta: item.protected ? "Protegida" : "Bloqueada"
+  })).join("") : emptyState("No hay aplicaciones bloqueadas.");
+
+  $("#governance-ready").innerHTML = readyForDiscovery.length ? readyForDiscovery.map((item) => listItem({
+    title: item.app_name,
+    body: item.evidence || "Discovery aprobado con evidencia.",
+    status: item.state,
+    meta: `Aprobado por ${label(item.approved_by)}`
+  })).join("") : emptyState("Ninguna app esta aprobada para discovery todavia.");
+
+  $("#governance-risks").innerHTML = openRisks.length ? openRisks.map((item) => listItem({
+    title: item.title,
+    body: item.description,
+    status: item.severity,
+    meta: `${label(item.risk_type)} / ${label(item.status)}`
+  })).join("") : emptyState("Sin riesgos abiertos en Governance V1.");
+
+  $("#governance-history").innerHTML = [
+    listItem({
+      title: label(governance.status || "governance_ready"),
+      body: `Protegidas bloqueadas: ${number(governance.protected_apps_blocked)}. Conexiones externas: ${number(governance.external_connections_enabled)}.`,
+      status: governance.protected_apps_blocked ? "healthy" : "blocked",
+      meta: "Resumen"
+    }),
+    ...(criticalRisks.length ? [listItem({
+      title: `${criticalRisks.length} riesgo(s) critico(s)`,
+      body: "La vista CEO los muestra como alertas hasta que se mitiguen o cierren con evidencia.",
+      status: "critical",
+      meta: "CEO"
+    })] : []),
+    ...auditHistory.map((item) => listItem({
+      title: item.action,
+      body: item.detail,
+      status: item.status,
+      meta: label(item.severity)
+    }))
+  ].join("");
 }
 
 function renderOperator() {
