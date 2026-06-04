@@ -638,6 +638,9 @@ function bindEvents() {
 
 function resolveTarget(actionId, explicitTarget) {
   if (explicitTarget) return explicitTarget;
+  if (["create_decision", "create_approval", "create_risk", "evaluate_policy"].includes(actionId)) {
+    return "";
+  }
   if (actionId.includes("decision")) {
     return (state.data.decisions || []).find((item) => item.status === "pending_review")?.id || (state.data.decisions || [])[0]?.id || "";
   }
