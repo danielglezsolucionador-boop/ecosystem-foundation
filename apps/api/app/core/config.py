@@ -15,11 +15,12 @@ class Settings:
     cors_origins: tuple[str, ...]
     debug: bool
     database_url: str
+    database_url_source: str
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str] | None = None) -> "Settings":
         source = environ if values is None else values
-        environment = source.get("ECOSYSTEM_API_ENVIRONMENT", "local").strip().lower()
+        environment = resolve_environment(source)
 
         if environment not in VALID_ENVIRONMENTS:
             allowed = ", ".join(sorted(VALID_ENVIRONMENTS))
@@ -28,24 +29,68 @@ class Settings:
                 f"Expected one of: {allowed}."
             )
 
+        database_url, database_url_source = resolve_database_url(source)
+
         return cls(
-            service_name=source.get(
+            service_name=env_value(
+                source,
                 "ECOSYSTEM_API_SERVICE_NAME",
                 "ecosystem-foundation-api",
-            ).strip(),
-            environment=environment,
-            version=source.get("ECOSYSTEM_API_VERSION", "0.1.0").strip(),
-            commit=source.get("ECOSYSTEM_API_COMMIT", "unknown").strip(),
-            cors_origins=parse_csv(
-                source.get("ECOSYSTEM_API_CORS_ORIGINS", "http://localhost:5173")
             ),
-            debug=parse_bool(source.get("ECOSYSTEM_API_DEBUG", "false")),
-            database_url=(
-                source.get("ECOSYSTEM_API_DATABASE_URL")
-                or source.get("DATABASE_URL")
-                or "sqlite:///./var/ecosystem_foundation.db"
-            ).strip(),
+            environment=environment,
+            version=env_value(source, "ECOSYSTEM_API_VERSION", "0.1.0"),
+            commit=env_value(source, "ECOSYSTEM_API_COMMIT", "unknown"),
+            cors_origins=parse_csv(
+                env_value(source, "ECOSYSTEM_API_CORS_ORIGINS", "http://localhost:5173")
+            ),
+            debug=parse_bool(env_value(source, "ECOSYSTEM_API_DEBUG", "false")),
+            database_url=database_url,
+            database_url_source=database_url_source,
         )
+
+
+def env_value(source: Mapping[str, str], key: str, default: str) -> str:
+    value = source.get(key)
+    if value is None:
+        return default
+
+    value = value.strip()
+    return value if value else default
+
+
+def optional_env_value(source: Mapping[str, str], key: str) -> str | None:
+    value = source.get(key)
+    if value is None:
+        return None
+
+    value = value.strip()
+    return value or None
+
+
+def resolve_environment(source: Mapping[str, str]) -> str:
+    explicit_environment = optional_env_value(source, "ECOSYSTEM_API_ENVIRONMENT")
+    if explicit_environment:
+        return explicit_environment.lower()
+
+    vercel_environment = optional_env_value(source, "VERCEL_ENV")
+    if vercel_environment == "production":
+        return "production"
+    if vercel_environment == "preview":
+        return "staging"
+
+    return "local"
+
+
+def resolve_database_url(source: Mapping[str, str]) -> tuple[str, str]:
+    ecosystem_url = optional_env_value(source, "ECOSYSTEM_API_DATABASE_URL")
+    if ecosystem_url:
+        return ecosystem_url, "ECOSYSTEM_API_DATABASE_URL"
+
+    database_url = optional_env_value(source, "DATABASE_URL")
+    if database_url:
+        return database_url, "DATABASE_URL"
+
+    return "sqlite:///./var/ecosystem_foundation.db", "default"
 
 
 def parse_bool(value: str) -> bool:

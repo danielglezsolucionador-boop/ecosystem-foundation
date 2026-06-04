@@ -12,3 +12,6 @@ venv/
 outputs/
 work/
 apps/api/var/
+var/
+
+.vercel
