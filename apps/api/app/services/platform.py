@@ -1,4 +1,5 @@
 from app.schemas.platform import PlatformPhaseStatus, PlatformStatus
+from app.schemas.control_center import ControlCenterState
 from app.services.app_registry import summarize_registered_apps
 from app.services.audit import list_audit_reports
 from app.services.control_center import get_control_center_overview
@@ -29,8 +30,11 @@ def get_platform_status() -> PlatformStatus:
         PlatformPhaseStatus(
             id="B",
             name="Control Center API",
-            status="pass" if control_center.status == "local_operational" else "fail",
-            evidence=control_center.status,
+            status="pass"
+            if control_center.status
+            in {ControlCenterState.healthy, ControlCenterState.degraded, ControlCenterState.blocked}
+            else "fail",
+            evidence=control_center.status.value,
         ),
         PlatformPhaseStatus(
             id="C",
@@ -89,4 +93,3 @@ def get_platform_status() -> PlatformStatus:
         local_ready=local_ready,
         external_apps_connected=False,
     )
-

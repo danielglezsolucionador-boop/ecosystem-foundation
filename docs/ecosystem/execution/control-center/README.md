@@ -1,10 +1,11 @@
-# Control Center Base
+# Control Center
 
-Estado: `BASE_DEFINED`
+Estado: `BLOCK_1_PREMIUM_API_IMPLEMENTED`
 
 ## 1. Objetivo
 
-Preparar la base documental del CONTROL CENTER sin conectar aplicaciones sensibles y sin crear UI o backend real.
+Preparar y operar la base local del CONTROL CENTER sin conectar aplicaciones
+sensibles ni tocar FORJA, CEREBRO o DCFT.
 
 ## 2. Alcance
 
@@ -21,11 +22,11 @@ El CONTROL CENTER debe operar como cabina central para:
 - providers;
 - auditoria.
 
-## 3. Estructura Tecnica Futura
+## 3. Estructura Tecnica
 
 ```mermaid
 flowchart TB
-    UI["Control Center UI"] --> API["Control Center API"]
+    UI["Future Control Center UI"] --> API["Control Center API"]
     API --> Registry["App Registry"]
     API --> Runtime["Runtime Status Sources"]
     API --> Audit["Audit Trail"]
@@ -53,9 +54,31 @@ flowchart TB
 - FORJA.
 - CEREBRO.
 
-## 6. Estado
+## 6. Endpoints Implementados
 
-Solo se crea base documental.
+- `GET /api/v1/control-center`
+- `GET /api/v1/control-center/overview`
+- `GET /api/v1/control-center/status`
+- `GET /api/v1/control-center/apps`
+- `GET /api/v1/control-center/services`
+- `GET /api/v1/control-center/dependencies`
+- `GET /api/v1/control-center/metrics`
+- `GET /api/v1/control-center/alerts`
+- `GET /api/v1/control-center/readiness`
 
-No hay implementacion runtime.
+## 7. Estado
 
+El Block 1 implementa API runtime local con:
+
+- vista CEO;
+- vista operativa;
+- consolidacion de App Registry;
+- consolidacion de Storage/Database;
+- servicios internos;
+- dependencias;
+- metricas;
+- alertas;
+- readiness;
+- audit trail local del Control Center.
+
+Las conexiones reales con aplicaciones externas siguen deshabilitadas.

@@ -1,41 +1,106 @@
 from fastapi.testclient import TestClient
+import pytest
 
 from app.main import app
 
 
-def test_control_center_overview_contract() -> None:
-    client = TestClient(app)
+client = TestClient(app)
 
-    response = client.get("/api/v1/control-center/overview")
+
+def test_control_center_root_contract() -> None:
+    response = client.get("/api/v1/control-center")
     payload = response.json()
 
     assert response.status_code == 200
-    assert payload["status"] == "local_operational"
-    assert payload["registry_source"] == "local_controlled_registry"
-    assert payload["external_connections_enabled"] is False
-    assert len(payload["metrics"]) == 4
-    assert len(payload["next_actions"]) == 3
-    assert payload["risks"]
+    assert payload["status"] in {"healthy", "degraded", "blocked"}
+    assert payload["audit_event_id"]
+    assert payload["overview"]["registry_source"] == "local_controlled_registry"
+    assert payload["overview"]["external_connections_enabled"] is False
+    assert payload["executive_view"]["headline"]
+    assert payload["operational_view"]["external_connections_enabled"] is False
+    assert len(payload["applications"]) == 13
+    assert len(payload["services"]) >= 6
+    assert len(payload["dependencies"]) >= 4
 
 
-def test_control_center_overview_uses_app_registry_counts() -> None:
-    client = TestClient(app)
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/control-center/overview",
+        "/api/v1/control-center/status",
+        "/api/v1/control-center/apps",
+        "/api/v1/control-center/services",
+        "/api/v1/control-center/dependencies",
+        "/api/v1/control-center/metrics",
+        "/api/v1/control-center/alerts",
+        "/api/v1/control-center/readiness",
+    ],
+)
+def test_control_center_required_endpoints(path: str) -> None:
+    response = client.get(path)
 
-    response = client.get("/api/v1/control-center/overview")
-    metrics = {item["id"]: item for item in response.json()["metrics"]}
-
-    assert metrics["registered_apps"]["value"] == 13
-    assert metrics["planned_apps"]["value"] == 8
-    assert metrics["external_references"]["value"] == 3
-    assert metrics["storage_backend"]["value"] == "sqlite"
+    assert response.status_code == 200
 
 
-def test_control_center_does_not_enable_external_connections() -> None:
-    client = TestClient(app)
+def test_control_center_apps_use_registry_without_external_connections() -> None:
+    response = client.get("/api/v1/control-center/apps")
+    apps = response.json()
+    external_apps = [
+        app for app in apps if app["registry_status"] == "external"
+    ]
 
-    response = client.get("/api/v1/control-center/overview")
+    assert response.status_code == 200
+    assert external_apps
+    assert all(app["status"] == "degraded" for app in external_apps)
+    assert all(app["external_connection_enabled"] is False for app in apps)
+    assert all(
+        app["touch_policy"] == "no_touch_external" for app in external_apps
+    )
+
+
+def test_control_center_readiness_keeps_external_connections_blocked() -> None:
+    response = client.get("/api/v1/control-center/readiness")
     payload = response.json()
+    checks = {item["id"]: item for item in payload["checks"]}
 
-    assert payload["external_connections_enabled"] is False
-    assert any("External app runtime is not connected" in risk for risk in payload["risks"])
-    assert any("DATABASE_URL" in risk for risk in payload["risks"])
+    assert response.status_code == 200
+    assert payload["status"] == "blocked"
+    assert payload["ready_for_external_connections"] is False
+    assert checks["app_registry_loaded"]["status"] == "healthy"
+    assert checks["external_apps_isolated"]["status"] == "healthy"
+    assert checks["contracts_required_before_external_connections"]["status"] == "blocked"
+
+
+def test_control_center_metrics_and_alerts_are_structured() -> None:
+    metrics_response = client.get("/api/v1/control-center/metrics")
+    alerts_response = client.get("/api/v1/control-center/alerts")
+    metrics = {item["id"]: item for item in metrics_response.json()}
+    alerts = alerts_response.json()
+
+    assert metrics_response.status_code == 200
+    assert alerts_response.status_code == 200
+    assert metrics["registered_apps"]["value"] == 13
+    assert metrics["external_connections_enabled"]["value"] is False
+    assert metrics["storage_backend"]["source"] == "database.initialize_database"
+    assert all("severity" in alert for alert in alerts)
+    assert any(alert["id"] == "external_apps_not_connected" for alert in alerts)
+
+
+def test_control_center_status_consolidates_runtime_dependencies_and_services() -> None:
+    response = client.get("/api/v1/control-center/status")
+    payload = response.json()
+    dependencies = {item["id"]: item for item in payload["dependencies"]}
+    services = {item["id"]: item for item in payload["services"]}
+
+    assert response.status_code == 200
+    assert payload["runtime"]["external_connections_enabled"] is False
+    assert payload["runtime"]["database_backend"] in {"sqlite", "postgresql"}
+    assert dependencies["database"]["status"] == "healthy"
+    assert dependencies["integration_contracts"]["status"] == "blocked"
+    assert services["app_registry"]["status"] == "healthy"
+
+
+def test_control_center_unknown_endpoint_returns_404() -> None:
+    response = client.get("/api/v1/control-center/does-not-exist")
+
+    assert response.status_code == 404
