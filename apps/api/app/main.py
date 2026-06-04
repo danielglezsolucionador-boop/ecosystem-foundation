@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.audit import router as audit_router
 from app.api.apps import router as apps_router
@@ -15,6 +19,9 @@ from app.api.platform import router as platform_router
 from app.api.security import router as security_router
 from app.api.storage import router as storage_router
 from app.core.metadata import APP_NAME, APP_VERSION
+
+ROOT_DIR = Path(__file__).resolve().parents[3]
+CONTROL_CENTER_DIR = ROOT_DIR / "apps" / "web" / "control-center"
 
 app = FastAPI(
     title="Ecosystem Foundation API",
@@ -36,6 +43,17 @@ app.include_router(permissions_router)
 app.include_router(platform_router)
 app.include_router(security_router)
 app.include_router(storage_router)
+
+app.mount(
+    "/control-center/assets",
+    StaticFiles(directory=CONTROL_CENTER_DIR / "assets"),
+    name="control-center-assets",
+)
+
+
+@app.get("/control-center", include_in_schema=False)
+def read_control_center_experience() -> FileResponse:
+    return FileResponse(CONTROL_CENTER_DIR / "index.html")
 
 
 @app.get("/")

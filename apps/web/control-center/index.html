@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Control Center | Ecosystem Foundation</title>
+    <link rel="stylesheet" href="/control-center/assets/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="shell" aria-live="polite">
+      <aside class="sidebar" aria-label="Navegacion principal">
+        <a class="brand" href="#top" aria-label="Control Center inicio">
+          <span class="brand-mark">EC</span>
+          <span>
+            <strong>CONTROL CENTER</strong>
+            <small>Ecosystem Foundation</small>
+          </span>
+        </a>
+        <nav class="nav" id="view-tabs" aria-label="Vistas">
+          <button class="active" data-view="ceo" type="button">Vista CEO</button>
+          <button data-view="operator" type="button">Vista Operador</button>
+          <button data-view="auditor" type="button">Vista Auditor</button>
+          <button data-view="system" type="button">Vista Sistema</button>
+        </nav>
+        <div class="sidebar-card">
+          <span>Readiness</span>
+          <strong id="sidebar-readiness">Cargando</strong>
+          <small id="sidebar-db">Conectando con la API</small>
+        </div>
+      </aside>
+
+      <main class="main" id="top">
+        <header class="topbar">
+          <div>
+            <span class="eyebrow">Cabina humana premium</span>
+            <h1>Control Center</h1>
+            <p>Supervision ejecutiva del ecosistema sin tocar aplicaciones externas.</p>
+          </div>
+          <div class="topbar-actions">
+            <label class="search-box">
+              <span>Buscar</span>
+              <input id="search" type="search" placeholder="Apps, eventos, contratos..." autocomplete="off" />
+            </label>
+            <button id="refresh" class="primary-action" type="button">Actualizar</button>
+          </div>
+        </header>
+
+        <section id="state-banner" class="state-banner loading">
+          <span class="pulse"></span>
+          <strong>Conectando con backbone staging...</strong>
+          <small>Health, readiness, apps, memoria, eventos y observabilidad.</small>
+        </section>
+
+        <section class="hero-grid">
+          <article class="hero-card">
+            <span class="eyebrow">Estado global</span>
+            <h2 id="global-status">Cargando</h2>
+            <p id="global-summary">Leyendo datos reales del backbone.</p>
+            <div class="hero-actions">
+              <button class="ghost-action" data-view-jump="readiness" type="button">Ver readiness</button>
+              <button class="ghost-action" data-view-jump="alerts" type="button">Ver alertas</button>
+            </div>
+          </article>
+          <article class="score-card">
+            <span>Salud de servicios</span>
+            <strong id="service-score">--</strong>
+            <small id="service-score-copy">Calculando senales operativas</small>
+          </article>
+        </section>
+
+        <section class="metric-grid" id="metric-grid" aria-label="Metricas principales">
+          <article class="metric skeleton"></article>
+          <article class="metric skeleton"></article>
+          <article class="metric skeleton"></article>
+          <article class="metric skeleton"></article>
+        </section>
+
+        <section class="workspace">
+          <article class="panel wide" id="ecosystem">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Resumen del ecosistema</span>
+                <h2>Aplicaciones registradas</h2>
+              </div>
+              <select id="status-filter" aria-label="Filtrar aplicaciones por estado">
+                <option value="all">Todos los estados</option>
+                <option value="external">Externas</option>
+                <option value="planned">Planeadas</option>
+                <option value="unknown">Desconocidas</option>
+                <option value="blocked">Bloqueadas</option>
+                <option value="internal">Internas</option>
+              </select>
+            </div>
+            <div id="apps-grid" class="apps-grid loading-grid"></div>
+          </article>
+
+          <aside class="panel" id="alerts">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Operacion</span>
+                <h2>Alertas e incidentes</h2>
+              </div>
+            </div>
+            <div id="alerts-list" class="stack-list"></div>
+          </aside>
+        </section>
+
+        <section class="view-panel active" data-panel="ceo">
+          <div class="section-title">
+            <span class="eyebrow">Vista CEO</span>
+            <h2>Direccion ejecutiva</h2>
+          </div>
+          <div class="dashboard-grid">
+            <article class="panel">
+              <h3>Prioridades</h3>
+              <div id="next-actions" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Dependencias</h3>
+              <div id="dependencies-list" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Timeline operativo</h3>
+              <div id="timeline" class="timeline"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-panel" data-panel="operator">
+          <div class="section-title">
+            <span class="eyebrow">Vista Operador</span>
+            <h2>Servicios, eventos y memoria</h2>
+          </div>
+          <div class="dashboard-grid">
+            <article class="panel">
+              <h3>Salud de servicios</h3>
+              <div id="services-list" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Eventos internos</h3>
+              <div id="events-list" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Memoria compartida</h3>
+              <div id="memory-list" class="stack-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-panel" data-panel="auditor">
+          <div class="section-title">
+            <span class="eyebrow">Vista Auditor</span>
+            <h2>Contratos, auditoria y permisos</h2>
+          </div>
+          <div class="dashboard-grid">
+            <article class="panel">
+              <h3>Contratos</h3>
+              <div id="contracts-list" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Auditoria</h3>
+              <div id="audit-list" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Roles y permisos</h3>
+              <div id="roles-list" class="stack-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-panel" data-panel="system">
+          <div class="section-title">
+            <span class="eyebrow">Vista Sistema</span>
+            <h2>Readiness y observabilidad</h2>
+          </div>
+          <div class="dashboard-grid">
+            <article class="panel">
+              <h3>Readiness</h3>
+              <div id="readiness-list" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Observabilidad</h3>
+              <div id="observability-list" class="stack-list"></div>
+            </article>
+            <article class="panel">
+              <h3>Integration Bus</h3>
+              <div id="integration-list" class="stack-list"></div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/control-center/assets/app.js"></script>
+  </body>
+</html>
