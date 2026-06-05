@@ -4,7 +4,7 @@ Fecha: 2026-06-04
 
 ## Estado
 
-Resultado: PASS LOCAL
+Resultado: PASS LOCAL / PRODUCTION DEPLOY BLOCKED
 
 Hermes queda como primera integracion progresiva preparada dentro del backbone del ecosistema. La integracion no conecta runtime externo, no usa credenciales, no toca repos externos y no llama ningun servicio de Hermes. Se registro discovery controlado, contrato, Integration Bus, eventos, auditoria tecnica por tests y visibilidad en Control Center mediante endpoints existentes.
 
@@ -117,6 +117,30 @@ Resultado clave del discovery local:
 - `python scripts/validate_v1.py` -> PASS
 - Secret scan -> PASS; solo placeholders documentales encontrados, no secretos reales.
 
+## Produccion
+
+Commit local y GitHub:
+
+- Commit: `b532e24 feat: integrate hermes discovery profile`
+- Push a `origin/main`: PASS
+
+Estado del alias antes de deploy manual:
+
+- `https://ecosystem-foundation.vercel.app/version` devolvio `commit=a08ed80`
+- `https://ecosystem-foundation.vercel.app/api/v1/integrations/apps/hermes/discovery` devolvio 404 porque produccion aun no tenia `b532e24`
+
+Deploy manual:
+
+- Comando: `npx vercel --prod --yes`
+- Resultado: BLOCKED
+- Error: `Resource is limited - try again in 1 day (more than 100, code: "api-deployments-free-per-day")`
+
+Conclusion produccion:
+
+- Codigo ECO-037 Hermes esta versionado y subido a GitHub.
+- Produccion no pudo validarse por limite de cuota de deployments Vercel.
+- No se declara PASS productivo hasta que Vercel permita un nuevo deploy.
+
 ## Archivos Modificados
 
 - `apps/api/app/api/integrations.py`
@@ -151,11 +175,12 @@ Resultado clave del discovery local:
 - No hay URL cloud oficial de Hermes validada.
 - No hay credenciales ni variables de runtime requeridas para conectar Hermes.
 - La conexion runtime debe requerir aprobacion humana futura antes de pasar de discovery a connection.
+- Deploy Vercel bloqueado por cuota diaria de API deployments; produccion sigue sirviendo `a08ed80`.
 
 ## Decision De Estado
 
 - Hermes integrado en Control Center como `prepared_for_discovery`: SI
 - Hermes conectado a runtime real: NO
 - External connections enabled: NO
+- Produccion validada con Hermes: NO, bloqueada por cuota Vercel
 - Siguiente app segun orden ECO-037: Auditor
-
