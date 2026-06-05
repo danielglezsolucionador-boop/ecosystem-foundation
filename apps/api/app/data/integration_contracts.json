@@ -58,5 +58,15 @@
     "status": "prepared_not_connected",
     "external_dependency": true,
     "description": "Future runtime contract for FORJA, CEREBRO and other apps. Not connected in Platform V1 local."
+  },
+  {
+    "id": "hermes.discovery.v1",
+    "name": "Hermes Discovery Contract V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/integrations/apps/hermes/discovery",
+    "method": "GET",
+    "status": "prepared_for_discovery",
+    "external_dependency": false,
+    "description": "Controlled discovery contract for Hermes local knowledge evidence without runtime connection."
   }
 ]

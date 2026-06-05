@@ -35,6 +35,13 @@
     "external_connection_enabled": false
   },
   {
+    "id": "integration-bus",
+    "name": "Integration Bus",
+    "category": "integration",
+    "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
     "id": "audit",
     "name": "Audit",
     "category": "audit",
@@ -53,6 +60,13 @@
     "name": "Storage",
     "category": "database",
     "status": "ready_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "hermes",
+    "name": "Hermes Knowledge Core",
+    "category": "knowledge_app",
+    "status": "prepared_for_discovery",
     "external_connection_enabled": false
   }
 ]

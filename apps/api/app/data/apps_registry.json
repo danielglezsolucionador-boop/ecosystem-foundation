@@ -111,9 +111,9 @@
     "id": "hermes",
     "name": "Hermes",
     "type": "knowledge_app",
-    "status": "unknown",
+    "status": "planned",
     "depends_on": [],
-    "description": "Knowledge and memory capability reserved in the ecosystem registry pending formal evidence.",
-    "touch_policy": "registry_only"
+    "description": "Knowledge and memory capability with local discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   }
 ]

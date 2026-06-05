@@ -72,6 +72,27 @@ def test_event_payload_validation_rejects_missing_required_field() -> None:
     assert payload["detail"]["missing_fields"] == ["version"]
 
 
+def test_hermes_discovery_event_can_be_published() -> None:
+    response = client.post(
+        "/api/v1/events",
+        json={
+            "type": "platform.hermes.discovery.completed",
+            "source": "integration-bus",
+            "subject": "hermes-discovery",
+            "payload": {
+                "app_id": "hermes",
+                "status": "prepared_for_discovery",
+                "evidence_count": 8,
+            },
+        },
+    )
+    event = response.json()
+
+    assert response.status_code == 201
+    assert event["type"] == "platform.hermes.discovery.completed"
+    assert event["external_queue_connected"] is False
+
+
 def test_event_unknown_type_returns_controlled_error() -> None:
     response = client.post(
         "/api/v1/events",

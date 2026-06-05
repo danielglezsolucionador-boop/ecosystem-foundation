@@ -1,0 +1,34 @@
+[
+  {
+    "app_id": "hermes",
+    "app_name": "Hermes",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "hermes-knowledge-core",
+    "contract_id": "hermes.discovery.v1",
+    "evidence_files": [
+      "memory/MEMORY_SYSTEM.md",
+      "memory/OPERATIONAL_MEMORY.md",
+      "ecosystem/ECOSYSTEM_REGISTRY.md",
+      "ecosystem/ECOSYSTEM_RELATIONS.md",
+      "runtime/health/RUNTIME_HEALTH.md",
+      "runtime/core/RUNTIME_LOOP.md",
+      "governance/VALIDATION_SYSTEM.md",
+      "observability/RUNTIME_OBSERVABILITY.md"
+    ],
+    "expected_capabilities": [
+      "knowledge_memory",
+      "operational_memory",
+      "ecosystem_relations",
+      "runtime_guidance",
+      "governance_validation",
+      "observability_notes"
+    ],
+    "blockers": [
+      "No verified live HTTP API is connected for Hermes.",
+      "No external credentials are configured or required for this discovery phase.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "local_discovery_profile"
+  }
+]

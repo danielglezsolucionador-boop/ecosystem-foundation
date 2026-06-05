@@ -21,6 +21,36 @@ from app.services.app_registry import get_registered_app
 CONTRACTS_TABLE = "ecosystem_contracts"
 CONTRACT_VERSIONS_TABLE = "ecosystem_contract_versions"
 CONTRACT_AUDIT_TABLE = "ecosystem_contract_audit_events"
+CONTROLLED_CONTRACT_SEEDS: tuple[dict[str, Any], ...] = (
+    {
+        "id": "hermes.discovery.v1",
+        "app_id": "hermes",
+        "name": "Hermes Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled Hermes discovery payload. It validates local evidence "
+            "shape and keeps runtime connection disabled."
+        ),
+    },
+)
 
 
 class ContractValidationError(RuntimeError):
@@ -82,7 +112,71 @@ def ensure_contract_schema() -> None:
             )
             """
         )
+        seed_controlled_contracts(connection, sql_placeholder())
         connection.commit()
+
+
+def seed_controlled_contracts(connection: Any, placeholder: str) -> None:
+    for seed in CONTROLLED_CONTRACT_SEEDS:
+        if get_registered_app(str(seed["app_id"])) is None:
+            continue
+
+        existing = connection.execute(
+            f"SELECT id FROM {CONTRACTS_TABLE} WHERE id = {placeholder}",
+            (seed["id"],),
+        ).fetchone()
+        if existing:
+            continue
+
+        now = utc_now()
+        record = ContractRecord(
+            id=str(seed["id"]),
+            app_id=str(seed["app_id"]),
+            name=str(seed["name"]),
+            version=str(seed["version"]),
+            status=str(seed["status"]),
+            contract_schema=seed["schema"],
+            description=str(seed["description"]),
+            breaking_change_detected=False,
+            external_connection_enabled=False,
+            created_at=now,
+            updated_at=now,
+        )
+        connection.execute(
+            f"""
+            INSERT INTO {CONTRACTS_TABLE} (
+                id, app_id, name, version, status, schema_json, description,
+                breaking_change_detected, external_connection_enabled, created_at, updated_at
+            )
+            VALUES (
+                {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}
+            )
+            """,
+            (
+                record.id,
+                record.app_id,
+                record.name,
+                record.version,
+                record.status,
+                json.dumps(record.contract_schema, sort_keys=True),
+                record.description,
+                0,
+                0,
+                record.created_at,
+                record.updated_at,
+            ),
+        )
+        insert_contract_version(connection, record, "seed_controlled_contract", placeholder)
+        insert_contract_audit(
+            connection,
+            record.id,
+            "seed",
+            "success",
+            "Controlled integration contract seeded without external connection.",
+            placeholder,
+        )
 
 
 def row_to_contract(row: Any) -> ContractRecord:

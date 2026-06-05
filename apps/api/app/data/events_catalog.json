@@ -28,5 +28,11 @@
     "description": "A local platform audit was completed.",
     "required_payload_fields": ["audit_id", "status"],
     "status": "active"
+  },
+  {
+    "id": "platform.hermes.discovery.completed",
+    "description": "Hermes local discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
   }
 ]
