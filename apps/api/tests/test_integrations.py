@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services import integration_apps
 
 
 def test_integration_contracts_contract() -> None:
@@ -66,8 +67,31 @@ def test_hermes_integration_profile_and_discovery_are_controlled() -> None:
     assert discovery["contract_id"] == "hermes.discovery.v1"
     assert discovery["external_connection_enabled"] is False
     assert isinstance(discovery["repository_detected"], bool)
+    assert discovery["evidence_source"] in {
+        "runtime_repository",
+        "versioned_local_discovery_snapshot",
+    }
     assert discovery["evidence_files_expected"]
+    assert discovery["evidence_files_found"]
     assert "No verified live HTTP API is connected for Hermes." in discovery["blockers"]
+
+
+def test_hermes_discovery_uses_snapshot_when_runtime_repo_is_missing(monkeypatch) -> None:
+    client = TestClient(app)
+    monkeypatch.delenv("HERMES_KNOWLEDGE_CORE_PATH", raising=False)
+    monkeypatch.setitem(integration_apps.LOCAL_DISCOVERY_PATHS, "hermes", ())
+
+    response = client.get("/api/v1/integrations/apps/hermes/discovery")
+    discovery = response.json()
+
+    assert response.status_code == 200
+    assert discovery["repository_detected"] is False
+    assert discovery["repository_path"] is None
+    assert discovery["evidence_source"] == "versioned_local_discovery_snapshot"
+    assert discovery["health_status"] == "local_evidence_snapshot_found"
+    assert discovery["evidence_files_found"] == discovery["evidence_files_expected"]
+    assert discovery["missing_evidence_files"] == []
+    assert discovery["external_connection_enabled"] is False
 
 
 def test_integration_app_missing_returns_404() -> None:

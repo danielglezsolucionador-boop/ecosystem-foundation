@@ -66,6 +66,7 @@ def discover_integration_app(app_id: str) -> IntegrationAppDiscovery | None:
     repository_detected = bool(repository_path and repository_path.exists())
     evidence_found: list[str] = []
     missing_evidence: list[str] = []
+    evidence_source = "none"
 
     if repository_path and repository_path.exists():
         for relative_file in profile.evidence_files:
@@ -73,11 +74,25 @@ def discover_integration_app(app_id: str) -> IntegrationAppDiscovery | None:
                 evidence_found.append(relative_file)
             else:
                 missing_evidence.append(relative_file)
+        evidence_source = "runtime_repository"
+    elif profile.evidence_files_verified:
+        verified_files = set(profile.evidence_files_verified)
+        evidence_found = [
+            relative_file
+            for relative_file in profile.evidence_files
+            if relative_file in verified_files
+        ]
+        missing_evidence = [
+            relative_file
+            for relative_file in profile.evidence_files
+            if relative_file not in verified_files
+        ]
+        evidence_source = "versioned_local_discovery_snapshot"
     else:
         missing_evidence = list(profile.evidence_files)
 
     blockers = list(profile.blockers)
-    if not repository_detected:
+    if not repository_detected and not evidence_found:
         blockers.append(
             "Repository path is not available in this runtime; configure "
             f"{profile.app_id.upper()}_KNOWLEDGE_CORE_PATH for local discovery."
@@ -86,6 +101,8 @@ def discover_integration_app(app_id: str) -> IntegrationAppDiscovery | None:
     health_status = (
         "local_evidence_found"
         if repository_detected and evidence_found
+        else "local_evidence_snapshot_found"
+        if evidence_found and not missing_evidence
         else "blocked_missing_repository_evidence"
     )
 
@@ -96,6 +113,8 @@ def discover_integration_app(app_id: str) -> IntegrationAppDiscovery | None:
         contract_id=profile.contract_id,
         repository_detected=repository_detected,
         repository_path=str(repository_path) if repository_detected and repository_path else None,
+        evidence_source=evidence_source,
+        evidence_repository_commit=profile.evidence_repository_commit,
         evidence_files_expected=profile.evidence_files,
         evidence_files_found=evidence_found,
         missing_evidence_files=missing_evidence,

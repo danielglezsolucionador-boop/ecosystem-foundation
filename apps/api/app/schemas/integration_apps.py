@@ -8,6 +8,9 @@ class IntegrationAppProfile(BaseModel):
     repository_hint: str | None = None
     contract_id: str = Field(min_length=1)
     evidence_files: list[str] = Field(default_factory=list)
+    evidence_files_verified: list[str] = Field(default_factory=list)
+    evidence_verified_at: str | None = None
+    evidence_repository_commit: str | None = None
     expected_capabilities: list[str] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
     external_connection_enabled: bool = False
@@ -21,6 +24,8 @@ class IntegrationAppDiscovery(BaseModel):
     contract_id: str = Field(min_length=1)
     repository_detected: bool
     repository_path: str | None = None
+    evidence_source: str = Field(min_length=1)
+    evidence_repository_commit: str | None = None
     evidence_files_expected: list[str] = Field(default_factory=list)
     evidence_files_found: list[str] = Field(default_factory=list)
     missing_evidence_files: list[str] = Field(default_factory=list)

@@ -15,6 +15,18 @@
       "governance/VALIDATION_SYSTEM.md",
       "observability/RUNTIME_OBSERVABILITY.md"
     ],
+    "evidence_files_verified": [
+      "memory/MEMORY_SYSTEM.md",
+      "memory/OPERATIONAL_MEMORY.md",
+      "ecosystem/ECOSYSTEM_REGISTRY.md",
+      "ecosystem/ECOSYSTEM_RELATIONS.md",
+      "runtime/health/RUNTIME_HEALTH.md",
+      "runtime/core/RUNTIME_LOOP.md",
+      "governance/VALIDATION_SYSTEM.md",
+      "observability/RUNTIME_OBSERVABILITY.md"
+    ],
+    "evidence_verified_at": "2026-06-05T23:20:00Z",
+    "evidence_repository_commit": "fd150cf",
     "expected_capabilities": [
       "knowledge_memory",
       "operational_memory",
