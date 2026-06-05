@@ -86,5 +86,49 @@
     ],
     "external_connection_enabled": false,
     "source": "internal_audit_discovery_profile"
+  },
+  {
+    "app_id": "pluma",
+    "app_name": "PLUMA",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "pluma",
+    "contract_id": "pluma.discovery.v1",
+    "evidence_files": [
+      "README.md",
+      "package.json",
+      "app/page.tsx",
+      "app/editorial/page.tsx",
+      "app/academico/page.tsx",
+      "app/guiones/page.tsx",
+      "app/web/page.tsx",
+      "app/api/health/route.ts"
+    ],
+    "evidence_files_verified": [
+      "README.md",
+      "package.json",
+      "app/page.tsx",
+      "app/editorial/page.tsx",
+      "app/academico/page.tsx",
+      "app/guiones/page.tsx",
+      "app/web/page.tsx",
+      "app/api/health/route.ts"
+    ],
+    "evidence_verified_at": "2026-06-05T23:40:00Z",
+    "evidence_repository_commit": "9c3f343",
+    "expected_capabilities": [
+      "editorial_content",
+      "academic_content",
+      "script_generation",
+      "web_copywriting",
+      "social_content",
+      "health_endpoint"
+    ],
+    "blockers": [
+      "Local Pluma repository has uncommitted changes; discovery is read-only and does not claim deploy readiness.",
+      "No Pluma runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "local_discovery_profile"
   }
 ]

@@ -32,8 +32,8 @@
     "type": "content_app",
     "status": "planned",
     "depends_on": [],
-    "description": "Content and writing application reserved in the ecosystem registry.",
-    "touch_policy": "registry_only"
+    "description": "Content and writing application with local discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "lente",

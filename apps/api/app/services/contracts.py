@@ -78,6 +78,34 @@ CONTROLLED_CONTRACT_SEEDS: tuple[dict[str, Any], ...] = (
             "evidence shape and keeps runtime connection disabled."
         ),
     },
+    {
+        "id": "pluma.discovery.v1",
+        "app_id": "pluma",
+        "name": "PLUMA Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled PLUMA discovery payload. It validates local content "
+            "evidence shape and keeps runtime connection disabled."
+        ),
+    },
 )
 
 

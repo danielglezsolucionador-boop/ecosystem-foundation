@@ -40,5 +40,12 @@
     "service": "integration-bus",
     "status": "prepared_local",
     "external_connection_enabled": false
+  },
+  {
+    "id": "pluma-discovery-consumer",
+    "event_type": "platform.pluma.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
   }
 ]

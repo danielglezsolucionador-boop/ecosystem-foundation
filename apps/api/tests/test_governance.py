@@ -329,6 +329,32 @@ def test_auditor_gate_can_request_and_approve_discovery_without_real_connection(
     assert approval.json()["audit_event_ids"]
 
 
+def test_pluma_gate_can_request_and_approve_discovery_without_real_connection() -> None:
+    request = client.post(
+        "/api/v1/governance/integration-gates/pluma/request-discovery",
+        json={
+            "role_id": "operator",
+            "reason": "PLUMA follows Auditor local PASS.",
+            "evidence": "PLUMA discovery profile and contract are registered locally.",
+        },
+        headers=OPERATOR_HEADERS,
+    )
+    approval = client.post(
+        "/api/v1/governance/integration-gates/pluma/approve-discovery",
+        json={
+            "role_id": "ceo",
+            "evidence": "PLUMA discovery evidence reviewed; runtime connection remains disabled.",
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert request.status_code == 200
+    assert request.json()["state"] == "pending_approval"
+    assert approval.status_code == 200
+    assert approval.json()["state"] == "approved_for_discovery"
+    assert approval.json()["approved_by"] == "ceo"
+
+
 def test_risk_close_requires_evidence_and_critical_risk_is_reported() -> None:
     risk = create_risk("critical")
     close_response = client.post(

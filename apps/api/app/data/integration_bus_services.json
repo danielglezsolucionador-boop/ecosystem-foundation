@@ -75,5 +75,12 @@
     "category": "audit_app",
     "status": "prepared_for_discovery",
     "external_connection_enabled": false
+  },
+  {
+    "id": "pluma",
+    "name": "PLUMA Content Capability",
+    "category": "content_app",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
   }
 ]

@@ -16,7 +16,10 @@ LOCAL_DISCOVERY_PATHS: dict[str, tuple[Path, ...]] = {
             "fase-render-cloud-stabilization-objetivo-inicializar/"
             "hermes-knowledge-core"
         ),
-    )
+    ),
+    "pluma": (
+        Path("C:/Users/admin/Desktop/pluma"),
+    ),
 }
 
 

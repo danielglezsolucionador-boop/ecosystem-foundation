@@ -78,5 +78,15 @@
     "status": "prepared_for_discovery",
     "external_dependency": false,
     "description": "Controlled discovery contract for Auditor internal audit capability without runtime connection."
+  },
+  {
+    "id": "pluma.discovery.v1",
+    "name": "PLUMA Discovery Contract V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/integrations/apps/pluma/discovery",
+    "method": "GET",
+    "status": "prepared_for_discovery",
+    "external_dependency": false,
+    "description": "Controlled discovery contract for PLUMA local content capability without runtime connection."
   }
 ]
