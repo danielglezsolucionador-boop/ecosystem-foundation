@@ -1,8 +1,9 @@
 from fastapi.testclient import TestClient
+from uuid import uuid4
 
 from app.main import app
 from app.schemas.auth import ControlCenterRole
-from app.services.auth import create_user_for_tests, list_auth_audit_events
+from app.services.auth import bootstrap_initial_admin, create_user_for_tests, list_auth_audit_events
 
 
 client = TestClient(app)
@@ -91,3 +92,36 @@ def test_role_limits_are_bound_to_real_session_user() -> None:
 
     audit = list_auth_audit_events()
     assert any(event.email == "operator-auth-test@example.com" and event.result == "allowed" for event in audit)
+
+
+def test_initial_admin_bootstrap_rotates_from_environment(monkeypatch) -> None:
+    email = f"bootstrap-{uuid4()}@example.com"
+    monkeypatch.setenv("CONTROL_CENTER_ADMIN_EMAIL", email)
+    monkeypatch.setenv("CONTROL_CENTER_ADMIN_PASSWORD", "Initial-Control-Center-Password-123")
+    monkeypatch.setenv("CONTROL_CENTER_ADMIN_NAME", "Initial CEO")
+
+    created = bootstrap_initial_admin()
+    first_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "Initial-Control-Center-Password-123"},
+    )
+
+    monkeypatch.setenv("CONTROL_CENTER_ADMIN_PASSWORD", "Rotated-Control-Center-Password-456")
+    monkeypatch.setenv("CONTROL_CENTER_ADMIN_NAME", "Rotated CEO")
+    rotated = bootstrap_initial_admin()
+    old_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "Initial-Control-Center-Password-123"},
+    )
+    new_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "Rotated-Control-Center-Password-456"},
+    )
+
+    assert created is not None
+    assert created.role == ControlCenterRole.ceo
+    assert first_login.status_code == 200
+    assert rotated is not None
+    assert rotated.name == "Rotated CEO"
+    assert old_login.status_code == 401
+    assert new_login.status_code == 200

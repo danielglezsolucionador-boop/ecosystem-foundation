@@ -32,6 +32,7 @@ PASSWORD_ALGORITHM = "pbkdf2_sha256"
 PASSWORD_ITERATIONS = 260000
 SESSION_TTL_HOURS = 12
 TOKEN_PREFIX = "ccs_"
+ADMIN_BOOTSTRAP_FINGERPRINT_KEY = "control_center_admin_bootstrap_fingerprint"
 
 
 def utc_now_datetime() -> datetime:
@@ -82,6 +83,11 @@ def new_session_token() -> str:
 
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def admin_bootstrap_fingerprint(email: str, password: str, name: str) -> str:
+    raw = f"{email}\n{name}\n{password}".encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
 
 
 def row_to_user(row: dict) -> UserPublic:
@@ -181,11 +187,60 @@ def bootstrap_initial_admin(placeholder: str | None = None) -> UserPublic | None
         return None
 
     placeholder = placeholder or sql_placeholder()
+    fingerprint = admin_bootstrap_fingerprint(email, password, name)
     now = utc_now()
     with connect() as connection:
         row = connection.execute(f"SELECT * FROM {USERS_TABLE} WHERE email = {placeholder}", (email,)).fetchone()
         if row:
-            return row_to_user(dict(row))
+            metadata_row = connection.execute(
+                "SELECT value FROM platform_metadata WHERE key = {placeholder}".format(placeholder=placeholder),
+                (ADMIN_BOOTSTRAP_FINGERPRINT_KEY,),
+            ).fetchone()
+            existing_fingerprint = metadata_row["value"] if metadata_row else None
+            if existing_fingerprint == fingerprint:
+                return row_to_user(dict(row))
+
+            connection.execute(
+                f"""
+                UPDATE {USERS_TABLE}
+                SET name = {placeholder},
+                    role = {placeholder},
+                    status = {placeholder},
+                    password_hash = {placeholder},
+                    updated_at = {placeholder}
+                WHERE email = {placeholder}
+                """,
+                (
+                    name,
+                    ControlCenterRole.ceo.value,
+                    UserStatus.active.value,
+                    hash_password(password),
+                    now,
+                    email,
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO platform_metadata (key, value)
+                VALUES ({placeholder}, {placeholder})
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """.format(placeholder=placeholder),
+                (ADMIN_BOOTSTRAP_FINGERPRINT_KEY, fingerprint),
+            )
+            connection.commit()
+            updated = connection.execute(f"SELECT * FROM {USERS_TABLE} WHERE email = {placeholder}", (email,)).fetchone()
+            user = row_to_user(dict(updated))
+            audit_auth_event(
+                user_id=user.id,
+                email=email,
+                role=ControlCenterRole.ceo.value,
+                session_id=None,
+                action="admin.bootstrap",
+                resource="control_center",
+                result="updated",
+                metadata={"source": "CONTROL_CENTER_ADMIN_*"},
+            )
+            return user
 
         user = {
             "id": f"user-{uuid4()}",
@@ -215,6 +270,14 @@ def bootstrap_initial_admin(placeholder: str | None = None) -> UserPublic | None
                 user["updated_at"],
                 user["last_login_at"],
             ),
+        )
+        connection.execute(
+            """
+            INSERT INTO platform_metadata (key, value)
+            VALUES ({placeholder}, {placeholder})
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            """.format(placeholder=placeholder),
+            (ADMIN_BOOTSTRAP_FINGERPRINT_KEY, fingerprint),
         )
         connection.commit()
     audit_auth_event(
