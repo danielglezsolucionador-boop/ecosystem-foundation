@@ -33,5 +33,12 @@
     "service": "integration-bus",
     "status": "prepared_local",
     "external_connection_enabled": false
+  },
+  {
+    "id": "auditor-discovery-consumer",
+    "event_type": "platform.auditor.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
   }
 ]

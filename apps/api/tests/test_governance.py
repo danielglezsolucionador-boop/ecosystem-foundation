@@ -297,6 +297,38 @@ def test_non_protected_gate_can_reach_approval_without_real_connection() -> None
     assert connection.json()["state"] != "connected"
 
 
+def test_auditor_gate_can_request_and_approve_discovery_without_real_connection() -> None:
+    gates_response = client.get("/api/v1/governance/integration-gates", headers=CEO_HEADERS)
+    gates = {item["app_id"]: item for item in gates_response.json()}
+    request = client.post(
+        "/api/v1/governance/integration-gates/auditor/request-discovery",
+        json={
+            "role_id": "operator",
+            "reason": "Auditor discovery follows Hermes production PASS.",
+            "evidence": "Auditor discovery profile and contract are registered locally.",
+        },
+        headers=OPERATOR_HEADERS,
+    )
+    approval = client.post(
+        "/api/v1/governance/integration-gates/auditor/approve-discovery",
+        json={
+            "role_id": "ceo",
+            "evidence": "Auditor discovery evidence reviewed; runtime connection remains disabled.",
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert gates_response.status_code == 200
+    assert gates["auditor"]["protected"] is False
+    assert request.status_code == 200
+    assert request.json()["state"] == "pending_approval"
+    assert request.json()["approval_id"]
+    assert approval.status_code == 200
+    assert approval.json()["state"] == "approved_for_discovery"
+    assert approval.json()["approved_by"] == "ceo"
+    assert approval.json()["audit_event_ids"]
+
+
 def test_risk_close_requires_evidence_and_critical_risk_is_reported() -> None:
     risk = create_risk("critical")
     close_response = client.post(

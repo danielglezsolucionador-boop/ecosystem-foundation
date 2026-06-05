@@ -34,5 +34,11 @@
     "description": "Hermes local discovery evidence was evaluated without external runtime connection.",
     "required_payload_fields": ["app_id", "status", "evidence_count"],
     "status": "active"
+  },
+  {
+    "id": "platform.auditor.discovery.completed",
+    "description": "Auditor internal audit discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
   }
 ]

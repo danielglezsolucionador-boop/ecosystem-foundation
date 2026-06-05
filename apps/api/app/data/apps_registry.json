@@ -102,10 +102,10 @@
     "id": "auditor",
     "name": "Auditor",
     "type": "audit_app",
-    "status": "unknown",
+    "status": "planned",
     "depends_on": [],
-    "description": "Audit capability reserved in the ecosystem registry pending formal evidence.",
-    "touch_policy": "registry_only"
+    "description": "Audit capability with internal audit, governance and observability evidence prepared for controlled discovery.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "hermes",

@@ -42,5 +42,49 @@
     ],
     "external_connection_enabled": false,
     "source": "local_discovery_profile"
+  },
+  {
+    "app_id": "auditor",
+    "app_name": "Auditor",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "ecosystem-foundation-internal-audit",
+    "contract_id": "auditor.discovery.v1",
+    "evidence_files": [
+      "apps/api/app/api/audit.py",
+      "apps/api/app/services/audit.py",
+      "apps/api/tests/test_audit.py",
+      "docs/ecosystem/execution/audit/AUDIT_BLOCK7_CENTRALIZED_AUDIT.md",
+      "docs/ecosystem/execution/contracts/CONTRACTS_BLOCK6_ECOSYSTEM_CONTRACTS.md",
+      "docs/ecosystem/execution/observability/OBSERVABILITY_BLOCK8_CENTRALIZED_OBSERVABILITY.md",
+      "docs/ecosystem/execution/control-center/CONTROL_CENTER_PREMIUM_BLOCK1.md",
+      "docs/ecosystem/execution/GOVERNANCE_V1_COMPLETION_REPORT.md"
+    ],
+    "evidence_files_verified": [
+      "apps/api/app/api/audit.py",
+      "apps/api/app/services/audit.py",
+      "apps/api/tests/test_audit.py",
+      "docs/ecosystem/execution/audit/AUDIT_BLOCK7_CENTRALIZED_AUDIT.md",
+      "docs/ecosystem/execution/contracts/CONTRACTS_BLOCK6_ECOSYSTEM_CONTRACTS.md",
+      "docs/ecosystem/execution/observability/OBSERVABILITY_BLOCK8_CENTRALIZED_OBSERVABILITY.md",
+      "docs/ecosystem/execution/control-center/CONTROL_CENTER_PREMIUM_BLOCK1.md",
+      "docs/ecosystem/execution/GOVERNANCE_V1_COMPLETION_REPORT.md"
+    ],
+    "evidence_verified_at": "2026-06-05T23:30:00Z",
+    "evidence_repository_commit": "d36aa43",
+    "expected_capabilities": [
+      "integration_audit",
+      "contract_audit",
+      "control_center_auditor_view",
+      "governance_evidence_review",
+      "observability_review",
+      "fail_closed_validation"
+    ],
+    "blockers": [
+      "No standalone Auditor runtime repository was detected.",
+      "Auditor remains an internal discovery profile over ecosystem audit capabilities.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "internal_audit_discovery_profile"
   }
 ]

@@ -186,6 +186,19 @@ def test_hermes_contract_is_seeded_without_external_connection() -> None:
     assert hermes_contract["external_connection_enabled"] is False
 
 
+def test_auditor_contract_is_seeded_without_external_connection() -> None:
+    response = client.get("/api/v1/contracts", params={"app_id": "auditor"})
+    contracts = response.json()
+
+    assert response.status_code == 200
+    assert any(item["id"] == "auditor.discovery.v1" for item in contracts)
+    auditor_contract = next(
+        item for item in contracts if item["id"] == "auditor.discovery.v1"
+    )
+    assert auditor_contract["status"] == "prepared_for_discovery"
+    assert auditor_contract["external_connection_enabled"] is False
+
+
 def test_contract_audit_records_actions() -> None:
     contract = create_test_contract("Audit Contract")
     client.post(

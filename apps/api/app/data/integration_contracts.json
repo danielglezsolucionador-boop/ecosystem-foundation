@@ -68,5 +68,15 @@
     "status": "prepared_for_discovery",
     "external_dependency": false,
     "description": "Controlled discovery contract for Hermes local knowledge evidence without runtime connection."
+  },
+  {
+    "id": "auditor.discovery.v1",
+    "name": "Auditor Discovery Contract V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/integrations/apps/auditor/discovery",
+    "method": "GET",
+    "status": "prepared_for_discovery",
+    "external_dependency": false,
+    "description": "Controlled discovery contract for Auditor internal audit capability without runtime connection."
   }
 ]

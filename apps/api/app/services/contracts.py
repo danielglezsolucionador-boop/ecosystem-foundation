@@ -50,6 +50,34 @@ CONTROLLED_CONTRACT_SEEDS: tuple[dict[str, Any], ...] = (
             "shape and keeps runtime connection disabled."
         ),
     },
+    {
+        "id": "auditor.discovery.v1",
+        "app_id": "auditor",
+        "name": "Auditor Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled Auditor discovery payload. It validates internal audit "
+            "evidence shape and keeps runtime connection disabled."
+        ),
+    },
 )
 
 

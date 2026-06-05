@@ -93,6 +93,27 @@ def test_hermes_discovery_event_can_be_published() -> None:
     assert event["external_queue_connected"] is False
 
 
+def test_auditor_discovery_event_can_be_published() -> None:
+    response = client.post(
+        "/api/v1/events",
+        json={
+            "type": "platform.auditor.discovery.completed",
+            "source": "integration-bus",
+            "subject": "auditor-discovery",
+            "payload": {
+                "app_id": "auditor",
+                "status": "prepared_for_discovery",
+                "evidence_count": 8,
+            },
+        },
+    )
+    event = response.json()
+
+    assert response.status_code == 201
+    assert event["type"] == "platform.auditor.discovery.completed"
+    assert event["external_queue_connected"] is False
+
+
 def test_event_unknown_type_returns_controlled_error() -> None:
     response = client.post(
         "/api/v1/events",

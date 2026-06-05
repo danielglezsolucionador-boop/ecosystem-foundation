@@ -126,11 +126,11 @@ def test_app_registry_status_summary() -> None:
     assert payload == {
         "total": 13,
         "by_status": {
-            "planned": 9,
+            "planned": 10,
             "internal": 0,
             "external": 3,
             "blocked": 0,
-            "unknown": 1,
+            "unknown": 0,
         },
         "app_ids": [
             "forja",

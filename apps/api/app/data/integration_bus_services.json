@@ -68,5 +68,12 @@
     "category": "knowledge_app",
     "status": "prepared_for_discovery",
     "external_connection_enabled": false
+  },
+  {
+    "id": "auditor",
+    "name": "Auditor Integration Capability",
+    "category": "audit_app",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
   }
 ]
