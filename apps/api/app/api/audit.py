@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.schemas.audit import (
     AuditCategory,
@@ -16,8 +16,13 @@ from app.services.audit import (
     list_audit_reports,
     run_local_audit,
 )
+from app.services.auth import require_control_center_user
 
-router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
+router = APIRouter(
+    prefix="/api/v1/audit",
+    tags=["audit"],
+    dependencies=[Depends(require_control_center_user)],
+)
 
 
 @router.get("", response_model=AuditOverview)

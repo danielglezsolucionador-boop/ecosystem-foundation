@@ -2,13 +2,15 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.main import app
+from auth_helpers import auth_headers
 
 
 client = TestClient(app)
+AUTH_HEADERS = auth_headers(client)
 
 
 def test_control_center_root_contract() -> None:
-    response = client.get("/api/v1/control-center")
+    response = client.get("/api/v1/control-center", headers=AUTH_HEADERS)
     payload = response.json()
 
     assert response.status_code == 200
@@ -37,13 +39,13 @@ def test_control_center_root_contract() -> None:
     ],
 )
 def test_control_center_required_endpoints(path: str) -> None:
-    response = client.get(path)
+    response = client.get(path, headers=AUTH_HEADERS)
 
     assert response.status_code == 200
 
 
 def test_control_center_apps_use_registry_without_external_connections() -> None:
-    response = client.get("/api/v1/control-center/apps")
+    response = client.get("/api/v1/control-center/apps", headers=AUTH_HEADERS)
     apps = response.json()
     external_apps = [
         app for app in apps if app["registry_status"] == "external"
@@ -59,7 +61,7 @@ def test_control_center_apps_use_registry_without_external_connections() -> None
 
 
 def test_control_center_readiness_keeps_external_connections_blocked() -> None:
-    response = client.get("/api/v1/control-center/readiness")
+    response = client.get("/api/v1/control-center/readiness", headers=AUTH_HEADERS)
     payload = response.json()
     checks = {item["id"]: item for item in payload["checks"]}
 
@@ -72,8 +74,8 @@ def test_control_center_readiness_keeps_external_connections_blocked() -> None:
 
 
 def test_control_center_metrics_and_alerts_are_structured() -> None:
-    metrics_response = client.get("/api/v1/control-center/metrics")
-    alerts_response = client.get("/api/v1/control-center/alerts")
+    metrics_response = client.get("/api/v1/control-center/metrics", headers=AUTH_HEADERS)
+    alerts_response = client.get("/api/v1/control-center/alerts", headers=AUTH_HEADERS)
     metrics = {item["id"]: item for item in metrics_response.json()}
     alerts = alerts_response.json()
 
@@ -87,7 +89,7 @@ def test_control_center_metrics_and_alerts_are_structured() -> None:
 
 
 def test_control_center_status_consolidates_runtime_dependencies_and_services() -> None:
-    response = client.get("/api/v1/control-center/status")
+    response = client.get("/api/v1/control-center/status", headers=AUTH_HEADERS)
     payload = response.json()
     dependencies = {item["id"]: item for item in payload["dependencies"]}
     services = {item["id"]: item for item in payload["services"]}
@@ -101,6 +103,6 @@ def test_control_center_status_consolidates_runtime_dependencies_and_services() 
 
 
 def test_control_center_unknown_endpoint_returns_404() -> None:
-    response = client.get("/api/v1/control-center/does-not-exist")
+    response = client.get("/api/v1/control-center/does-not-exist", headers=AUTH_HEADERS)
 
     assert response.status_code == 404

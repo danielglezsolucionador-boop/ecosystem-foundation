@@ -8,7 +8,33 @@
     <link rel="stylesheet" href="/control-center/assets/styles.css" />
   </head>
   <body>
-    <div id="app" class="shell" aria-live="polite">
+    <section id="login-screen" class="login-screen" aria-label="Acceso Control Center">
+      <div class="login-card">
+        <div class="login-brand">
+          <span class="brand-mark">CC</span>
+          <div>
+            <span class="eyebrow">Control Center</span>
+            <h1>Acceso ejecutivo</h1>
+            <p>Entra con tu usuario autorizado para operar la cabina del ecosistema.</p>
+          </div>
+        </div>
+        <form id="login-form" class="login-form">
+          <label>
+            <span>Email</span>
+            <input id="login-email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input id="login-password" type="password" autocomplete="current-password" required />
+          </label>
+          <p id="login-error" class="login-error hidden"></p>
+          <button id="login-submit" class="primary-action" type="submit">Entrar al Control Center</button>
+        </form>
+        <small>El usuario CEO inicial se crea solo si Vercel tiene las variables CONTROL_CENTER_ADMIN_* configuradas.</small>
+      </div>
+    </section>
+
+    <div id="app" class="shell hidden" aria-live="polite">
       <aside class="sidebar" aria-label="Navegacion principal">
         <a class="brand" href="#top" aria-label="Control Center inicio">
           <span class="brand-mark">CC</span>
@@ -18,17 +44,14 @@
           </span>
         </a>
 
-        <label class="role-card">
-          <span>Rol activo</span>
-          <select id="role-select" aria-label="Seleccionar rol activo">
-            <option value="ceo">CEO</option>
-            <option value="admin">ADMIN</option>
-            <option value="operator">OPERATOR</option>
-            <option value="auditor">AUDITOR</option>
-            <option value="service">SERVICE</option>
-          </select>
+        <section class="role-card">
+          <span>Sesion activa</span>
+          <strong id="active-user-name">Usuario</strong>
+          <small id="active-user-email">email</small>
+          <strong id="active-user-role">Rol</strong>
           <small id="role-boundary-copy">Cargando permisos del rol.</small>
-        </label>
+          <button id="logout" class="ghost-action" type="button">Cerrar sesion</button>
+        </section>
 
         <nav class="nav" id="view-tabs" aria-label="Vistas">
           <button class="active" data-view="ceo" type="button">Vista CEO</button>

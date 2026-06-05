@@ -22,9 +22,13 @@ const endpoints = {
   governanceAudit: "/api/v1/governance/audit"
 };
 
+const AUTH_TOKEN_KEY = "ecosystem_control_center_session_v1";
+
 const state = {
   data: {},
   errors: {},
+  token: localStorage.getItem(AUTH_TOKEN_KEY) || "",
+  user: null,
   role: "ceo",
   boundary: null,
   view: "ceo",
@@ -97,6 +101,17 @@ function label(value) {
   return String(value || "Pendiente").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function authHeaders(extra = {}) {
+  return {
+    ...extra,
+    ...(state.token ? { Authorization: `Bearer ${state.token}` } : {})
+  };
+}
+
+function roleFromUser(user) {
+  return String(user?.role || "SERVICE").toLowerCase();
+}
+
 function number(value) {
   if (typeof value === "number") return new Intl.NumberFormat("es").format(value);
   if (value === false) return "No";
@@ -152,14 +167,70 @@ function listItem({ title, body, meta, status, actions = "" }) {
 
 async function fetchJson(name, url) {
   const response = await fetch(url, {
-    headers: { Accept: "application/json" },
+    headers: authHeaders({ Accept: "application/json" }),
     cache: "no-store"
   });
+  if (response.status === 401) {
+    clearSession();
+    showLogin("Tu sesion expiro. Entra nuevamente.");
+  }
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();
 }
 
+async function loadCurrentUser() {
+  if (!state.token) {
+    showLogin();
+    return false;
+  }
+  const response = await fetch("/api/v1/auth/me", {
+    headers: authHeaders({ Accept: "application/json" }),
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    clearSession();
+    showLogin("No hay sesion activa.");
+    return false;
+  }
+  state.user = await response.json();
+  state.role = roleFromUser(state.user);
+  showApp();
+  renderUserShell();
+  return true;
+}
+
+function clearSession() {
+  state.token = "";
+  state.user = null;
+  state.boundary = null;
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+function showLogin(message = "") {
+  $("#login-screen").classList.remove("hidden");
+  $("#app").classList.add("hidden");
+  $("#login-error").textContent = message;
+  $("#login-error").classList.toggle("hidden", !message);
+}
+
+function showApp() {
+  $("#login-screen").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+}
+
+function renderUserShell() {
+  if (!state.user) return;
+  $("#active-user-name").textContent = state.user.name;
+  $("#active-user-role").textContent = label(state.user.role);
+  $("#active-user-email").textContent = state.user.email;
+  $("#role-boundary-copy").textContent = `Sesion real: ${state.user.name} / ${label(state.user.role)}. Cargando permisos.`;
+}
+
 async function loadData() {
+  if (!state.user) {
+    const hasUser = await loadCurrentUser();
+    if (!hasUser) return;
+  }
   setLoading();
   const boundaryUrl = `/api/v1/governance/auth-boundary?role_id=${encodeURIComponent(state.role)}`;
   const entries = [...Object.entries(endpoints), ["boundary", boundaryUrl]];
@@ -607,11 +678,9 @@ function bindActionButtons() {
 }
 
 function bindEvents() {
+  $("#login-form").addEventListener("submit", loginFromForm);
   $("#refresh").addEventListener("click", loadData);
-  $("#role-select").addEventListener("change", (event) => {
-    state.role = event.target.value;
-    loadData();
-  });
+  $("#logout").addEventListener("click", logout);
   $("#search").addEventListener("input", (event) => {
     state.search = event.target.value;
     renderApps();
@@ -634,6 +703,49 @@ function bindEvents() {
     });
   });
   $("#confirm-action").addEventListener("click", executePendingAction);
+}
+
+async function loginFromForm(event) {
+  event.preventDefault();
+  const email = $("#login-email").value.trim();
+  const password = $("#login-password").value;
+  const button = $("#login-submit");
+  button.disabled = true;
+  $("#login-error").classList.add("hidden");
+  $("#login-error").textContent = "";
+  try {
+    const response = await fetch("/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.detail?.error || "login_failed");
+    }
+    state.token = result.token;
+    state.user = result.user;
+    state.role = roleFromUser(result.user);
+    localStorage.setItem(AUTH_TOKEN_KEY, state.token);
+    showApp();
+    renderUserShell();
+    await loadData();
+  } catch (error) {
+    showLogin(error.message === "invalid_credentials" ? "Credenciales incorrectas." : "No se pudo iniciar sesion.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function logout() {
+  const token = state.token;
+  clearSession();
+  showLogin("Sesion cerrada.");
+  if (!token) return;
+  await fetch("/api/v1/auth/logout", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
+  }).catch(() => {});
 }
 
 function resolveTarget(actionId, explicitTarget) {
@@ -736,7 +848,7 @@ async function executePendingAction() {
   try {
     const response = await fetch(endpoint, {
       method: action.method,
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json", Accept: "application/json" }),
       body: JSON.stringify(payload)
     });
     const result = await response.json().catch(() => ({}));

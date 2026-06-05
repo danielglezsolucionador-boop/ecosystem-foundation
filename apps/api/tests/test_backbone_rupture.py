@@ -2,9 +2,20 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.main import app
+from auth_helpers import auth_headers
 
 
 client = TestClient(app)
+AUTH_HEADERS = auth_headers(client)
+
+
+def headers_for(path: str) -> dict[str, str] | None:
+    protected_prefixes = (
+        "/api/v1/control-center",
+        "/api/v1/audit",
+        "/api/v1/observability",
+    )
+    return AUTH_HEADERS if path.startswith(protected_prefixes) else None
 
 
 @pytest.mark.parametrize(
@@ -19,7 +30,7 @@ client = TestClient(app)
     ],
 )
 def test_backbone_unknown_resources_return_controlled_404(path: str) -> None:
-    response = client.get(path)
+    response = client.get(path, headers=headers_for(path))
 
     assert response.status_code == 404
     assert "detail" in response.json()
@@ -38,7 +49,7 @@ def test_backbone_unknown_resources_return_controlled_404(path: str) -> None:
     ],
 )
 def test_backbone_invalid_payloads_return_422(path: str, payload: dict) -> None:
-    response = client.post(path, json=payload)
+    response = client.post(path, json=payload, headers=headers_for(path))
 
     assert response.status_code == 422
 
@@ -132,6 +143,7 @@ def test_backbone_mass_audit_and_logs_remain_queryable() -> None:
                 "status": "recorded",
                 "detail": "Mass audit rupture test.",
             },
+            headers=AUTH_HEADERS,
         )
         client.post(
             "/api/v1/observability/logs",
@@ -141,10 +153,11 @@ def test_backbone_mass_audit_and_logs_remain_queryable() -> None:
                 "source": "rupture",
                 "trace_id": "rupture-trace",
             },
+            headers=AUTH_HEADERS,
         )
 
-    audit_response = client.get("/api/v1/audit")
-    logs_response = client.get("/api/v1/observability/logs")
+    audit_response = client.get("/api/v1/audit", headers=AUTH_HEADERS)
+    logs_response = client.get("/api/v1/observability/logs", headers=AUTH_HEADERS)
 
     assert audit_response.status_code == 200
     assert audit_response.json()["events"] >= 10

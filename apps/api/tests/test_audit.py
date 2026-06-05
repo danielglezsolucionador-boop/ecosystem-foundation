@@ -2,9 +2,11 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.main import app
+from auth_helpers import auth_headers
 
 
 client = TestClient(app)
+AUTH_HEADERS = auth_headers(client)
 
 
 @pytest.mark.parametrize(
@@ -20,13 +22,13 @@ client = TestClient(app)
     ],
 )
 def test_audit_required_endpoints(path: str) -> None:
-    response = client.get(path)
+    response = client.get(path, headers=AUTH_HEADERS)
 
     assert response.status_code == 200
 
 
 def test_audit_run_creates_passing_report() -> None:
-    response = client.post("/api/v1/audit/run")
+    response = client.post("/api/v1/audit/run", headers=AUTH_HEADERS)
     payload = response.json()
 
     assert response.status_code == 201
@@ -48,7 +50,11 @@ def test_audit_run_creates_passing_report() -> None:
 
 
 def test_audit_reports_generate_alias_creates_report() -> None:
-    response = client.post("/api/v1/audit/reports/generate", json={"scope": "full"})
+    response = client.post(
+        "/api/v1/audit/reports/generate",
+        json={"scope": "full"},
+        headers=AUTH_HEADERS,
+    )
     payload = response.json()
 
     assert response.status_code == 201
@@ -56,8 +62,8 @@ def test_audit_reports_generate_alias_creates_report() -> None:
 
 
 def test_audit_reports_list_includes_created_report() -> None:
-    created = client.post("/api/v1/audit/run").json()
-    response = client.get("/api/v1/audit/reports")
+    created = client.post("/api/v1/audit/run", headers=AUTH_HEADERS).json()
+    response = client.get("/api/v1/audit/reports", headers=AUTH_HEADERS)
     reports = response.json()
 
     assert response.status_code == 200
@@ -76,6 +82,7 @@ def test_audit_event_can_be_created_and_read() -> None:
             "detail": "Security audit event test.",
             "metadata": {"test": True},
         },
+        headers=AUTH_HEADERS,
     )
     event = response.json()
 
@@ -84,7 +91,10 @@ def test_audit_event_can_be_created_and_read() -> None:
     assert event["category"] == "security"
     assert event["severity"] == "high"
 
-    detail_response = client.get(f"/api/v1/audit/events/{event['id']}")
+    detail_response = client.get(
+        f"/api/v1/audit/events/{event['id']}",
+        headers=AUTH_HEADERS,
+    )
 
     assert detail_response.status_code == 200
     assert detail_response.json()["id"] == event["id"]
@@ -101,9 +111,10 @@ def test_audit_category_endpoints_filter_events() -> None:
             "status": "recorded",
             "detail": "Integration audit event test.",
         },
+        headers=AUTH_HEADERS,
     ).json()
 
-    response = client.get("/api/v1/audit/integration")
+    response = client.get("/api/v1/audit/integration", headers=AUTH_HEADERS)
     events = response.json()
 
     assert response.status_code == 200
@@ -121,8 +132,9 @@ def test_audit_overview_reports_counts() -> None:
             "status": "recorded",
             "detail": "Error audit event test.",
         },
+        headers=AUTH_HEADERS,
     )
-    response = client.get("/api/v1/audit")
+    response = client.get("/api/v1/audit", headers=AUTH_HEADERS)
     payload = response.json()
 
     assert response.status_code == 200
@@ -133,7 +145,7 @@ def test_audit_overview_reports_counts() -> None:
 
 
 def test_audit_missing_event_returns_404() -> None:
-    response = client.get("/api/v1/audit/events/missing-event")
+    response = client.get("/api/v1/audit/events/missing-event", headers=AUTH_HEADERS)
 
     assert response.status_code == 404
     assert response.json() == {
@@ -155,6 +167,7 @@ def test_audit_invalid_event_payload_returns_422() -> None:
             "status": "",
             "detail": "",
         },
+        headers=AUTH_HEADERS,
     )
 
     assert response.status_code == 422

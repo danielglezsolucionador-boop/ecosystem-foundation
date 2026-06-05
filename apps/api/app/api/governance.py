@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.schemas.audit import AuditEvent
 from app.schemas.governance import (
@@ -58,12 +58,22 @@ from app.services.governance import (
     suspend_gate,
     update_risk,
 )
+from app.schemas.auth import AuthenticatedUser
+from app.services.auth import get_current_user, governance_role, require_control_center_user
 
-router = APIRouter(prefix="/api/v1/governance", tags=["governance"])
+router = APIRouter(
+    prefix="/api/v1/governance",
+    tags=["governance"],
+    dependencies=[Depends(require_control_center_user)],
+)
 
 
 def raise_governance_error(error: GovernanceError) -> None:
     raise HTTPException(status_code=error.status_code, detail=error.detail)
+
+
+def role_from_user(user: AuthenticatedUser) -> GovernanceRole:
+    return GovernanceRole(governance_role(user.role))
 
 
 @router.get("", response_model=GovernanceOverview)
@@ -74,8 +84,9 @@ def read_governance_overview() -> GovernanceOverview:
 @router.get("/auth-boundary", response_model=GovernanceAuthBoundary)
 def read_governance_auth_boundary(
     role_id: GovernanceRole = GovernanceRole.ceo,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceAuthBoundary:
-    return get_governance_auth_boundary(role_id)
+    return get_governance_auth_boundary(role_from_user(current_user))
 
 
 @router.get("/decisions", response_model=list[GovernanceDecision])
@@ -88,8 +99,12 @@ def read_decisions() -> list[GovernanceDecision]:
     response_model=GovernanceDecision,
     status_code=status.HTTP_201_CREATED,
 )
-def write_decision(request: GovernanceDecisionCreate) -> GovernanceDecision:
+def write_decision(
+    request: GovernanceDecisionCreate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> GovernanceDecision:
     try:
+        request = request.model_copy(update={"requested_by": role_from_user(current_user)})
         return create_decision(request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -110,8 +125,10 @@ def read_decision(decision_id: str) -> GovernanceDecision:
 def approve_governance_decision(
     decision_id: str,
     request: DecisionTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceDecision:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return approve_decision(decision_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -121,8 +138,10 @@ def approve_governance_decision(
 def reject_governance_decision(
     decision_id: str,
     request: DecisionTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceDecision:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return reject_decision(decision_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -132,8 +151,10 @@ def reject_governance_decision(
 def block_governance_decision(
     decision_id: str,
     request: DecisionTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceDecision:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return block_decision(decision_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -149,8 +170,12 @@ def read_approvals() -> list[GovernanceApproval]:
     response_model=GovernanceApproval,
     status_code=status.HTTP_201_CREATED,
 )
-def write_approval(request: GovernanceApprovalCreate) -> GovernanceApproval:
+def write_approval(
+    request: GovernanceApprovalCreate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> GovernanceApproval:
     try:
+        request = request.model_copy(update={"requested_by": role_from_user(current_user)})
         return create_approval(request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -176,8 +201,10 @@ def read_approval(approval_id: str) -> GovernanceApproval:
 def approve_governance_approval(
     approval_id: str,
     request: ApprovalTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceApproval:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return approve_approval(approval_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -187,8 +214,10 @@ def approve_governance_approval(
 def reject_governance_approval(
     approval_id: str,
     request: ApprovalTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceApproval:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return reject_approval(approval_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -198,8 +227,10 @@ def reject_governance_approval(
 def escalate_governance_approval(
     approval_id: str,
     request: ApprovalTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceApproval:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return escalate_approval(approval_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -225,8 +256,10 @@ def read_integration_gate(app_id: str) -> IntegrationGate:
 def request_integration_gate_discovery(
     app_id: str,
     request: IntegrationGateTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> IntegrationGate:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return request_gate_discovery(app_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -236,8 +269,10 @@ def request_integration_gate_discovery(
 def approve_integration_gate_discovery(
     app_id: str,
     request: IntegrationGateTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> IntegrationGate:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return approve_gate_discovery(app_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -247,8 +282,10 @@ def approve_integration_gate_discovery(
 def approve_integration_gate_connection(
     app_id: str,
     request: IntegrationGateTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> IntegrationGate:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return approve_gate_connection(app_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -258,8 +295,10 @@ def approve_integration_gate_connection(
 def block_integration_gate(
     app_id: str,
     request: IntegrationGateTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> IntegrationGate:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return block_gate(app_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -269,8 +308,10 @@ def block_integration_gate(
 def suspend_integration_gate(
     app_id: str,
     request: IntegrationGateTransitionRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> IntegrationGate:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return suspend_gate(app_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -284,8 +325,10 @@ def read_policies() -> list[GovernancePolicy]:
 @router.post("/policies/evaluate", response_model=PolicyEvaluationResult)
 def evaluate_governance_policy(
     request: PolicyEvaluationRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> PolicyEvaluationResult:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return evaluate_policy(request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -301,8 +344,12 @@ def read_risks() -> list[GovernanceRisk]:
     response_model=GovernanceRisk,
     status_code=status.HTTP_201_CREATED,
 )
-def write_risk(request: GovernanceRiskCreate) -> GovernanceRisk:
+def write_risk(
+    request: GovernanceRiskCreate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> GovernanceRisk:
     try:
+        request = request.model_copy(update={"owner": role_from_user(current_user)})
         return create_risk(request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -323,8 +370,11 @@ def read_risk(risk_id: str) -> GovernanceRisk:
 def update_governance_risk(
     risk_id: str,
     request: GovernanceRiskUpdate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceRisk:
     try:
+        if request.owner is not None:
+            request = request.model_copy(update={"owner": role_from_user(current_user)})
         return update_risk(risk_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -334,8 +384,10 @@ def update_governance_risk(
 def mitigate_governance_risk(
     risk_id: str,
     request: RiskMitigationRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceRisk:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return mitigate_risk(risk_id, request)
     except GovernanceError as error:
         raise_governance_error(error)
@@ -345,8 +397,10 @@ def mitigate_governance_risk(
 def close_governance_risk(
     risk_id: str,
     request: RiskCloseRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> GovernanceRisk:
     try:
+        request = request.model_copy(update={"role_id": role_from_user(current_user)})
         return close_risk(risk_id, request)
     except GovernanceError as error:
         raise_governance_error(error)

@@ -66,6 +66,9 @@ ECOSYSTEM_API_COMMIT=local
 ECOSYSTEM_API_CORS_ORIGINS=http://localhost:5173
 ECOSYSTEM_API_DEBUG=false
 ECOSYSTEM_API_DATABASE_URL=sqlite:///./var/ecosystem_foundation.db
+CONTROL_CENTER_ADMIN_EMAIL=
+CONTROL_CENTER_ADMIN_PASSWORD=
+CONTROL_CENTER_ADMIN_NAME=
 ```
 
 No guardar secrets reales en el repositorio.
@@ -79,7 +82,15 @@ ECOSYSTEM_API_SERVICE_NAME=ecosystem-foundation-api
 ECOSYSTEM_API_VERSION=0.1.0
 ECOSYSTEM_API_COMMIT=<git commit sha>
 ECOSYSTEM_API_DEBUG=false
+CONTROL_CENTER_ADMIN_EMAIL=<primer CEO>
+CONTROL_CENTER_ADMIN_PASSWORD=<password seguro solo en Vercel>
+CONTROL_CENTER_ADMIN_NAME=<nombre visible>
 ```
+
+El usuario CEO inicial del Control Center solo se crea si las tres variables
+`CONTROL_CENTER_ADMIN_EMAIL`, `CONTROL_CENTER_ADMIN_PASSWORD` y
+`CONTROL_CENTER_ADMIN_NAME` existen en el entorno. Si falta una, el backend no
+crea usuarios automaticamente y no hay password por defecto.
 
 ## Ejecutar Backend Local
 
@@ -98,6 +109,15 @@ GET http://127.0.0.1:8000/health
 GET http://127.0.0.1:8000/readiness
 GET http://127.0.0.1:8000/runtime/status
 GET http://127.0.0.1:8000/version
+```
+
+Control Center local:
+
+```text
+GET http://127.0.0.1:8000/control-center
+POST http://127.0.0.1:8000/api/v1/auth/login
+GET http://127.0.0.1:8000/api/v1/auth/me
+POST http://127.0.0.1:8000/api/v1/auth/logout
 ```
 
 ## Probar

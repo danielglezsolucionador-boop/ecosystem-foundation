@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
 from app.schemas.observability import (
     ObservabilityHealthService,
@@ -30,8 +30,13 @@ from app.services.observability import (
     list_metrics,
     list_traces,
 )
+from app.services.auth import require_control_center_user
 
-router = APIRouter(prefix="/api/v1/observability", tags=["observability"])
+router = APIRouter(
+    prefix="/api/v1/observability",
+    tags=["observability"],
+    dependencies=[Depends(require_control_center_user)],
+)
 
 
 @router.get("", response_model=ObservabilityOverview)

@@ -3,16 +3,23 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.schemas.auth import ControlCenterRole
+from auth_helpers import auth_headers
 
 
 client = TestClient(app)
+CEO_HEADERS = auth_headers(client, ControlCenterRole.ceo)
+ADMIN_HEADERS = auth_headers(client, ControlCenterRole.admin)
+OPERATOR_HEADERS = auth_headers(client, ControlCenterRole.operator)
+AUDITOR_HEADERS = auth_headers(client, ControlCenterRole.auditor)
+SERVICE_HEADERS = auth_headers(client, ControlCenterRole.service)
 
 
 def unique_title(prefix: str) -> str:
     return f"{prefix} {uuid4()}"
 
 
-def create_decision() -> dict:
+def create_decision(headers: dict[str, str] = OPERATOR_HEADERS) -> dict:
     response = client.post(
         "/api/v1/governance/decisions",
         json={
@@ -21,13 +28,14 @@ def create_decision() -> dict:
             "requested_by": "operator",
             "evidence": "local test evidence",
         },
+        headers=headers,
     )
 
     assert response.status_code == 201
     return response.json()
 
 
-def create_approval() -> dict:
+def create_approval(headers: dict[str, str] = OPERATOR_HEADERS) -> dict:
     response = client.post(
         "/api/v1/governance/approvals",
         json={
@@ -38,13 +46,14 @@ def create_approval() -> dict:
             "target_id": "pluma",
             "evidence": "local test evidence",
         },
+        headers=headers,
     )
 
     assert response.status_code == 201
     return response.json()
 
 
-def create_risk(severity: str = "high") -> dict:
+def create_risk(severity: str = "high", headers: dict[str, str] = OPERATOR_HEADERS) -> dict:
     response = client.post(
         "/api/v1/governance/risks",
         json={
@@ -55,6 +64,7 @@ def create_risk(severity: str = "high") -> dict:
             "owner": "operator",
             "evidence": "local test evidence",
         },
+        headers=headers,
     )
 
     assert response.status_code == 201
@@ -76,14 +86,15 @@ def test_governance_required_endpoints_exist() -> None:
         "/api/v1/security/roles",
         "/api/v1/security/permissions",
     ]:
-        response = client.get(path)
+        headers = CEO_HEADERS if path.startswith("/api/v1/governance") else None
+        response = client.get(path, headers=headers)
         assert response.status_code == 200
 
 
 def test_governance_auth_boundary_shapes_actions_by_role() -> None:
-    ceo = client.get("/api/v1/governance/auth-boundary?role_id=ceo")
-    auditor = client.get("/api/v1/governance/auth-boundary?role_id=auditor")
-    service = client.get("/api/v1/governance/auth-boundary?role_id=service")
+    ceo = client.get("/api/v1/governance/auth-boundary?role_id=auditor", headers=CEO_HEADERS)
+    auditor = client.get("/api/v1/governance/auth-boundary?role_id=ceo", headers=AUDITOR_HEADERS)
+    service = client.get("/api/v1/governance/auth-boundary?role_id=ceo", headers=SERVICE_HEADERS)
 
     assert ceo.status_code == 200
     assert auditor.status_code == 200
@@ -112,6 +123,7 @@ def test_governance_create_actions_respect_auth_boundary() -> None:
             "description": "Auditor must not create governance decisions.",
             "requested_by": "auditor",
         },
+        headers=AUDITOR_HEADERS,
     )
     service_risk = client.post(
         "/api/v1/governance/risks",
@@ -122,6 +134,7 @@ def test_governance_create_actions_respect_auth_boundary() -> None:
             "severity": "medium",
             "owner": "service",
         },
+        headers=SERVICE_HEADERS,
     )
 
     assert auditor_decision.status_code == 403
@@ -131,7 +144,7 @@ def test_governance_create_actions_respect_auth_boundary() -> None:
 
 
 def test_protected_apps_are_blocked_by_default() -> None:
-    response = client.get("/api/v1/governance/integration-gates")
+    response = client.get("/api/v1/governance/integration-gates", headers=CEO_HEADERS)
     gates = {item["app_id"]: item for item in response.json()}
 
     assert response.status_code == 200
@@ -153,6 +166,7 @@ def test_decision_approval_requires_authorized_role() -> None:
     response = client.post(
         f"/api/v1/governance/decisions/{decision['id']}/approve",
         json={"role_id": "operator"},
+        headers=OPERATOR_HEADERS,
     )
 
     assert response.status_code == 403
@@ -165,10 +179,12 @@ def test_decision_reject_and_block_require_reason() -> None:
     reject_response = client.post(
         f"/api/v1/governance/decisions/{decision['id']}/reject",
         json={"role_id": "ceo"},
+        headers=CEO_HEADERS,
     )
     block_response = client.post(
         f"/api/v1/governance/decisions/{decision['id']}/block",
         json={"role_id": "ceo"},
+        headers=CEO_HEADERS,
     )
 
     assert reject_response.status_code == 400
@@ -182,6 +198,7 @@ def test_decision_can_be_approved_by_human_authority() -> None:
     response = client.post(
         f"/api/v1/governance/decisions/{decision['id']}/approve",
         json={"role_id": "ceo", "evidence": "CEO approval evidence"},
+        headers=CEO_HEADERS,
     )
     payload = response.json()
 
@@ -196,10 +213,12 @@ def test_approval_transitions_require_role_and_reason() -> None:
     unauthorized = client.post(
         f"/api/v1/governance/approvals/{approval['id']}/approve",
         json={"role_id": "operator"},
+        headers=OPERATOR_HEADERS,
     )
     missing_reason = client.post(
         f"/api/v1/governance/approvals/{approval['id']}/reject",
         json={"role_id": "ceo"},
+        headers=CEO_HEADERS,
     )
 
     assert unauthorized.status_code == 403
@@ -213,6 +232,7 @@ def test_approval_can_be_approved_by_ceo() -> None:
     response = client.post(
         f"/api/v1/governance/approvals/{approval['id']}/approve",
         json={"role_id": "ceo", "evidence": "Approval evidence"},
+        headers=CEO_HEADERS,
     )
     payload = response.json()
 
@@ -226,6 +246,7 @@ def test_approval_can_be_escalated_by_operator_with_reason() -> None:
     response = client.post(
         f"/api/v1/governance/approvals/{approval['id']}/escalate",
         json={"role_id": "operator", "reason": "Needs CEO context."},
+        headers=OPERATOR_HEADERS,
     )
     payload = response.json()
 
@@ -239,6 +260,7 @@ def test_integration_gate_approval_requires_evidence() -> None:
     response = client.post(
         "/api/v1/governance/integration-gates/pluma/approve-discovery",
         json={"role_id": "ceo"},
+        headers=CEO_HEADERS,
     )
 
     assert response.status_code == 400
@@ -250,6 +272,7 @@ def test_protected_apps_cannot_be_connected() -> None:
         response = client.post(
             f"/api/v1/governance/integration-gates/{app_id}/approve-connection",
             json={"role_id": "ceo", "evidence": "future connection evidence"},
+            headers=CEO_HEADERS,
         )
         assert response.status_code == 400
         assert response.json()["detail"]["error"] == "protected_app_connection_blocked"
@@ -259,10 +282,12 @@ def test_non_protected_gate_can_reach_approval_without_real_connection() -> None
     discovery = client.post(
         "/api/v1/governance/integration-gates/pluma/approve-discovery",
         json={"role_id": "ceo", "evidence": "Discovery evidence"},
+        headers=CEO_HEADERS,
     )
     connection = client.post(
         "/api/v1/governance/integration-gates/pluma/approve-connection",
         json={"role_id": "ceo", "evidence": "Connection evidence"},
+        headers=CEO_HEADERS,
     )
 
     assert discovery.status_code == 200
@@ -277,8 +302,9 @@ def test_risk_close_requires_evidence_and_critical_risk_is_reported() -> None:
     close_response = client.post(
         f"/api/v1/governance/risks/{risk['id']}/close",
         json={"role_id": "ceo"},
+        headers=CEO_HEADERS,
     )
-    report_response = client.get("/api/v1/governance/reports")
+    report_response = client.get("/api/v1/governance/reports", headers=CEO_HEADERS)
     critical_ids = {item["id"] for item in report_response.json()["critical_risks"]}
 
     assert close_response.status_code == 400
@@ -292,10 +318,12 @@ def test_risk_mitigation_and_closure_are_audited() -> None:
     mitigation = client.post(
         f"/api/v1/governance/risks/{risk['id']}/mitigate",
         json={"role_id": "operator", "mitigation": "Add explicit governance checks."},
+        headers=OPERATOR_HEADERS,
     )
     closure = client.post(
         f"/api/v1/governance/risks/{risk['id']}/close",
         json={"role_id": "ceo", "evidence": "Mitigation verified."},
+        headers=CEO_HEADERS,
     )
 
     assert mitigation.status_code == 200
@@ -309,6 +337,7 @@ def test_policy_evaluation_blocks_service_human_decision() -> None:
     response = client.post(
         "/api/v1/governance/policies/evaluate",
         json={"role_id": "service", "action": "approve", "resource": "platform"},
+        headers=SERVICE_HEADERS,
     )
     payload = response.json()
 
@@ -322,8 +351,9 @@ def test_governance_invalid_payload_and_unknown_endpoint_are_controlled() -> Non
     invalid_payload = client.post(
         "/api/v1/governance/decisions",
         json={"title": "", "description": ""},
+        headers=CEO_HEADERS,
     )
-    missing_route = client.get("/api/v1/governance/not-real")
+    missing_route = client.get("/api/v1/governance/not-real", headers=CEO_HEADERS)
 
     assert invalid_payload.status_code == 422
     assert missing_route.status_code == 404

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.schemas.control_center import (
     AlertSummary,
@@ -22,8 +22,13 @@ from app.services.control_center import (
     list_control_center_metrics,
     list_control_center_services,
 )
+from app.services.auth import require_control_center_user
 
-router = APIRouter(prefix="/api/v1/control-center", tags=["control-center"])
+router = APIRouter(
+    prefix="/api/v1/control-center",
+    tags=["control-center"],
+    dependencies=[Depends(require_control_center_user)],
+)
 
 
 @router.get("", response_model=ControlCenterResponse)
