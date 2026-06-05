@@ -22,6 +22,7 @@ SKIP_PARTS = {
     "venv",
     "node_modules",
     "outputs",
+    "test-results",
     "work",
 }
 SKIP_SUFFIXES = {".pyc", ".db", ".log"}

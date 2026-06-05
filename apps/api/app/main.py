@@ -60,6 +60,11 @@ def read_control_center_experience() -> FileResponse:
     return FileResponse(CONTROL_CENTER_DIR / "index.html")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def read_favicon() -> FileResponse:
+    return FileResponse(CONTROL_CENTER_DIR / "assets" / "favicon.svg", media_type="image/svg+xml")
+
+
 @app.get("/")
 def read_root() -> dict[str, str]:
     return {

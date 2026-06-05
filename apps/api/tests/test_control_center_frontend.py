@@ -12,6 +12,7 @@ def test_control_center_frontend_is_served() -> None:
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "Control Center" in response.text
+    assert "/control-center/assets/favicon.svg" in response.text
     assert "/control-center/assets/app.js" in response.text
     assert "login-form" in response.text
     assert "active-user-role" in response.text
@@ -29,11 +30,14 @@ def test_control_center_frontend_is_served() -> None:
 def test_control_center_assets_are_served() -> None:
     css_response = client.get("/control-center/assets/styles.css")
     js_response = client.get("/control-center/assets/app.js")
+    favicon_response = client.get("/favicon.ico")
 
     assert css_response.status_code == 200
     assert "text/css" in css_response.headers["content-type"]
     assert js_response.status_code == 200
     assert "javascript" in js_response.headers["content-type"]
+    assert favicon_response.status_code == 200
+    assert "image/svg+xml" in favicon_response.headers["content-type"]
     assert "/api/v1/control-center" in js_response.text
     assert "/api/v1/governance/auth-boundary" in js_response.text
     assert "/api/v1/auth/login" in js_response.text
