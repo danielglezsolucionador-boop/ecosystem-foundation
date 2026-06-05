@@ -50,6 +50,7 @@ def test_integration_bus_overview_contract() -> None:
     assert any(service["id"] == "hermes" for service in payload["services"])
     assert any(service["id"] == "auditor" for service in payload["services"])
     assert any(service["id"] == "pluma" for service in payload["services"])
+    assert any(service["id"] == "lente" for service in payload["services"])
     assert all(
         service["external_connection_enabled"] is False
         for service in payload["services"]
@@ -161,6 +162,23 @@ def test_pluma_route_can_be_prepared_without_external_connection() -> None:
 
     assert response.status_code == 201
     assert route["target_service"] == "pluma"
+    assert route["external_connection_enabled"] is False
+
+
+def test_lente_route_can_be_prepared_without_external_connection() -> None:
+    response = client.post(
+        "/api/v1/integration-bus/routes",
+        json={
+            "source_service": "integration-bus",
+            "target_service": "lente",
+            "event_type": "platform.lente.discovery.completed",
+            "channel": "internal",
+        },
+    )
+    route = response.json()
+
+    assert response.status_code == 201
+    assert route["target_service"] == "lente"
     assert route["external_connection_enabled"] is False
 
 

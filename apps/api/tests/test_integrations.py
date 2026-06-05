@@ -21,6 +21,7 @@ def test_integration_contracts_contract() -> None:
         "hermes.discovery.v1",
         "auditor.discovery.v1",
         "pluma.discovery.v1",
+        "lente.discovery.v1",
     }
 
 
@@ -144,6 +145,32 @@ def test_pluma_integration_profile_and_discovery_are_controlled() -> None:
     assert discovery["evidence_files_found"]
     assert discovery["external_connection_enabled"] is False
     assert "No Pluma runtime connection is enabled from ecosystem-foundation." in discovery["blockers"]
+
+
+def test_lente_integration_profile_and_discovery_are_controlled() -> None:
+    client = TestClient(app)
+
+    profile_response = client.get("/api/v1/integrations/apps/lente")
+    discovery_response = client.get("/api/v1/integrations/apps/lente/discovery")
+    profile = profile_response.json()
+    discovery = discovery_response.json()
+
+    assert profile_response.status_code == 200
+    assert profile["app_id"] == "lente"
+    assert profile["integration_status"] == "prepared_for_discovery"
+    assert profile["external_connection_enabled"] is False
+    assert profile["contract_id"] == "lente.discovery.v1"
+
+    assert discovery_response.status_code == 200
+    assert discovery["app_id"] == "lente"
+    assert discovery["contract_id"] == "lente.discovery.v1"
+    assert discovery["evidence_source"] in {
+        "runtime_repository",
+        "versioned_local_discovery_snapshot",
+    }
+    assert discovery["evidence_files_found"]
+    assert discovery["external_connection_enabled"] is False
+    assert "No Lente runtime connection is enabled from ecosystem-foundation." in discovery["blockers"]
 
 
 def test_integration_app_missing_returns_404() -> None:

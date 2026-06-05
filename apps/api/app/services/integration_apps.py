@@ -20,6 +20,9 @@ LOCAL_DISCOVERY_PATHS: dict[str, tuple[Path, ...]] = {
     "pluma": (
         Path("C:/Users/admin/Desktop/pluma"),
     ),
+    "lente": (
+        Path("C:/Users/admin/Desktop/lente"),
+    ),
 }
 
 

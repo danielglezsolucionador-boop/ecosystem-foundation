@@ -130,5 +130,53 @@
     ],
     "external_connection_enabled": false,
     "source": "local_discovery_profile"
+  },
+  {
+    "app_id": "lente",
+    "app_name": "LENTE",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "lente",
+    "contract_id": "lente.discovery.v1",
+    "evidence_files": [
+      "README.md",
+      "package.json",
+      "app/page.tsx",
+      "app/dashboard/page.tsx",
+      "app/ideas/page.tsx",
+      "app/guiones/page.tsx",
+      "app/avatar/page.tsx",
+      "app/calendario/page.tsx",
+      "app/analitica/page.tsx",
+      "app/api/health/route.ts"
+    ],
+    "evidence_files_verified": [
+      "README.md",
+      "package.json",
+      "app/page.tsx",
+      "app/dashboard/page.tsx",
+      "app/ideas/page.tsx",
+      "app/guiones/page.tsx",
+      "app/avatar/page.tsx",
+      "app/calendario/page.tsx",
+      "app/analitica/page.tsx",
+      "app/api/health/route.ts"
+    ],
+    "evidence_verified_at": "2026-06-05T23:50:00Z",
+    "evidence_repository_commit": "cc6935d",
+    "expected_capabilities": [
+      "idea_observation",
+      "script_analysis",
+      "avatar_planning",
+      "calendar_planning",
+      "analytics_view",
+      "health_endpoint"
+    ],
+    "blockers": [
+      "Local Lente repository has uncommitted changes; discovery is read-only and does not claim deploy readiness.",
+      "No Lente runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "local_discovery_profile"
   }
 ]

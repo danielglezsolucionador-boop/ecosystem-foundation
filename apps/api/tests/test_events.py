@@ -135,6 +135,27 @@ def test_pluma_discovery_event_can_be_published() -> None:
     assert event["external_queue_connected"] is False
 
 
+def test_lente_discovery_event_can_be_published() -> None:
+    response = client.post(
+        "/api/v1/events",
+        json={
+            "type": "platform.lente.discovery.completed",
+            "source": "integration-bus",
+            "subject": "lente-discovery",
+            "payload": {
+                "app_id": "lente",
+                "status": "prepared_for_discovery",
+                "evidence_count": 10,
+            },
+        },
+    )
+    event = response.json()
+
+    assert response.status_code == 201
+    assert event["type"] == "platform.lente.discovery.completed"
+    assert event["external_queue_connected"] is False
+
+
 def test_event_unknown_type_returns_controlled_error() -> None:
     response = client.post(
         "/api/v1/events",

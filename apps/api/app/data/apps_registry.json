@@ -41,8 +41,8 @@
     "type": "analysis_app",
     "status": "planned",
     "depends_on": [],
-    "description": "Observation and analysis application reserved in the ecosystem registry.",
-    "touch_policy": "registry_only"
+    "description": "Observation and analysis application with local discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "buscador_de_tendencias",

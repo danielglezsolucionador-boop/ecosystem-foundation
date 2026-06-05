@@ -47,5 +47,12 @@
     "service": "integration-bus",
     "status": "prepared_local",
     "external_connection_enabled": false
+  },
+  {
+    "id": "lente-discovery-consumer",
+    "event_type": "platform.lente.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
   }
 ]
