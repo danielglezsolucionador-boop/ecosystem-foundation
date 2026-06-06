@@ -218,6 +218,62 @@ CONTROLLED_CONTRACT_SEEDS: tuple[dict[str, Any], ...] = (
             "evidence shape and keeps runtime connection disabled."
         ),
     },
+    {
+        "id": "comercio_autonomo.discovery.v1",
+        "app_id": "comercio_autonomo",
+        "name": "COMERCIO_AUTONOMO Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled COMERCIO_AUTONOMO discovery payload. It validates "
+            "commerce evidence shape and keeps runtime connection disabled."
+        ),
+    },
+    {
+        "id": "buscador_de_tendencias.discovery.v1",
+        "app_id": "buscador_de_tendencias",
+        "name": "BUSCADOR_DE_TENDENCIAS Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled BUSCADOR_DE_TENDENCIAS discovery payload. It validates "
+            "trend research evidence shape and keeps runtime connection disabled."
+        ),
+    },
 )
 
 

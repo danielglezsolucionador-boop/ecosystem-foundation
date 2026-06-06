@@ -26,6 +26,8 @@ def test_integration_contracts_contract() -> None:
         "web_factory.discovery.v1",
         "marketing.discovery.v1",
         "marca_personal.discovery.v1",
+        "comercio_autonomo.discovery.v1",
+        "buscador_de_tendencias.discovery.v1",
     }
 
 
@@ -198,6 +200,50 @@ def test_lente_integration_profile_and_discovery_are_controlled() -> None:
     ],
 )
 def test_block_2_integration_profiles_and_discovery_are_controlled(
+    app_id: str,
+    contract_id: str,
+    blocker: str,
+) -> None:
+    client = TestClient(app)
+
+    profile_response = client.get(f"/api/v1/integrations/apps/{app_id}")
+    discovery_response = client.get(f"/api/v1/integrations/apps/{app_id}/discovery")
+    profile = profile_response.json()
+    discovery = discovery_response.json()
+
+    assert profile_response.status_code == 200
+    assert profile["app_id"] == app_id
+    assert profile["integration_status"] == "prepared_for_discovery"
+    assert profile["external_connection_enabled"] is False
+    assert profile["contract_id"] == contract_id
+
+    assert discovery_response.status_code == 200
+    assert discovery["app_id"] == app_id
+    assert discovery["contract_id"] == contract_id
+    assert discovery["evidence_source"] == "versioned_local_discovery_snapshot"
+    assert discovery["health_status"] == "local_evidence_snapshot_found"
+    assert discovery["missing_evidence_files"] == []
+    assert discovery["evidence_files_found"] == discovery["evidence_files_expected"]
+    assert discovery["external_connection_enabled"] is False
+    assert blocker in discovery["blockers"]
+
+
+@pytest.mark.parametrize(
+    ("app_id", "contract_id", "blocker"),
+    [
+        (
+            "comercio_autonomo",
+            "comercio_autonomo.discovery.v1",
+            "No Comercio Autonomo runtime connection is enabled from ecosystem-foundation.",
+        ),
+        (
+            "buscador_de_tendencias",
+            "buscador_de_tendencias.discovery.v1",
+            "No Buscador de Tendencias runtime connection is enabled from ecosystem-foundation.",
+        ),
+    ],
+)
+def test_block_3_integration_profiles_and_discovery_are_controlled(
     app_id: str,
     contract_id: str,
     blocker: str,

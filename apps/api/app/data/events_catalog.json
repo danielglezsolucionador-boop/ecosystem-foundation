@@ -70,5 +70,17 @@
     "description": "MARCA_PERSONAL brand discovery evidence was evaluated without external runtime connection.",
     "required_payload_fields": ["app_id", "status", "evidence_count"],
     "status": "active"
+  },
+  {
+    "id": "platform.comercio_autonomo.discovery.completed",
+    "description": "COMERCIO_AUTONOMO commerce discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
+  },
+  {
+    "id": "platform.buscador_de_tendencias.discovery.completed",
+    "description": "BUSCADOR_DE_TENDENCIAS trend discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
   }
 ]

@@ -75,6 +75,21 @@ def test_control_center_shows_block_2_apps_without_external_connections() -> Non
         )
 
 
+def test_control_center_shows_block_3_apps_without_external_connections() -> None:
+    response = client.get("/api/v1/control-center/apps", headers=AUTH_HEADERS)
+    apps = {item["id"]: item for item in response.json()}
+
+    assert response.status_code == 200
+    for app_id in ("comercio_autonomo", "buscador_de_tendencias"):
+        assert app_id in apps
+        assert apps[app_id]["registry_status"] == "planned"
+        assert apps[app_id]["external_connection_enabled"] is False
+        assert (
+            apps[app_id]["touch_policy"]
+            == "integration_prepared_no_runtime_connection"
+        )
+
+
 def test_control_center_readiness_keeps_external_connections_blocked() -> None:
     response = client.get("/api/v1/control-center/readiness", headers=AUTH_HEADERS)
     payload = response.json()

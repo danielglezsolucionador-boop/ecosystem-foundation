@@ -310,5 +310,93 @@
     ],
     "external_connection_enabled": false,
     "source": "internal_discovery_snapshot"
+  },
+  {
+    "app_id": "comercio_autonomo",
+    "app_name": "COMERCIO_AUTONOMO",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "ecosystem-foundation-comercio-autonomo-discovery",
+    "contract_id": "comercio_autonomo.discovery.v1",
+    "evidence_files": [
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "docs/ecosystem/execution/GOVERNANCE_V1_COMPLETION_REPORT.md",
+      "docs/ecosystem/execution/integration-bus/INTEGRATION_BUS_BLOCK5.md",
+      "docs/ecosystem/execution/audit/AUDIT_BLOCK7_CENTRALIZED_AUDIT.md",
+      "apps/api/app/services/integration_bus.py",
+      "apps/api/app/services/observability.py"
+    ],
+    "evidence_files_verified": [
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "docs/ecosystem/execution/GOVERNANCE_V1_COMPLETION_REPORT.md",
+      "docs/ecosystem/execution/integration-bus/INTEGRATION_BUS_BLOCK5.md",
+      "docs/ecosystem/execution/audit/AUDIT_BLOCK7_CENTRALIZED_AUDIT.md",
+      "apps/api/app/services/integration_bus.py",
+      "apps/api/app/services/observability.py"
+    ],
+    "evidence_verified_at": "2026-06-06T01:10:00Z",
+    "evidence_repository_commit": "5458dbf",
+    "expected_capabilities": [
+      "commerce_workflow_discovery",
+      "integration_bus_presence",
+      "governance_gate_visibility",
+      "audit_evidence",
+      "observability_presence",
+      "no_runtime_connection"
+    ],
+    "blockers": [
+      "No standalone Comercio Autonomo runtime repository was detected.",
+      "No Comercio Autonomo runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "internal_discovery_snapshot"
+  },
+  {
+    "app_id": "buscador_de_tendencias",
+    "app_name": "BUSCADOR_DE_TENDENCIAS",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "ecosystem-foundation-buscador-de-tendencias-discovery",
+    "contract_id": "buscador_de_tendencias.discovery.v1",
+    "evidence_files": [
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "docs/ecosystem/execution/events/EVENTS_BLOCK4_INTERNAL_EVENTS.md",
+      "docs/ecosystem/execution/observability/OBSERVABILITY_BLOCK8_CENTRALIZED_OBSERVABILITY.md",
+      "docs/ecosystem/execution/contracts/CONTRACTS_BLOCK6_ECOSYSTEM_CONTRACTS.md",
+      "apps/api/app/services/events.py",
+      "apps/api/app/services/audit.py"
+    ],
+    "evidence_files_verified": [
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "docs/ecosystem/execution/events/EVENTS_BLOCK4_INTERNAL_EVENTS.md",
+      "docs/ecosystem/execution/observability/OBSERVABILITY_BLOCK8_CENTRALIZED_OBSERVABILITY.md",
+      "docs/ecosystem/execution/contracts/CONTRACTS_BLOCK6_ECOSYSTEM_CONTRACTS.md",
+      "apps/api/app/services/events.py",
+      "apps/api/app/services/audit.py"
+    ],
+    "evidence_verified_at": "2026-06-06T01:20:00Z",
+    "evidence_repository_commit": "5458dbf",
+    "expected_capabilities": [
+      "trend_research_discovery",
+      "events_presence",
+      "contract_discovery",
+      "audit_evidence",
+      "observability_presence",
+      "no_runtime_connection"
+    ],
+    "blockers": [
+      "No standalone Buscador de Tendencias runtime repository was detected.",
+      "No Buscador de Tendencias runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "internal_discovery_snapshot"
   }
 ]

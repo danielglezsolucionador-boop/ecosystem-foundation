@@ -75,5 +75,19 @@
     "service": "integration-bus",
     "status": "prepared_local",
     "external_connection_enabled": false
+  },
+  {
+    "id": "comercio-autonomo-discovery-consumer",
+    "event_type": "platform.comercio_autonomo.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "buscador-de-tendencias-discovery-consumer",
+    "event_type": "platform.buscador_de_tendencias.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
   }
 ]

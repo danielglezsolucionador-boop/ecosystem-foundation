@@ -110,5 +110,19 @@
     "category": "brand_app",
     "status": "prepared_for_discovery",
     "external_connection_enabled": false
+  },
+  {
+    "id": "comercio_autonomo",
+    "name": "COMERCIO_AUTONOMO Commerce Capability",
+    "category": "commerce_app",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "buscador_de_tendencias",
+    "name": "BUSCADOR_DE_TENDENCIAS Research Capability",
+    "category": "research_app",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
   }
 ]

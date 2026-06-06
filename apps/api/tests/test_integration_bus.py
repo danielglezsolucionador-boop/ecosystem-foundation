@@ -54,6 +54,8 @@ def test_integration_bus_overview_contract() -> None:
     assert any(service["id"] == "web_factory" for service in payload["services"])
     assert any(service["id"] == "marketing" for service in payload["services"])
     assert any(service["id"] == "marca_personal" for service in payload["services"])
+    assert any(service["id"] == "comercio_autonomo" for service in payload["services"])
+    assert any(service["id"] == "buscador_de_tendencias" for service in payload["services"])
     assert all(
         service["external_connection_enabled"] is False
         for service in payload["services"]
@@ -194,6 +196,36 @@ def test_lente_route_can_be_prepared_without_external_connection() -> None:
     ],
 )
 def test_block_2_routes_can_be_prepared_without_external_connection(
+    target_service: str,
+    event_type: str,
+) -> None:
+    response = client.post(
+        "/api/v1/integration-bus/routes",
+        json={
+            "source_service": "integration-bus",
+            "target_service": target_service,
+            "event_type": event_type,
+            "channel": "internal",
+        },
+    )
+    route = response.json()
+
+    assert response.status_code == 201
+    assert route["target_service"] == target_service
+    assert route["external_connection_enabled"] is False
+
+
+@pytest.mark.parametrize(
+    ("target_service", "event_type"),
+    [
+        ("comercio_autonomo", "platform.comercio_autonomo.discovery.completed"),
+        (
+            "buscador_de_tendencias",
+            "platform.buscador_de_tendencias.discovery.completed",
+        ),
+    ],
+)
+def test_block_3_routes_can_be_prepared_without_external_connection(
     target_service: str,
     event_type: str,
 ) -> None:

@@ -50,8 +50,8 @@
     "type": "research_app",
     "status": "planned",
     "depends_on": [],
-    "description": "Trend discovery application reserved in the ecosystem registry.",
-    "touch_policy": "registry_only"
+    "description": "Trend discovery application with internal discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "comercio_autonomo",
@@ -59,8 +59,8 @@
     "type": "commerce_app",
     "status": "planned",
     "depends_on": [],
-    "description": "Autonomous commerce application reserved in the ecosystem registry.",
-    "touch_policy": "registry_only"
+    "description": "Autonomous commerce application with internal discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "marca_personal",
