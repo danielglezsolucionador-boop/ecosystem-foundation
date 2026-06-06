@@ -274,6 +274,62 @@ CONTROLLED_CONTRACT_SEEDS: tuple[dict[str, Any], ...] = (
             "trend research evidence shape and keeps runtime connection disabled."
         ),
     },
+    {
+        "id": "forja.discovery.v1",
+        "app_id": "forja",
+        "name": "FORJA Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled FORJA discovery payload. It validates construction "
+            "evidence shape and keeps runtime connection disabled."
+        ),
+    },
+    {
+        "id": "cerebro.discovery.v1",
+        "app_id": "cerebro",
+        "name": "CEREBRO Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled CEREBRO discovery payload. It validates executive "
+            "evidence shape and keeps runtime connection disabled."
+        ),
+    },
 )
 
 

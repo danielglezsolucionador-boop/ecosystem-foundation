@@ -3,19 +3,19 @@
     "id": "forja",
     "name": "FORJA",
     "type": "ecosystem_orchestrator",
-    "status": "external",
+    "status": "planned",
     "depends_on": [],
-    "description": "Construction and execution cabin referenced by the ecosystem. Not connected by this API yet.",
-    "touch_policy": "no_touch_external"
+    "description": "Construction and execution cabin with local discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "cerebro",
     "name": "CEREBRO",
     "type": "executive_chief_of_staff",
-    "status": "external",
+    "status": "planned",
     "depends_on": [],
-    "description": "Executive Chief of Staff application referenced by the ecosystem. Not connected by this API yet.",
-    "touch_policy": "no_touch_external"
+    "description": "Executive Chief of Staff application with local discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "centinela",

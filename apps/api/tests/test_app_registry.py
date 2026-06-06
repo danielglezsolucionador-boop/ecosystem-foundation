@@ -65,7 +65,7 @@ def test_external_apps_are_registry_only_not_connected() -> None:
     response = client.get("/api/v1/apps")
     apps_by_id = {item["id"]: item for item in response.json()}
 
-    for app_id in ("forja", "cerebro", "doctor_contable_financiero_tributario"):
+    for app_id in ("doctor_contable_financiero_tributario",):
         assert apps_by_id[app_id]["status"] == "external"
         assert apps_by_id[app_id]["touch_policy"] == "no_touch_external"
 
@@ -98,7 +98,21 @@ def test_block_3_apps_are_prepared_without_runtime_connection() -> None:
         )
 
 
-def test_apps_outside_blocks_2_and_3_remain_registry_only() -> None:
+def test_block_4_apps_are_prepared_without_runtime_connection() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/v1/apps")
+    apps_by_id = {item["id"]: item for item in response.json()}
+
+    for app_id in ("forja", "cerebro"):
+        assert apps_by_id[app_id]["status"] == "planned"
+        assert (
+            apps_by_id[app_id]["touch_policy"]
+            == "integration_prepared_no_runtime_connection"
+        )
+
+
+def test_apps_outside_integrated_blocks_remain_registry_only() -> None:
     client = TestClient(app)
 
     response = client.get("/api/v1/apps")
@@ -122,13 +136,13 @@ def test_app_detail_returns_single_registered_app() -> None:
         "id": "forja",
         "name": "FORJA",
         "type": "ecosystem_orchestrator",
-        "status": "external",
+        "status": "planned",
         "depends_on": [],
         "description": (
-            "Construction and execution cabin referenced by the ecosystem. "
-            "Not connected by this API yet."
+            "Construction and execution cabin with local discovery evidence "
+            "prepared for controlled integration."
         ),
-        "touch_policy": "no_touch_external",
+        "touch_policy": "integration_prepared_no_runtime_connection",
     }
 
 
@@ -167,9 +181,9 @@ def test_app_registry_status_summary() -> None:
     assert payload == {
         "total": 13,
         "by_status": {
-            "planned": 10,
+            "planned": 12,
             "internal": 0,
-            "external": 3,
+            "external": 1,
             "blocked": 0,
             "unknown": 0,
         },

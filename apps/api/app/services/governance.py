@@ -39,7 +39,7 @@ DECISIONS_TABLE = "governance_decisions"
 APPROVALS_TABLE = "governance_approvals"
 GATES_TABLE = "governance_integration_gates"
 RISKS_TABLE = "governance_risks"
-PROTECTED_APP_IDS = {"forja", "cerebro", "doctor_contable_financiero_tributario"}
+PROTECTED_APP_IDS = {"doctor_contable_financiero_tributario"}
 APP_ALIASES = {"dcft": "doctor_contable_financiero_tributario"}
 APPROVER_ROLES = {GovernanceRole.ceo, GovernanceRole.admin}
 ACTION_ROLES: dict[str, set[GovernanceRole]] = {
@@ -542,9 +542,24 @@ def seed_integration_gates() -> None:
 
             if row:
                 gate = IntegrationGate(**json.loads(row["payload_json"]))
+                changed = False
+                if gate.protected != protected:
+                    gate.protected = protected
+                    changed = True
+                    if protected:
+                        gate.state = IntegrationGateState.blocked
+                        gate.reason = "Protected app remains blocked until explicit future governance phase."
+                    elif gate.state == IntegrationGateState.blocked:
+                        gate.state = IntegrationGateState.not_ready
+                        gate.reason = "Application is registered but not ready for discovery."
+                if gate.app_name != app.name:
+                    gate.app_name = app.name
+                    changed = True
                 if protected and gate.state != IntegrationGateState.blocked:
                     gate.state = IntegrationGateState.blocked
                     gate.reason = "Protected app remains blocked until explicit future governance phase."
+                    changed = True
+                if changed:
                     gate.updated_at = now
                 else:
                     continue
@@ -1062,12 +1077,12 @@ def list_policies() -> list[GovernancePolicy]:
         ),
         GovernancePolicy(
             id="protected_apps_blocked",
-            title="FORJA, CEREBRO and DCFT remain blocked",
+            title="DCFT remains blocked; FORJA and CEREBRO discovery stays controlled",
             status="active",
             enforced=True,
             rules=[
-                "Protected applications are never connected in Governance V1.",
-                "Discovery and connection require future explicit human approval.",
+                "DCFT remains protected and cannot be discovered or connected in this block.",
+                "FORJA and CEREBRO may be prepared for discovery only after human evidence approval.",
                 "No runtime calls are made to external applications.",
             ],
         ),

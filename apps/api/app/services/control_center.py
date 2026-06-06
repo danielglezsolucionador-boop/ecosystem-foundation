@@ -279,12 +279,12 @@ def build_services(storage: StorageStatus) -> list[ControlCenterServiceStatus]:
             name="External App Connectors",
             category="integration",
             status=ControlCenterState.degraded,
-            detail="External applications are intentionally not connected in the backbone stage.",
+            detail="External runtime connections are intentionally disabled in the backbone stage.",
             evidence=[
                 ControlCenterEvidence(
                     source="touch_policy",
                     status=ControlCenterState.degraded,
-                    detail="FORJA, CEREBRO and DCFT remain protected by no-touch policy.",
+                    detail="FORJA and CEREBRO are discovery-prepared; DCFT remains protected by no-touch policy.",
                 )
             ],
         ),
@@ -639,7 +639,7 @@ def build_next_actions(storage: StorageStatus) -> list[ControlCenterAction]:
             priority="p0",
             blocked=True,
             owner_view="ceo",
-            reason="FORJA, CEREBRO and DCFT cannot be touched without explicit contract approval.",
+            reason="Runtime connections remain disabled until explicit contract approval.",
         ),
         ControlCenterAction(
             id="keep_app_registry_current",
@@ -677,7 +677,7 @@ def build_next_actions(storage: StorageStatus) -> list[ControlCenterAction]:
 def build_risks(storage: StorageStatus) -> list[str]:
     risks = [
         "External app runtime is not connected by design during backbone construction.",
-        "Integration contracts are required before any FORJA, CEREBRO or DCFT connection.",
+        "Integration contracts are required before any FORJA, CEREBRO or DCFT runtime connection.",
     ]
 
     if storage.backend != "postgresql":

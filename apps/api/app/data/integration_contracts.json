@@ -148,5 +148,25 @@
     "status": "prepared_for_discovery",
     "external_dependency": false,
     "description": "Controlled discovery contract for BUSCADOR_DE_TENDENCIAS trend research capability without runtime connection."
+  },
+  {
+    "id": "forja.discovery.v1",
+    "name": "FORJA Discovery Contract V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/integrations/apps/forja/discovery",
+    "method": "GET",
+    "status": "prepared_for_discovery",
+    "external_dependency": false,
+    "description": "Controlled discovery contract for FORJA construction capability without runtime connection."
+  },
+  {
+    "id": "cerebro.discovery.v1",
+    "name": "CEREBRO Discovery Contract V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/integrations/apps/cerebro/discovery",
+    "method": "GET",
+    "status": "prepared_for_discovery",
+    "external_dependency": false,
+    "description": "Controlled discovery contract for CEREBRO executive capability without runtime connection."
   }
 ]

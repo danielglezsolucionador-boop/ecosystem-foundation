@@ -398,5 +398,103 @@
     ],
     "external_connection_enabled": false,
     "source": "internal_discovery_snapshot"
+  },
+  {
+    "app_id": "forja",
+    "app_name": "FORJA",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "forja-core",
+    "contract_id": "forja.discovery.v1",
+    "evidence_files": [
+      "README.md",
+      "render.yaml",
+      "apps/backend/app/main.py",
+      "apps/backend/app/api/routes/health.py",
+      "apps/backend/app/api/routes/runtime.py",
+      "apps/backend/app/api/routes/chat.py",
+      "apps/backend/app/api/routes/local_agent.py",
+      "apps/frontend/src/HumanCabinV5.jsx",
+      "apps/frontend/src/hooks/useForjaRuntime.js",
+      "tools/forja_local_agent.py"
+    ],
+    "evidence_files_verified": [
+      "README.md",
+      "render.yaml",
+      "apps/backend/app/main.py",
+      "apps/backend/app/api/routes/health.py",
+      "apps/backend/app/api/routes/runtime.py",
+      "apps/backend/app/api/routes/chat.py",
+      "apps/backend/app/api/routes/local_agent.py",
+      "apps/frontend/src/HumanCabinV5.jsx",
+      "apps/frontend/src/hooks/useForjaRuntime.js",
+      "tools/forja_local_agent.py"
+    ],
+    "evidence_verified_at": "2026-06-06T02:10:00Z",
+    "evidence_repository_commit": "30a656b",
+    "expected_capabilities": [
+      "human_cabin",
+      "runtime_status",
+      "chat_execution_support",
+      "local_agent_registry",
+      "persistent_tasks",
+      "governed_execution",
+      "deliverable_generation",
+      "no_runtime_connection"
+    ],
+    "blockers": [
+      "Local FORJA repository has untracked report/build artifacts; discovery is read-only and does not claim deploy readiness.",
+      "No FORJA runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "local_discovery_profile"
+  },
+  {
+    "app_id": "cerebro",
+    "app_name": "CEREBRO",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "centro-de-direccion-app",
+    "contract_id": "cerebro.discovery.v1",
+    "evidence_files": [
+      "package.json",
+      "vercel.json",
+      "server.js",
+      "api/index.js",
+      "public/index.html",
+      "tests/governance.test.js",
+      "CEREBRO_HUMAN_CABIN_PREMIUM_REPORT.md",
+      "CEREBRO_CRITICAL_PRODUCT_RECOVERY_REPORT.md",
+      "CEREBRO_PRODUCTION_FULL_ENABLEMENT_REPORT.md"
+    ],
+    "evidence_files_verified": [
+      "package.json",
+      "vercel.json",
+      "server.js",
+      "api/index.js",
+      "public/index.html",
+      "tests/governance.test.js",
+      "CEREBRO_HUMAN_CABIN_PREMIUM_REPORT.md",
+      "CEREBRO_CRITICAL_PRODUCT_RECOVERY_REPORT.md",
+      "CEREBRO_PRODUCTION_FULL_ENABLEMENT_REPORT.md"
+    ],
+    "evidence_verified_at": "2026-06-06T02:20:00Z",
+    "evidence_repository_commit": "1f73bfb",
+    "expected_capabilities": [
+      "executive_human_cabin",
+      "runtime_status",
+      "persistent_conversation",
+      "governance_first_chat",
+      "local_agent_registry",
+      "deliverable_visibility",
+      "operational_memory",
+      "no_runtime_connection"
+    ],
+    "blockers": [
+      "Local CEREBRO repository has untracked report/deliverable artifacts; discovery is read-only and does not claim deploy readiness.",
+      "No CEREBRO runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "local_discovery_profile"
   }
 ]

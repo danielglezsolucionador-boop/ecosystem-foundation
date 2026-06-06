@@ -124,5 +124,19 @@
     "category": "research_app",
     "status": "prepared_for_discovery",
     "external_connection_enabled": false
+  },
+  {
+    "id": "forja",
+    "name": "FORJA Construction Capability",
+    "category": "ecosystem_orchestrator",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "cerebro",
+    "name": "CEREBRO Executive Capability",
+    "category": "executive_chief_of_staff",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
   }
 ]

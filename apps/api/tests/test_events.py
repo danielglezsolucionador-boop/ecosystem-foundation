@@ -225,6 +225,38 @@ def test_block_3_discovery_events_can_be_published(
     assert event["external_queue_connected"] is False
 
 
+@pytest.mark.parametrize(
+    ("app_id", "event_type", "evidence_count"),
+    [
+        ("forja", "platform.forja.discovery.completed", 10),
+        ("cerebro", "platform.cerebro.discovery.completed", 9),
+    ],
+)
+def test_block_4_discovery_events_can_be_published(
+    app_id: str,
+    event_type: str,
+    evidence_count: int,
+) -> None:
+    response = client.post(
+        "/api/v1/events",
+        json={
+            "type": event_type,
+            "source": "integration-bus",
+            "subject": f"{app_id}-discovery",
+            "payload": {
+                "app_id": app_id,
+                "status": "prepared_for_discovery",
+                "evidence_count": evidence_count,
+            },
+        },
+    )
+    event = response.json()
+
+    assert response.status_code == 201
+    assert event["type"] == event_type
+    assert event["external_queue_connected"] is False
+
+
 def test_event_unknown_type_returns_controlled_error() -> None:
     response = client.post(
         "/api/v1/events",

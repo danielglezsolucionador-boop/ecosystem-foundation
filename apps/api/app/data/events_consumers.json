@@ -89,5 +89,19 @@
     "service": "integration-bus",
     "status": "prepared_local",
     "external_connection_enabled": false
+  },
+  {
+    "id": "forja-discovery-consumer",
+    "event_type": "platform.forja.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "cerebro-discovery-consumer",
+    "event_type": "platform.cerebro.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
   }
 ]

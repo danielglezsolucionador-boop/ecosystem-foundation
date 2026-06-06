@@ -82,5 +82,17 @@
     "description": "BUSCADOR_DE_TENDENCIAS trend discovery evidence was evaluated without external runtime connection.",
     "required_payload_fields": ["app_id", "status", "evidence_count"],
     "status": "active"
+  },
+  {
+    "id": "platform.forja.discovery.completed",
+    "description": "FORJA construction discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
+  },
+  {
+    "id": "platform.cerebro.discovery.completed",
+    "description": "CEREBRO executive discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
   }
 ]

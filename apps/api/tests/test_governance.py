@@ -144,21 +144,21 @@ def test_governance_create_actions_respect_auth_boundary() -> None:
     assert service_risk.json()["detail"]["reason"] == "service_role_has_no_human_ui_authority"
 
 
-def test_protected_apps_are_blocked_by_default() -> None:
+def test_dcft_remains_protected_while_block_4_apps_are_controlled() -> None:
     response = client.get("/api/v1/governance/integration-gates", headers=CEO_HEADERS)
     gates = {item["app_id"]: item for item in response.json()}
 
     assert response.status_code == 200
-    assert gates["forja"]["state"] == "blocked"
-    assert gates["cerebro"]["state"] == "blocked"
     assert gates["doctor_contable_financiero_tributario"]["state"] == "blocked"
-    assert gates["forja"]["protected"] is True
-    assert gates["cerebro"]["protected"] is True
     assert gates["doctor_contable_financiero_tributario"]["protected"] is True
+    assert gates["forja"]["protected"] is False
+    assert gates["cerebro"]["protected"] is False
+    assert gates["forja"]["state"] != "blocked"
+    assert gates["cerebro"]["state"] != "blocked"
     assert all(
         gate["state"] in {"not_ready", "pending_approval", "approved_for_discovery", "approved_for_connection", "blocked", "suspended"}
         for app_id, gate in gates.items()
-        if app_id not in {"forja", "cerebro", "doctor_contable_financiero_tributario"}
+        if app_id not in {"doctor_contable_financiero_tributario"}
     )
 
 
@@ -269,7 +269,7 @@ def test_integration_gate_approval_requires_evidence() -> None:
 
 
 def test_protected_apps_cannot_be_connected() -> None:
-    for app_id in ["forja", "cerebro", "dcft"]:
+    for app_id in ["dcft"]:
         response = client.post(
             f"/api/v1/governance/integration-gates/{app_id}/approve-connection",
             json={"role_id": "ceo", "evidence": "future connection evidence"},
@@ -443,6 +443,48 @@ def test_block_3_gates_can_request_and_approve_discovery_without_real_connection
         json={
             "role_id": "operator",
             "reason": f"{label} is part of block 3 prepared discovery.",
+            "evidence": f"{label} discovery profile and contract are registered locally.",
+        },
+        headers=OPERATOR_HEADERS,
+    )
+    approval = client.post(
+        f"/api/v1/governance/integration-gates/{app_id}/approve-discovery",
+        json={
+            "role_id": "ceo",
+            "evidence": f"{label} discovery evidence reviewed; runtime connection remains disabled.",
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert gates_response.status_code == 200
+    assert gates[app_id]["protected"] is False
+    assert request.status_code == 200
+    assert request.json()["state"] == "pending_approval"
+    assert request.json()["approval_id"]
+    assert approval.status_code == 200
+    assert approval.json()["state"] == "approved_for_discovery"
+    assert approval.json()["approved_by"] == "ceo"
+    assert approval.json()["state"] != "connected"
+
+
+@pytest.mark.parametrize(
+    ("app_id", "label"),
+    [
+        ("forja", "FORJA"),
+        ("cerebro", "CEREBRO"),
+    ],
+)
+def test_block_4_gates_can_request_and_approve_discovery_without_real_connection(
+    app_id: str,
+    label: str,
+) -> None:
+    gates_response = client.get("/api/v1/governance/integration-gates", headers=CEO_HEADERS)
+    gates = {item["app_id"]: item for item in gates_response.json()}
+    request = client.post(
+        f"/api/v1/governance/integration-gates/{app_id}/request-discovery",
+        json={
+            "role_id": "operator",
+            "reason": f"{label} is part of block 4 prepared discovery.",
             "evidence": f"{label} discovery profile and contract are registered locally.",
         },
         headers=OPERATOR_HEADERS,
