@@ -54,5 +54,26 @@
     "service": "integration-bus",
     "status": "prepared_local",
     "external_connection_enabled": false
+  },
+  {
+    "id": "web-factory-discovery-consumer",
+    "event_type": "platform.web_factory.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "marketing-discovery-consumer",
+    "event_type": "platform.marketing.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "marca-personal-discovery-consumer",
+    "event_type": "platform.marca_personal.discovery.completed",
+    "service": "integration-bus",
+    "status": "prepared_local",
+    "external_connection_enabled": false
   }
 ]

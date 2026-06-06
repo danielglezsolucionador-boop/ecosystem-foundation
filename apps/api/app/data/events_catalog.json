@@ -52,5 +52,23 @@
     "description": "LENTE local analysis discovery evidence was evaluated without external runtime connection.",
     "required_payload_fields": ["app_id", "status", "evidence_count"],
     "status": "active"
+  },
+  {
+    "id": "platform.web_factory.discovery.completed",
+    "description": "WEB_FACTORY web production discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
+  },
+  {
+    "id": "platform.marketing.discovery.completed",
+    "description": "MARKETING growth discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
+  },
+  {
+    "id": "platform.marca_personal.discovery.completed",
+    "description": "MARCA_PERSONAL brand discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
   }
 ]

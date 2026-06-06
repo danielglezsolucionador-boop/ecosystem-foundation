@@ -178,5 +178,137 @@
     ],
     "external_connection_enabled": false,
     "source": "local_discovery_profile"
+  },
+  {
+    "app_id": "web_factory",
+    "app_name": "WEB_FACTORY",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "ecosystem-foundation-web-factory-discovery",
+    "contract_id": "web_factory.discovery.v1",
+    "evidence_files": [
+      "docs/ecosystem/03_ECOSYSTEM_DEPLOYMENT_ORDER.md",
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "apps/web/control-center/index.html",
+      "apps/web/control-center/assets/app.js",
+      "apps/api/app/services/app_registry.py",
+      "apps/api/app/services/integration_bus.py"
+    ],
+    "evidence_files_verified": [
+      "docs/ecosystem/03_ECOSYSTEM_DEPLOYMENT_ORDER.md",
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "apps/web/control-center/index.html",
+      "apps/web/control-center/assets/app.js",
+      "apps/api/app/services/app_registry.py",
+      "apps/api/app/services/integration_bus.py"
+    ],
+    "evidence_verified_at": "2026-06-06T00:10:00Z",
+    "evidence_repository_commit": "aeea125",
+    "expected_capabilities": [
+      "web_production_intake",
+      "control_center_visibility",
+      "deployment_order_alignment",
+      "integration_bus_presence",
+      "contract_discovery",
+      "no_runtime_connection"
+    ],
+    "blockers": [
+      "No standalone Web Factory runtime repository was detected.",
+      "No Web Factory runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "internal_discovery_snapshot"
+  },
+  {
+    "app_id": "marketing",
+    "app_name": "MARKETING",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "ecosystem-foundation-marketing-discovery",
+    "contract_id": "marketing.discovery.v1",
+    "evidence_files": [
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "docs/ecosystem/execution/events/EVENTS_BLOCK4_INTERNAL_EVENTS.md",
+      "docs/ecosystem/execution/observability/OBSERVABILITY_BLOCK8_CENTRALIZED_OBSERVABILITY.md",
+      "apps/api/app/services/events.py",
+      "apps/api/app/services/observability.py",
+      "apps/api/app/services/integration_bus.py"
+    ],
+    "evidence_files_verified": [
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "docs/ecosystem/execution/events/EVENTS_BLOCK4_INTERNAL_EVENTS.md",
+      "docs/ecosystem/execution/observability/OBSERVABILITY_BLOCK8_CENTRALIZED_OBSERVABILITY.md",
+      "apps/api/app/services/events.py",
+      "apps/api/app/services/observability.py",
+      "apps/api/app/services/integration_bus.py"
+    ],
+    "evidence_verified_at": "2026-06-06T00:20:00Z",
+    "evidence_repository_commit": "aeea125",
+    "expected_capabilities": [
+      "growth_campaign_discovery",
+      "events_presence",
+      "observability_presence",
+      "control_center_visibility",
+      "contract_discovery",
+      "no_runtime_connection"
+    ],
+    "blockers": [
+      "No standalone Marketing runtime repository was detected.",
+      "No Marketing runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "internal_discovery_snapshot"
+  },
+  {
+    "app_id": "marca_personal",
+    "app_name": "MARCA_PERSONAL",
+    "integration_status": "prepared_for_discovery",
+    "repository_hint": "ecosystem-foundation-marca-personal-discovery",
+    "contract_id": "marca_personal.discovery.v1",
+    "evidence_files": [
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "docs/ecosystem/execution/GOVERNANCE_V1_COMPLETION_REPORT.md",
+      "docs/ecosystem/execution/control-center/CONTROL_CENTER_PREMIUM_BLOCK1.md",
+      "apps/web/control-center/assets/app.js",
+      "apps/api/app/services/governance.py",
+      "apps/api/app/services/audit.py"
+    ],
+    "evidence_files_verified": [
+      "docs/ecosystem/04_ECOSYSTEM_CONTROL_CENTER.md",
+      "docs/ecosystem/05_ECOSYSTEM_EXECUTION_PLAN.md",
+      "docs/ecosystem/06_ECOSYSTEM_INTEGRATION_MAP.md",
+      "docs/ecosystem/execution/GOVERNANCE_V1_COMPLETION_REPORT.md",
+      "docs/ecosystem/execution/control-center/CONTROL_CENTER_PREMIUM_BLOCK1.md",
+      "apps/web/control-center/assets/app.js",
+      "apps/api/app/services/governance.py",
+      "apps/api/app/services/audit.py"
+    ],
+    "evidence_verified_at": "2026-06-06T00:30:00Z",
+    "evidence_repository_commit": "aeea125",
+    "expected_capabilities": [
+      "personal_brand_discovery",
+      "governance_gate_visibility",
+      "audit_evidence",
+      "control_center_visibility",
+      "contract_discovery",
+      "no_runtime_connection"
+    ],
+    "blockers": [
+      "No standalone Marca Personal runtime repository was detected.",
+      "No Marca Personal runtime connection is enabled from ecosystem-foundation.",
+      "Runtime connection remains disabled until a future explicit governance approval."
+    ],
+    "external_connection_enabled": false,
+    "source": "internal_discovery_snapshot"
   }
 ]

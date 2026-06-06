@@ -89,5 +89,26 @@
     "category": "analysis_app",
     "status": "prepared_for_discovery",
     "external_connection_enabled": false
+  },
+  {
+    "id": "web_factory",
+    "name": "WEB_FACTORY Production Capability",
+    "category": "production_app",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "marketing",
+    "name": "MARKETING Growth Capability",
+    "category": "growth_app",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "marca_personal",
+    "name": "MARCA_PERSONAL Brand Capability",
+    "category": "brand_app",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
   }
 ]

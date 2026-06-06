@@ -98,5 +98,35 @@
     "status": "prepared_for_discovery",
     "external_dependency": false,
     "description": "Controlled discovery contract for LENTE local analysis capability without runtime connection."
+  },
+  {
+    "id": "web_factory.discovery.v1",
+    "name": "WEB_FACTORY Discovery Contract V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/integrations/apps/web_factory/discovery",
+    "method": "GET",
+    "status": "prepared_for_discovery",
+    "external_dependency": false,
+    "description": "Controlled discovery contract for WEB_FACTORY web production capability without runtime connection."
+  },
+  {
+    "id": "marketing.discovery.v1",
+    "name": "MARKETING Discovery Contract V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/integrations/apps/marketing/discovery",
+    "method": "GET",
+    "status": "prepared_for_discovery",
+    "external_dependency": false,
+    "description": "Controlled discovery contract for MARKETING growth capability without runtime connection."
+  },
+  {
+    "id": "marca_personal.discovery.v1",
+    "name": "MARCA_PERSONAL Discovery Contract V1",
+    "provider": "ecosystem-foundation",
+    "endpoint": "/api/v1/integrations/apps/marca_personal/discovery",
+    "method": "GET",
+    "status": "prepared_for_discovery",
+    "external_dependency": false,
+    "description": "Controlled discovery contract for MARCA_PERSONAL brand capability without runtime connection."
   }
 ]

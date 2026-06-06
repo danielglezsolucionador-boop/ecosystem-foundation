@@ -68,8 +68,8 @@
     "type": "brand_app",
     "status": "planned",
     "depends_on": [],
-    "description": "Personal brand application reserved in the ecosystem registry.",
-    "touch_policy": "registry_only"
+    "description": "Personal brand application with internal discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "marketing",
@@ -77,8 +77,8 @@
     "type": "growth_app",
     "status": "planned",
     "depends_on": [],
-    "description": "Marketing and growth application reserved in the ecosystem registry.",
-    "touch_policy": "registry_only"
+    "description": "Marketing and growth application with internal discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "web_factory",
@@ -86,8 +86,8 @@
     "type": "production_app",
     "status": "planned",
     "depends_on": [],
-    "description": "Web production factory reserved in the ecosystem registry.",
-    "touch_policy": "registry_only"
+    "description": "Web production factory with internal discovery evidence prepared for controlled integration.",
+    "touch_policy": "integration_prepared_no_runtime_connection"
   },
   {
     "id": "doctor_contable_financiero_tributario",

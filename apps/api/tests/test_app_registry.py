@@ -70,6 +70,35 @@ def test_external_apps_are_registry_only_not_connected() -> None:
         assert apps_by_id[app_id]["touch_policy"] == "no_touch_external"
 
 
+def test_block_2_apps_are_prepared_without_runtime_connection() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/v1/apps")
+    apps_by_id = {item["id"]: item for item in response.json()}
+
+    for app_id in ("web_factory", "marketing", "marca_personal"):
+        assert apps_by_id[app_id]["status"] == "planned"
+        assert (
+            apps_by_id[app_id]["touch_policy"]
+            == "integration_prepared_no_runtime_connection"
+        )
+
+
+def test_apps_outside_block_2_remain_registry_only() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/v1/apps")
+    apps_by_id = {item["id"]: item for item in response.json()}
+
+    for app_id in (
+        "centinela",
+        "buscador_de_tendencias",
+        "comercio_autonomo",
+    ):
+        assert apps_by_id[app_id]["status"] == "planned"
+        assert apps_by_id[app_id]["touch_policy"] == "registry_only"
+
+
 def test_app_detail_returns_single_registered_app() -> None:
     client = TestClient(app)
 

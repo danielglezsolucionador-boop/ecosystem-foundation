@@ -225,6 +225,28 @@ def test_lente_contract_is_seeded_without_external_connection() -> None:
     assert lente_contract["external_connection_enabled"] is False
 
 
+@pytest.mark.parametrize(
+    ("app_id", "contract_id"),
+    [
+        ("web_factory", "web_factory.discovery.v1"),
+        ("marketing", "marketing.discovery.v1"),
+        ("marca_personal", "marca_personal.discovery.v1"),
+    ],
+)
+def test_block_2_contracts_are_seeded_without_external_connection(
+    app_id: str,
+    contract_id: str,
+) -> None:
+    response = client.get("/api/v1/contracts", params={"app_id": app_id})
+    contracts = response.json()
+
+    assert response.status_code == 200
+    assert any(item["id"] == contract_id for item in contracts)
+    contract = next(item for item in contracts if item["id"] == contract_id)
+    assert contract["status"] == "prepared_for_discovery"
+    assert contract["external_connection_enabled"] is False
+
+
 def test_contract_audit_records_actions() -> None:
     contract = create_test_contract("Audit Contract")
     client.post(

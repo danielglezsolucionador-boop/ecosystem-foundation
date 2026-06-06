@@ -134,6 +134,90 @@ CONTROLLED_CONTRACT_SEEDS: tuple[dict[str, Any], ...] = (
             "evidence shape and keeps runtime connection disabled."
         ),
     },
+    {
+        "id": "web_factory.discovery.v1",
+        "app_id": "web_factory",
+        "name": "WEB_FACTORY Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled WEB_FACTORY discovery payload. It validates web "
+            "production evidence shape and keeps runtime connection disabled."
+        ),
+    },
+    {
+        "id": "marketing.discovery.v1",
+        "app_id": "marketing",
+        "name": "MARKETING Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled MARKETING discovery payload. It validates growth "
+            "evidence shape and keeps runtime connection disabled."
+        ),
+    },
+    {
+        "id": "marca_personal.discovery.v1",
+        "app_id": "marca_personal",
+        "name": "MARCA_PERSONAL Discovery Contract V1",
+        "version": "v1",
+        "status": "prepared_for_discovery",
+        "schema": {
+            "type": "object",
+            "required": [
+                "app_id",
+                "status",
+                "repository_detected",
+                "external_connection_enabled",
+            ],
+            "properties": {
+                "app_id": {"type": "string"},
+                "status": {"type": "string"},
+                "repository_detected": {"type": "boolean"},
+                "evidence_count": {"type": "integer"},
+                "blockers": {"type": "array"},
+                "external_connection_enabled": {"type": "boolean"},
+            },
+        },
+        "description": (
+            "Controlled MARCA_PERSONAL discovery payload. It validates brand "
+            "evidence shape and keeps runtime connection disabled."
+        ),
+    },
 )
 
 

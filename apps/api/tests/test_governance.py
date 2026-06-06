@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+import pytest
 
 from app.main import app
 from app.schemas.auth import ControlCenterRole
@@ -379,6 +380,49 @@ def test_lente_gate_can_request_and_approve_discovery_without_real_connection() 
     assert approval.status_code == 200
     assert approval.json()["state"] == "approved_for_discovery"
     assert approval.json()["approved_by"] == "ceo"
+
+
+@pytest.mark.parametrize(
+    ("app_id", "label"),
+    [
+        ("web_factory", "WEB_FACTORY"),
+        ("marketing", "MARKETING"),
+        ("marca_personal", "MARCA_PERSONAL"),
+    ],
+)
+def test_block_2_gates_can_request_and_approve_discovery_without_real_connection(
+    app_id: str,
+    label: str,
+) -> None:
+    gates_response = client.get("/api/v1/governance/integration-gates", headers=CEO_HEADERS)
+    gates = {item["app_id"]: item for item in gates_response.json()}
+    request = client.post(
+        f"/api/v1/governance/integration-gates/{app_id}/request-discovery",
+        json={
+            "role_id": "operator",
+            "reason": f"{label} is part of block 2 prepared discovery.",
+            "evidence": f"{label} discovery profile and contract are registered locally.",
+        },
+        headers=OPERATOR_HEADERS,
+    )
+    approval = client.post(
+        f"/api/v1/governance/integration-gates/{app_id}/approve-discovery",
+        json={
+            "role_id": "ceo",
+            "evidence": f"{label} discovery evidence reviewed; runtime connection remains disabled.",
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert gates_response.status_code == 200
+    assert gates[app_id]["protected"] is False
+    assert request.status_code == 200
+    assert request.json()["state"] == "pending_approval"
+    assert request.json()["approval_id"]
+    assert approval.status_code == 200
+    assert approval.json()["state"] == "approved_for_discovery"
+    assert approval.json()["approved_by"] == "ceo"
+    assert approval.json()["state"] != "connected"
 
 
 def test_risk_close_requires_evidence_and_critical_risk_is_reported() -> None:
