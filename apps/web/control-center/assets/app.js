@@ -85,19 +85,19 @@ const humanAppCatalog = [
   {
     id: "centinela",
     name: "SENTINELA",
-    role: "Seguridad operativa",
-    capability: "Permisos, agentes, datos sensibles e incidentes.",
-    preparedCopy: "Pendiente de revisión CEO; no conectado.",
+    role: "Defensa del ecosistema",
+    capability: "Vigila agentes, permisos, datos, prompts, incidentes y riesgos. Futuro producto B2B.",
+    preparedCopy: "Representado, no conectado. pending_review / protected; sin runtime real.",
     action: "Ver SENTINELA",
-    lane: "pending",
+    lane: "protected",
     displayStatus: "pending_review"
   },
   {
     id: "doctor_contable_financiero_tributario",
     name: "DCFT",
-    role: "Producto comercial protegido",
-    capability: "Doctor contable, financiero y tributario.",
-    preparedCopy: "Protegido, no conectado; sin SUNAT real.",
+    role: "Contador financiero tributario de la empresa",
+    capability: "Futuro responsable de contabilidad, finanzas, tributación, auditoría contable y auditoría financiera. Primer producto comercial prioritario previsto.",
+    preparedCopy: "Representado, no conectado. protected_no_touch; sin SUNAT real, credenciales ni runtime.",
     action: "Revisar DCFT",
     lane: "protected",
     priority: true,
@@ -206,9 +206,9 @@ const humanAppCatalog = [
   {
     id: "arsenal",
     name: "ARSENAL",
-    role: "Almacen estratégico",
-    capability: "Inventario de APIs, modelos, skills, conectores, costos, límites, calidad, riesgos y mejor uso.",
-    preparedCopy: "planned / pending_integration; sin runtime ni secretos.",
+    role: "Almacén estratégico",
+    capability: "Inventario de APIs, modelos, skills, conectores, herramientas y capacidades.",
+    preparedCopy: "planned / pending_integration; planificado, no conectado; sin cabina humana completa, runtime, secretos ni APIs reales.",
     action: "Ver Arsenal",
     lane: "pending",
     displayStatus: "pending_integration"
@@ -361,6 +361,59 @@ const dailyMeetingDataBoundaries = {
   real: ["login local", "cabina local", "App Registry", "documentos", "capturas", "validaciones locales"],
   prepared: ["CEREBRO discovery/preparado", "FORJA visual/preparada", "SENTINELA pendiente", "NUBE documental", "DCFT protected_no_touch", "Arsenal planned"]
 };
+
+const departmentalSimulationFlows = [
+  {
+    id: "ai_video_opportunity",
+    title: "Oportunidad IA / Video",
+    trigger: "Buscador de Tendencias detecta una nueva IA de video.",
+    status: ["simulated_local", "no_runtime"],
+    departments: ["Buscador de Tendencias", "CEREBRO", "ARSENAL", "FORJA", "HERMES", "PLUMA", "LENTE", "MARKETING", "AUDITORÍA", "NUBE"],
+    cerebro: "CEREBRO evalúa valor, riesgo y decisión CEO antes de pedir trabajo.",
+    outcome: "ARSENAL registra capacidad futura, FORJA prepara posible integración, PLUMA/LENTE/MARKETING preparan piezas locales y CEREBRO reporta al CEO.",
+    guardrail: "Sin ejecución real, sin APIs externas y sin publicación."
+  },
+  {
+    id: "sentinela_cybersecurity",
+    title: "Ciberseguridad para SENTINELA",
+    trigger: "Buscador de Tendencias detecta una amenaza nueva.",
+    status: ["simulated_local", "sentinela_not_real", "no_runtime"],
+    departments: ["Buscador de Tendencias", "CEREBRO", "SENTINELA", "FORJA", "AUDITORÍA", "HERMES"],
+    cerebro: "CEREBRO evalúa el riesgo y lo eleva al CEO.",
+    outcome: "SENTINELA queda informado como protección futura; FORJA solo podría construir si el CEO aprueba.",
+    guardrail: "SENTINELA no productivo, sin runtime real ni conexión de seguridad activa."
+  },
+  {
+    id: "dcft_regulation",
+    title: "Regulación DCFT",
+    trigger: "Buscador de Tendencias detecta cambio SUNAT, tributario o contable.",
+    status: ["simulated_local", "dcft_protected_no_touch", "no_sunat_real"],
+    departments: ["Buscador de Tendencias", "CEREBRO", "DCFT", "FORJA", "AUDITORÍA"],
+    cerebro: "CEREBRO separa señal, riesgo y decisión; no ordena tocar DCFT.",
+    outcome: "DCFT queda marcado como producto que debería actualizarse cuando esté listo; AUDITORÍA revisa riesgo.",
+    guardrail: "DCFT protegido/no-touch: no integrado, no SUNAT real y FORJA no toca DCFT sin aprobación CEO."
+  },
+  {
+    id: "sellable_api_skill",
+    title: "API / Skill vendible",
+    trigger: "Buscador de Tendencias detecta demanda comercial.",
+    status: ["simulated_local", "no_runtime"],
+    departments: ["Buscador de Tendencias", "CEREBRO", "CREADOR DE APIS Y SKILLS", "FORJA", "ARSENAL", "WEB FACTORY", "MARKETING", "AUDITORÍA", "NUBE", "SENTINELA"],
+    cerebro: "CEREBRO evalúa oportunidad, alcance y ruta de aprobación.",
+    outcome: "Creador de APIs y Skills prepara idea; ARSENAL registra capacidad futura; WEB FACTORY y MARKETING preparan salida futura.",
+    guardrail: "ARSENAL no runtime, sin rutas reales activas, sin deploy y sin venta real."
+  },
+  {
+    id: "amazon_commerce",
+    title: "Producto Amazon / Comercio",
+    trigger: "Sniff Amazon detecta oportunidad Amazon.",
+    status: ["simulated_local", "no_runtime"],
+    departments: ["SNIFF AMAZON", "CEREBRO", "COMERCIO AUTÓNOMO", "MARKETING", "AUDITORÍA", "NUBE", "SENTINELA"],
+    cerebro: "CEREBRO evalúa margen, riesgo y decisión de avance.",
+    outcome: "Comercio Autónomo queda como ejecutor futuro; Marketing prepara estrategia; Auditoría revisa margen/riesgo.",
+    guardrail: "Sin operación comercial real, sin proveedores, sin pagos, sin Local Agent y sin SUNAT."
+  }
+];
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -532,17 +585,17 @@ function humanStateFor(appId) {
       status: definition?.displayStatus || "pending_integration",
       tone,
       source: "Protegido, no conectado",
-      copy: "Referenciada para seguimiento. Sin conexión ni integración real.",
+      copy: definition?.preparedCopy || "Referenciada para seguimiento. Sin conexión ni integración real.",
       real: false
     };
   }
   if (app) {
-    const tone = definition?.displayStatus === "protected_no_touch" ? "red" : statusToneFor(definition?.displayStatus || app.status, "amber");
+    const tone = definition?.lane === "protected" || definition?.displayStatus === "protected_no_touch" ? "red" : statusToneFor(definition?.displayStatus || app.status, "amber");
     return {
       status: definition?.displayStatus || app.status || "planned",
       tone,
       source: "App Registry",
-      copy: "Registrada para seguimiento. Falta aprobación antes de conectar.",
+      copy: definition?.preparedCopy || "Registrada para seguimiento. Falta aprobación antes de conectar.",
       real: false
     };
   }
@@ -577,13 +630,13 @@ function nextDecision() {
   if (appById("doctor_contable_financiero_tributario") && !profileById("doctor_contable_financiero_tributario")) {
     return {
       title: "En revisión CEO",
-      body: "Cabina lista para validar localmente. DCFT sigue protegido; no hay SUNAT real ni producción tocada."
+      body: "DCFT sigue protegido; está representado, no conectado: protected_no_touch, sin SUNAT real, credenciales ni runtime."
     };
   }
   if (appById("centinela") && !profileById("centinela")) {
     return {
       title: "En revisión CEO",
-      body: "SENTINELA sigue pendiente de autorización antes de cualquier integración."
+      body: "SENTINELA está representado, no conectado: pending_review / protected, sin runtime productivo."
     };
   }
   if (disconnectedProfiles().length) {
@@ -957,7 +1010,7 @@ function renderStatus() {
   $("#next-decision").innerHTML = `
     <span>Próxima decisión CEO</span>
     <strong>En revisión CEO</strong>
-    <small>Validar cabina local antes de producción. DCFT protegido. Sin SUNAT real.</small>
+    <small>DCFT, SENTINELA y ARSENAL visibles como representados o planificados; ninguno conectado.</small>
   `;
   $("#sidebar-readiness").textContent = label(readiness.status || control.readiness?.status || "ready");
   $("#sidebar-db").textContent = `${snapshot.connected} reales · ${snapshot.prepared} preparados`;
@@ -987,6 +1040,7 @@ function renderExecutiveHome() {
   renderCerebroDailyMeeting();
   renderQuickActions();
   renderPriorityApps();
+  renderDepartmentalSimulationFlows();
   renderStatusLanes();
   renderDecisionRail();
 }
@@ -1183,6 +1237,36 @@ function renderPriorityApps() {
   }).join("");
 }
 
+function renderDepartmentalSimulationFlows() {
+  const container = $("#departmental-flows");
+  if (!container) return;
+
+  container.innerHTML = departmentalSimulationFlows.map((flow) => `
+    <article class="status-lane simulated-flow">
+      <div class="lane-head">
+        <span class="eyebrow">${escapeHtml(flow.title)}</span>
+        <p>${escapeHtml(flow.trigger)}</p>
+      </div>
+      <div class="lane-list">
+        <div class="lane-note">
+          <strong>Simulación departamental</strong>
+          <small>${escapeHtml(flow.cerebro)}</small>
+        </div>
+        <div class="lane-note">
+          <strong>Sin ejecución real</strong>
+          <small>${escapeHtml(flow.guardrail)}</small>
+        </div>
+        ${flow.departments.slice(0, 3).map((department) => `
+          <span class="lane-chip amber">
+            <strong>${escapeHtml(department)}</strong>
+            <small>${escapeHtml(flow.status.join(" / "))}</small>
+          </span>
+        `).join("")}
+      </div>
+    </article>
+  `).join("");
+}
+
 function renderStatusLanes() {
   const snapshot = companySnapshot();
   const lanes = [
@@ -1201,14 +1285,14 @@ function renderStatusLanes() {
     {
       id: "protected",
       title: "Protegido / no-touch",
-      copy: "DCFT protegido. Producción intacta.",
+      copy: "DCFT y SENTINELA representados, no conectados.",
       apps: humanAppCatalog.filter((definition) => definition.lane === "protected" || ["forja", "centinela", "nube"].includes(definition.id))
     },
     {
       id: "next",
       title: "Próximos pasos",
-      copy: "Validar cabina local.",
-      apps: []
+      copy: "ARSENAL planificado, sin runtime.",
+      apps: humanAppCatalog.filter((definition) => definition.id === "arsenal")
     }
   ];
 
@@ -1586,6 +1670,12 @@ function renderSystem() {
   ].join("") || emptyState("Observabilidad sin datos.");
 
   $("#integration-list").innerHTML = [
+    ...(integration.prepared_routes || []).map((item) => listItem({
+      title: `${label(item.source)} → ${label(item.target)}`,
+      body: `Ruta futura bloqueada: ${(item.purpose || []).slice(0, 3).join(", ")}. Sin ejecución real.`,
+      status: item.status,
+      meta: item.requires_ceo_approval ? "requiere CEO" : "preparada"
+    })),
     ...(integration.services || []).map((item) => listItem({
       title: item.name,
       body: `Categoría ${label(item.category)}. Conexión externa: ${number(item.external_connection_enabled)}`,

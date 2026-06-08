@@ -180,7 +180,7 @@ def run_local_audit() -> AuditReport:
     checks = [
         AuditCheck(
             id="app_registry_loaded",
-            status="pass" if registry.total == 13 else "fail",
+            status="pass" if registry.total == 14 else "fail",
             detail=f"{registry.total} apps registered.",
         ),
         AuditCheck(

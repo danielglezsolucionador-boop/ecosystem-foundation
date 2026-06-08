@@ -170,7 +170,16 @@ def build_application_status(app: EcosystemApp) -> ControlCenterApplicationStatu
         status=status,
         depends_on=app.depends_on,
         touch_policy=app.touch_policy,
-        external_connection_enabled=False,
+        role=app.role,
+        commercial_role=app.commercial_role,
+        controlled_state=app.controlled_state or app.status.value,
+        external_connection_enabled=app.external_connection_enabled,
+        runtime_connected=app.runtime_connected,
+        sunat_enabled=app.sunat_enabled,
+        requires_ceo_approval=app.requires_ceo_approval,
+        governance_execution_blocked=app.governance_execution_blocked,
+        secrets_required=app.secrets_required,
+        human_cabin_complete=app.human_cabin_complete,
         evidence=[
             ControlCenterEvidence(
                 source=REGISTRY_SOURCE,
@@ -222,7 +231,7 @@ def build_services(storage: StorageStatus) -> list[ControlCenterServiceStatus]:
             id="app_registry",
             name="App Registry",
             category="registry",
-            status=ControlCenterState.healthy if registry.total >= 13 else ControlCenterState.degraded,
+            status=ControlCenterState.healthy if registry.total >= 14 else ControlCenterState.degraded,
             detail=f"{registry.total} ecosystem applications are registered locally.",
             evidence=[
                 ControlCenterEvidence(
@@ -285,8 +294,9 @@ def build_services(storage: StorageStatus) -> list[ControlCenterServiceStatus]:
                     source="touch_policy",
                     status=ControlCenterState.degraded,
                     detail=(
-                        "FORJA y CEREBRO estan preparados para revision; "
-                        "DCFT permanece protegido y sin conexion real."
+                        "FORJA y CEREBRO están preparados para revisión; "
+                        "DCFT y SENTINELA permanecen protegidos; "
+                        "ARSENAL queda planificado sin conexión real."
                     ),
                 )
             ],
@@ -530,7 +540,7 @@ def build_readiness(
         ReadinessCheck(
             id="app_registry_loaded",
             label="App Registry Loaded",
-            status=ControlCenterState.healthy if len(applications) >= 13 else ControlCenterState.degraded,
+            status=ControlCenterState.healthy if len(applications) >= 14 else ControlCenterState.degraded,
             required=True,
             detail=f"{len(applications)} applications are available in the controlled registry.",
         ),
@@ -546,7 +556,7 @@ def build_readiness(
             label="External Apps Isolated",
             status=ControlCenterState.healthy,
             required=True,
-            detail="No real FORJA, CEREBRO or DCFT runtime is contacted.",
+            detail="No real FORJA, CEREBRO, DCFT, SENTINELA or ARSENAL runtime is contacted.",
         ),
         ReadinessCheck(
             id="postgres_for_production",
@@ -680,7 +690,7 @@ def build_next_actions(storage: StorageStatus) -> list[ControlCenterAction]:
 def build_risks(storage: StorageStatus) -> list[str]:
     risks = [
         "External app runtime is not connected by design during backbone construction.",
-        "Integration contracts are required before any FORJA, CEREBRO or DCFT runtime connection.",
+        "Integration contracts are required before any FORJA, CEREBRO, DCFT, SENTINELA or ARSENAL runtime connection.",
     ]
 
     if storage.backend != "postgresql":

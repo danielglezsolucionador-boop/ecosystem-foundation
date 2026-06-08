@@ -1,0 +1,178 @@
+[
+  {
+    "id": "cerebro_to_forja_future",
+    "source": "cerebro",
+    "target": "forja",
+    "purpose": ["pedir construcción", "pedir actualización", "pedir reparación", "pedir creación de producto"],
+    "status": "prepared_blocked",
+    "blocked_reason": "FORJA productiva no se conecta; requiere aprobación CEO, contrato técnico y pruebas de ejecución aislada.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_hermes_future",
+    "source": "cerebro",
+    "target": "hermes",
+    "purpose": ["automatizaciones simples", "bots", "notificaciones", "apoyo operativo a FORJA"],
+    "status": "prepared_blocked",
+    "blocked_reason": "Ruta definida solo para preparación; no ejecuta automatizaciones ni bots reales.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_creador_de_apis_y_skills_future",
+    "source": "cerebro",
+    "target": "creador_de_apis_y_skills",
+    "purpose": ["pedir APIs internas", "pedir APIs vendibles", "pedir skills", "pedir conectores"],
+    "status": "prepared_blocked",
+    "blocked_reason": "No existe runtime aprobado para crear APIs o skills; requiere governance y revisión CEO.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_web_factory_future",
+    "source": "cerebro",
+    "target": "web_factory",
+    "purpose": ["landings", "webs", "páginas comerciales"],
+    "status": "prepared_blocked",
+    "blocked_reason": "WEB FACTORY queda preparada sin ejecución ni publicación real.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_buscador_de_tendencias_future",
+    "source": "cerebro",
+    "target": "buscador_de_tendencias",
+    "purpose": ["investigación diaria", "señales de mercado", "tendencias IA", "ciberseguridad", "tributación", "oportunidades comerciales"],
+    "status": "prepared_blocked",
+    "blocked_reason": "Solo ruta de radar futuro; no consulta fuentes externas ni ejecuta investigación real.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_pluma_future",
+    "source": "cerebro",
+    "target": "pluma",
+    "purpose": ["artículos", "posts", "newsletters", "guiones", "textos comerciales"],
+    "status": "prepared_blocked",
+    "blocked_reason": "PLUMA puede verse como destino futuro, pero no escribe ni publica contenido real.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_lente_future",
+    "source": "cerebro",
+    "target": "lente",
+    "purpose": ["videos", "imágenes", "visuales", "assets creativos"],
+    "status": "prepared_blocked",
+    "blocked_reason": "LENTE no genera assets reales desde esta ruta; falta aprobación y contrato.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_marketing_future",
+    "source": "cerebro",
+    "target": "marketing",
+    "purpose": ["campañas", "embudos", "adquisición", "ventas"],
+    "status": "prepared_blocked",
+    "blocked_reason": "Ruta comercial preparada sin campañas, ventas ni proveedores reales.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_marca_personal_future",
+    "source": "cerebro",
+    "target": "marca_personal",
+    "purpose": ["contenidos CEO", "LinkedIn", "autoridad personal"],
+    "status": "prepared_blocked",
+    "blocked_reason": "No publica ni programa contenido real; requiere decisión CEO.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_auditoria_future",
+    "source": "cerebro",
+    "target": "auditor",
+    "purpose": ["revisión de calidad", "revisión de costos", "aprobación/bloqueo", "auditoría cabina corazón/técnica/humana"],
+    "status": "prepared_blocked",
+    "blocked_reason": "AUDITORÍA revisa como destino futuro; no aprueba ni bloquea ejecución real desde el bus.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_nube_future",
+    "source": "cerebro",
+    "target": "nube",
+    "purpose": ["URLs", "deploys", "costos", "variables", "backups", "dominios", "health checks"],
+    "status": "prepared_blocked",
+    "blocked_reason": "NUBE local no se toca; la ruta solo documenta solicitudes futuras.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_sentinela_future",
+    "source": "cerebro",
+    "target": "centinela",
+    "purpose": ["riesgos", "seguridad", "protección", "incidentes"],
+    "status": "protected_blocked",
+    "blocked_reason": "SENTINELA real está protegido y pendiente de revisión; no puede recibir ejecución real.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_dcft_future",
+    "source": "cerebro",
+    "target": "doctor_contable_financiero_tributario",
+    "purpose": ["contabilidad interna", "finanzas", "tributación", "auditoría contable/financiera", "producto comercial prioritario"],
+    "status": "protected_no_touch_blocked",
+    "blocked_reason": "DCFT real está protected_no_touch; sin SUNAT real, credenciales ni runtime externo.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_arsenal_future",
+    "source": "cerebro",
+    "target": "arsenal",
+    "purpose": ["consultar APIs", "consultar skills", "consultar modelos", "consultar costos", "recomendar mejor capacidad"],
+    "status": "planned_blocked",
+    "blocked_reason": "ARSENAL está planificado, sin runtime, secretos ni APIs reales conectadas.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_sniff_amazon_future",
+    "source": "cerebro",
+    "target": "sniff_amazon",
+    "purpose": ["oportunidades Amazon", "Buy Box / caja de compra", "productos ganadores"],
+    "status": "prepared_blocked",
+    "blocked_reason": "SNIFF AMAZON queda separado de Comercio Autónomo y no consulta Amazon ni proveedores reales.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  },
+  {
+    "id": "cerebro_to_comercio_autonomo_future",
+    "source": "cerebro",
+    "target": "comercio_autonomo",
+    "purpose": ["e-commerce", "venta", "operación comercial"],
+    "status": "prepared_blocked",
+    "blocked_reason": "COMERCIO AUTÓNOMO no ejecuta ventas, pagos ni operación comercial real.",
+    "requires_ceo_approval": true,
+    "external_connection_enabled": false,
+    "runtime_connected": false
+  }
+]

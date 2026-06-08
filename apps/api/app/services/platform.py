@@ -24,7 +24,7 @@ def get_platform_status() -> PlatformStatus:
         PlatformPhaseStatus(
             id="A",
             name="Registro completo de aplicaciones",
-            status="pass" if registry.total == 13 else "fail",
+            status="pass" if registry.total == 14 else "fail",
             evidence=f"{registry.total} apps registered.",
         ),
         PlatformPhaseStatus(

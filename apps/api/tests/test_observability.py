@@ -47,7 +47,7 @@ def test_observability_status_contains_core_metrics() -> None:
     response = client.get("/api/v1/observability/status", headers=AUTH_HEADERS)
     metrics = {item["id"]: item for item in response.json()["metrics"]}
 
-    assert metrics["registered_apps"]["value"] == 13
+    assert metrics["registered_apps"]["value"] == 14
     assert metrics["external_connections_enabled"]["value"] is False
     assert metrics["storage_backend"]["value"] in {"sqlite", "postgresql"}
     assert isinstance(metrics["memory_entries"]["value"], int)

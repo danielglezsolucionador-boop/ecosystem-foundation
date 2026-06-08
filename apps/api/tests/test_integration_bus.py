@@ -27,6 +27,7 @@ def create_test_route() -> dict:
     [
         "/api/v1/integration-bus",
         "/api/v1/integration-bus/routes",
+        "/api/v1/integration-bus/prepared-routes",
         "/api/v1/integration-bus/services",
         "/api/v1/integration-bus/dependencies",
         "/api/v1/integration-bus/audit",
@@ -46,6 +47,7 @@ def test_integration_bus_overview_contract() -> None:
     assert response.status_code == 200
     assert payload["status"] == "integration_bus_operational"
     assert payload["external_connections_enabled"] is False
+    assert len(payload["prepared_routes"]) == 16
     assert len(payload["services"]) >= 9
     assert any(service["id"] == "hermes" for service in payload["services"])
     assert any(service["id"] == "auditor" for service in payload["services"])
@@ -63,6 +65,41 @@ def test_integration_bus_overview_contract() -> None:
         for service in payload["services"]
     )
     assert payload["dependencies"]
+
+
+def test_block_8_prepared_routes_are_defined_but_blocked() -> None:
+    response = client.get("/api/v1/integration-bus/prepared-routes")
+    routes = response.json()
+    routes_by_id = {route["id"]: route for route in routes}
+
+    assert response.status_code == 200
+    assert len(routes) == 16
+    assert {route["source"] for route in routes} == {"cerebro"}
+    assert all(route["requires_ceo_approval"] is True for route in routes)
+    assert all(route["external_connection_enabled"] is False for route in routes)
+    assert all(route["runtime_connected"] is False for route in routes)
+    assert all(route["status"].endswith("_blocked") for route in routes)
+    assert routes_by_id["cerebro_to_forja_future"]["status"] == "prepared_blocked"
+    assert routes_by_id["cerebro_to_sentinela_future"]["status"] == "protected_blocked"
+    assert routes_by_id["cerebro_to_dcft_future"]["status"] == "protected_no_touch_blocked"
+    assert routes_by_id["cerebro_to_arsenal_future"]["status"] == "planned_blocked"
+
+
+def test_block_8_prepared_routes_are_not_dispatchable() -> None:
+    response = client.post(
+        "/api/v1/integration-bus/dispatch",
+        json={
+            "route_id": "cerebro_to_dcft_future",
+            "subject": "must-not-dispatch",
+            "payload": {"app_id": "doctor_contable_financiero_tributario"},
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == {
+        "error": "route_not_found",
+        "route_id": "cerebro_to_dcft_future",
+    }
 
 
 def test_route_can_be_registered_and_audited() -> None:
@@ -364,3 +401,13 @@ def test_integration_bus_invalid_payload_returns_422() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_integration_bus_status_reports_prepared_routes_separately() -> None:
+    response = client.get("/api/v1/integration-bus/status")
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["prepared_routes"] == 16
+    assert isinstance(payload["routes"], int)
+    assert payload["external_connections_enabled"] is False

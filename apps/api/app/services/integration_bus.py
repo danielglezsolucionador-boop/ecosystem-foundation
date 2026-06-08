@@ -11,6 +11,7 @@ from app.schemas.integration_bus import (
     IntegrationBusAuditEvent,
     IntegrationBusDependency,
     IntegrationBusOverview,
+    IntegrationBusPreparedRoute,
     IntegrationBusRoute,
     IntegrationBusRouteCreate,
     IntegrationBusService,
@@ -23,6 +24,7 @@ from app.services.integrations import list_integration_contracts
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "data"
 BUS_SERVICES_PATH = DATA_PATH / "integration_bus_services.json"
+PREPARED_ROUTES_PATH = DATA_PATH / "integration_bus_prepared_routes.json"
 BUS_ROUTES_TABLE = "integration_bus_routes"
 BUS_AUDIT_TABLE = "integration_bus_audit_events"
 
@@ -45,6 +47,12 @@ def row_value(row: Any, key: str) -> Any:
 def list_bus_services() -> tuple[IntegrationBusService, ...]:
     raw_services = json.loads(BUS_SERVICES_PATH.read_text(encoding="utf-8"))
     return tuple(IntegrationBusService(**item) for item in raw_services)
+
+
+@lru_cache
+def list_prepared_routes() -> tuple[IntegrationBusPreparedRoute, ...]:
+    raw_routes = json.loads(PREPARED_ROUTES_PATH.read_text(encoding="utf-8"))
+    return tuple(IntegrationBusPreparedRoute(**item) for item in raw_routes)
 
 
 def get_bus_service(service_id: str) -> IntegrationBusService | None:
@@ -385,6 +393,7 @@ def get_bus_status() -> IntegrationBusStatus:
     return IntegrationBusStatus(
         status="integration_bus_operational",
         routes=row_value(routes_row, "count"),
+        prepared_routes=len(list_prepared_routes()),
         services=len(list_bus_services()),
         dependencies=len(list_bus_dependencies()),
         audit_events=row_value(audit_row, "count"),
@@ -396,6 +405,7 @@ def get_bus_overview() -> IntegrationBusOverview:
     return IntegrationBusOverview(
         status="integration_bus_operational",
         routes=list_routes(),
+        prepared_routes=list(list_prepared_routes()),
         services=list(list_bus_services()),
         dependencies=list_bus_dependencies(),
         external_connections_enabled=False,

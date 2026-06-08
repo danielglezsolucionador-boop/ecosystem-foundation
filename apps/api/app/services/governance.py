@@ -39,8 +39,12 @@ DECISIONS_TABLE = "governance_decisions"
 APPROVALS_TABLE = "governance_approvals"
 GATES_TABLE = "governance_integration_gates"
 RISKS_TABLE = "governance_risks"
-PROTECTED_APP_IDS = {"doctor_contable_financiero_tributario"}
-APP_ALIASES = {"dcft": "doctor_contable_financiero_tributario"}
+PROTECTED_APP_IDS = {"doctor_contable_financiero_tributario", "centinela"}
+PLANNED_BLOCKED_APP_IDS = {"arsenal"}
+APP_ALIASES = {
+    "dcft": "doctor_contable_financiero_tributario",
+    "sentinela": "centinela",
+}
 APPROVER_ROLES = {GovernanceRole.ceo, GovernanceRole.admin}
 ACTION_ROLES: dict[str, set[GovernanceRole]] = {
     "create_decision": {GovernanceRole.ceo, GovernanceRole.admin, GovernanceRole.operator},
@@ -523,6 +527,14 @@ def require_evidence(evidence: str | None, action: str) -> str:
     return evidence.strip()
 
 
+def default_gate_reason(protected: bool, planned_blocked: bool) -> str:
+    if protected:
+        return "Protected app remains blocked until explicit future governance phase."
+    if planned_blocked:
+        return "Planned app remains blocked until explicit CEO approval and a future integration phase."
+    return "Application is registered but not ready for discovery."
+
+
 def seed_integration_gates() -> None:
     placeholder = sql_placeholder()
     now = utc_now()
@@ -530,9 +542,12 @@ def seed_integration_gates() -> None:
     with connect() as connection:
         for app in list_registered_apps():
             protected = app.id in PROTECTED_APP_IDS
+            planned_blocked = app.id in PLANNED_BLOCKED_APP_IDS
+            blocked_by_policy = protected or planned_blocked
+            default_reason = default_gate_reason(protected, planned_blocked)
             state = (
                 IntegrationGateState.blocked
-                if protected
+                if blocked_by_policy
                 else IntegrationGateState.not_ready
             )
             row = connection.execute(
@@ -548,16 +563,19 @@ def seed_integration_gates() -> None:
                     changed = True
                     if protected:
                         gate.state = IntegrationGateState.blocked
-                        gate.reason = "Protected app remains blocked until explicit future governance phase."
+                        gate.reason = default_reason
                     elif gate.state == IntegrationGateState.blocked:
                         gate.state = IntegrationGateState.not_ready
-                        gate.reason = "Application is registered but not ready for discovery."
+                        gate.reason = default_reason
                 if gate.app_name != app.name:
                     gate.app_name = app.name
                     changed = True
-                if protected and gate.state != IntegrationGateState.blocked:
+                if blocked_by_policy and gate.state != IntegrationGateState.blocked:
                     gate.state = IntegrationGateState.blocked
-                    gate.reason = "Protected app remains blocked until explicit future governance phase."
+                    gate.reason = default_reason
+                    changed = True
+                if blocked_by_policy and gate.reason != default_reason:
+                    gate.reason = default_reason
                     changed = True
                 if changed:
                     gate.updated_at = now
@@ -569,11 +587,7 @@ def seed_integration_gates() -> None:
                     app_name=app.name,
                     state=state,
                     protected=protected,
-                    reason=(
-                        "Protected external app blocked by default."
-                        if protected
-                        else "Application is registered but not ready for discovery."
-                    ),
+                    reason=default_reason,
                     updated_at=now,
                 )
 
@@ -910,6 +924,33 @@ def require_gate(app_id: str) -> IntegrationGate:
     return gate
 
 
+def require_not_planned_blocked(gate: IntegrationGate, action: str, error_code: str) -> None:
+    if gate.app_id not in PLANNED_BLOCKED_APP_IDS:
+        return
+
+    gate.state = IntegrationGateState.blocked
+    gate.reason = default_gate_reason(protected=False, planned_blocked=True)
+    event = audit_governance(
+        source="governance.integration_gates",
+        action=action,
+        status="blocked",
+        detail=f"{gate.app_name} is planned only and remains blocked.",
+        metadata={"app_id": gate.app_id, "state": gate.state.value},
+        severity=AuditSeverity.high,
+    )
+    append_audit_id(gate, event)
+    save_gate(gate)
+    raise GovernanceError(
+        status_code=400,
+        detail={
+            "error": error_code,
+            "app_id": gate.app_id,
+            "state": gate.state.value,
+            "reason": "planned_pending_integration_no_runtime",
+        },
+    )
+
+
 def request_gate_discovery(
     app_id: str,
     request: IntegrationGateTransitionRequest,
@@ -935,6 +976,8 @@ def request_gate_discovery(
                 "state": gate.state.value,
             },
         )
+
+    require_not_planned_blocked(gate, "request_discovery", "planned_app_discovery_blocked")
 
     gate.state = IntegrationGateState.pending_approval
     gate.requested_by = request.role_id
@@ -979,6 +1022,8 @@ def approve_gate_discovery(
             },
         )
 
+    require_not_planned_blocked(gate, "approve_discovery", "planned_app_discovery_blocked")
+
     gate.state = IntegrationGateState.approved_for_discovery
     gate.approved_by = request.role_id
     gate.evidence = evidence
@@ -1010,6 +1055,8 @@ def approve_gate_connection(
                 "state": gate.state.value,
             },
         )
+
+    require_not_planned_blocked(gate, "approve_connection", "planned_app_connection_blocked")
 
     gate.state = IntegrationGateState.approved_for_connection
     gate.approved_by = request.role_id
@@ -1085,11 +1132,13 @@ def list_policies() -> list[GovernancePolicy]:
         ),
         GovernancePolicy(
             id="protected_apps_blocked",
-            title="DCFT remains blocked; FORJA and CEREBRO discovery stays controlled",
+            title="DCFT, SENTINELA and ARSENAL remain blocked; discovery stays controlled",
             status="active",
             enforced=True,
             rules=[
                 "DCFT remains protected and cannot be discovered or connected in this block.",
+                "SENTINELA remains protected pending review and cannot be discovered or connected in this block.",
+                "ARSENAL remains planned/pending integration and cannot be discovered, connected or executed in this block.",
                 "FORJA and CEREBRO may be prepared for discovery only after human evidence approval.",
                 "No runtime calls are made to external applications.",
             ],
@@ -1125,6 +1174,11 @@ def evaluate_policy(request: PolicyEvaluationRequest) -> PolicyEvaluationResult:
         reason = "service_role_cannot_make_human_decisions"
     elif resource in PROTECTED_APP_IDS and "connect" in action:
         reason = "protected_app_connection_blocked"
+    elif resource in PLANNED_BLOCKED_APP_IDS and any(
+        keyword in action
+        for keyword in ("connect", "discover", "execute", "activate", "runtime")
+    ):
+        reason = "planned_app_connection_blocked"
     elif action in {"approve", "reject", "block", "suspend"}:
         allowed = request.role_id in APPROVER_ROLES
         reason = "authorized_human_role" if allowed else "role_not_authorized"

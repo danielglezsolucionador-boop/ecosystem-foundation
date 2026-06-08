@@ -4,6 +4,7 @@ from app.schemas.integration_bus import (
     IntegrationBusAuditEvent,
     IntegrationBusDependency,
     IntegrationBusOverview,
+    IntegrationBusPreparedRoute,
     IntegrationBusRoute,
     IntegrationBusRouteCreate,
     IntegrationBusService,
@@ -21,6 +22,7 @@ from app.services.integration_bus import (
     list_bus_audit,
     list_bus_dependencies,
     list_bus_services,
+    list_prepared_routes,
     list_routes,
 )
 
@@ -35,6 +37,11 @@ def read_integration_bus() -> IntegrationBusOverview:
 @router.get("/routes", response_model=list[IntegrationBusRoute])
 def read_routes() -> list[IntegrationBusRoute]:
     return list_routes()
+
+
+@router.get("/prepared-routes", response_model=list[IntegrationBusPreparedRoute])
+def read_prepared_routes() -> list[IntegrationBusPreparedRoute]:
+    return list(list_prepared_routes())
 
 
 @router.post(

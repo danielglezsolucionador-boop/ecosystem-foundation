@@ -151,6 +151,10 @@ def test_dcft_remains_protected_while_block_4_apps_are_controlled() -> None:
     assert response.status_code == 200
     assert gates["doctor_contable_financiero_tributario"]["state"] == "blocked"
     assert gates["doctor_contable_financiero_tributario"]["protected"] is True
+    assert gates["centinela"]["state"] == "blocked"
+    assert gates["centinela"]["protected"] is True
+    assert gates["arsenal"]["state"] == "blocked"
+    assert gates["arsenal"]["protected"] is False
     assert gates["forja"]["protected"] is False
     assert gates["cerebro"]["protected"] is False
     assert gates["forja"]["state"] != "blocked"
@@ -158,7 +162,7 @@ def test_dcft_remains_protected_while_block_4_apps_are_controlled() -> None:
     assert all(
         gate["state"] in {"not_ready", "pending_approval", "approved_for_discovery", "approved_for_connection", "blocked", "suspended"}
         for app_id, gate in gates.items()
-        if app_id not in {"doctor_contable_financiero_tributario"}
+        if app_id not in {"doctor_contable_financiero_tributario", "centinela"}
     )
 
 
@@ -269,7 +273,7 @@ def test_integration_gate_approval_requires_evidence() -> None:
 
 
 def test_protected_apps_cannot_be_discovered_or_connected() -> None:
-    for app_id in ["dcft"]:
+    for app_id in ["dcft", "sentinela"]:
         discovery_response = client.post(
             f"/api/v1/governance/integration-gates/{app_id}/request-discovery",
             json={"role_id": "ceo", "evidence": "future discovery evidence"},
@@ -284,6 +288,26 @@ def test_protected_apps_cannot_be_discovered_or_connected() -> None:
         assert discovery_response.json()["detail"]["error"] == "protected_app_discovery_blocked"
         assert response.status_code == 400
         assert response.json()["detail"]["error"] == "protected_app_connection_blocked"
+
+
+def test_arsenal_planned_gate_cannot_be_discovered_or_connected() -> None:
+    discovery_response = client.post(
+        "/api/v1/governance/integration-gates/arsenal/request-discovery",
+        json={"role_id": "ceo", "evidence": "future discovery evidence"},
+        headers=CEO_HEADERS,
+    )
+    response = client.post(
+        "/api/v1/governance/integration-gates/arsenal/approve-connection",
+        json={"role_id": "ceo", "evidence": "future connection evidence"},
+        headers=CEO_HEADERS,
+    )
+
+    assert discovery_response.status_code == 400
+    assert discovery_response.json()["detail"]["error"] == "planned_app_discovery_blocked"
+    assert discovery_response.json()["detail"]["reason"] == "planned_pending_integration_no_runtime"
+    assert response.status_code == 400
+    assert response.json()["detail"]["error"] == "planned_app_connection_blocked"
+    assert response.json()["detail"]["reason"] == "planned_pending_integration_no_runtime"
 
 
 def test_non_protected_gate_can_reach_approval_without_real_connection() -> None:

@@ -20,7 +20,7 @@ def test_control_center_root_contract() -> None:
     assert payload["overview"]["external_connections_enabled"] is False
     assert payload["executive_view"]["headline"]
     assert payload["operational_view"]["external_connections_enabled"] is False
-    assert len(payload["applications"]) == 13
+    assert len(payload["applications"]) == 14
     assert len(payload["services"]) >= 6
     assert len(payload["dependencies"]) >= 4
 
@@ -105,6 +105,22 @@ def test_control_center_shows_block_4_apps_without_external_connections() -> Non
         )
 
 
+def test_control_center_shows_block_7_future_apps_as_controlled() -> None:
+    response = client.get("/api/v1/control-center/apps", headers=AUTH_HEADERS)
+    apps = {item["id"]: item for item in response.json()}
+
+    assert response.status_code == 200
+    assert apps["doctor_contable_financiero_tributario"]["controlled_state"] == "protected_no_touch"
+    assert apps["doctor_contable_financiero_tributario"]["sunat_enabled"] is False
+    assert apps["centinela"]["controlled_state"] == "pending_review_protected"
+    assert apps["arsenal"]["controlled_state"] == "planned_pending_integration"
+    for app_id in ("doctor_contable_financiero_tributario", "centinela", "arsenal"):
+        assert apps[app_id]["external_connection_enabled"] is False
+        assert apps[app_id]["runtime_connected"] is False
+        assert apps[app_id]["requires_ceo_approval"] is True
+        assert apps[app_id]["governance_execution_blocked"] is True
+
+
 def test_control_center_readiness_keeps_external_connections_blocked() -> None:
     response = client.get("/api/v1/control-center/readiness", headers=AUTH_HEADERS)
     payload = response.json()
@@ -126,7 +142,7 @@ def test_control_center_metrics_and_alerts_are_structured() -> None:
 
     assert metrics_response.status_code == 200
     assert alerts_response.status_code == 200
-    assert metrics["registered_apps"]["value"] == 13
+    assert metrics["registered_apps"]["value"] == 14
     assert metrics["external_connections_enabled"]["value"] is False
     assert metrics["storage_backend"]["source"] == "database.initialize_database"
     assert all("severity" in alert for alert in alerts)

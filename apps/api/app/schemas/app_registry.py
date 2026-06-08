@@ -19,6 +19,16 @@ class EcosystemApp(BaseModel):
     depends_on: list[str] = Field(default_factory=list)
     description: str = Field(min_length=1)
     touch_policy: str = Field(min_length=1)
+    role: str | None = None
+    commercial_role: str | None = None
+    controlled_state: str | None = None
+    external_connection_enabled: bool = False
+    runtime_connected: bool = False
+    sunat_enabled: bool = False
+    requires_ceo_approval: bool = True
+    governance_execution_blocked: bool = True
+    secrets_required: bool = False
+    human_cabin_complete: bool = True
 
 
 class AppRegistrySummary(BaseModel):

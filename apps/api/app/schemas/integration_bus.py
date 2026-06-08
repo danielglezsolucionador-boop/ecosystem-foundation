@@ -33,6 +33,18 @@ class IntegrationBusRoute(BaseModel):
     created_at: str
 
 
+class IntegrationBusPreparedRoute(BaseModel):
+    id: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+    target: str = Field(min_length=1)
+    purpose: list[str] = Field(default_factory=list)
+    status: str = Field(min_length=1)
+    blocked_reason: str = Field(min_length=1)
+    requires_ceo_approval: bool = True
+    external_connection_enabled: bool = False
+    runtime_connected: bool = False
+
+
 class IntegrationBusDependency(BaseModel):
     id: str
     name: str
@@ -73,6 +85,7 @@ class IntegrationBusAuditEvent(BaseModel):
 class IntegrationBusStatus(BaseModel):
     status: str
     routes: int
+    prepared_routes: int = 0
     services: int
     dependencies: int
     audit_events: int
@@ -82,6 +95,7 @@ class IntegrationBusStatus(BaseModel):
 class IntegrationBusOverview(BaseModel):
     status: str
     routes: list[IntegrationBusRoute]
+    prepared_routes: list[IntegrationBusPreparedRoute] = Field(default_factory=list)
     services: list[IntegrationBusService]
     dependencies: list[IntegrationBusDependency]
     external_connections_enabled: bool

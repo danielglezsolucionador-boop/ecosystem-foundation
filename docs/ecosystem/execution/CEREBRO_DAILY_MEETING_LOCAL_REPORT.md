@@ -72,8 +72,8 @@ Fecha local: 2026-06-08
 - La reunión no declara SENTINELA productivo.
 - La reunión no declara NUBE conectada.
 - La reunión no declara rutas reales del bus.
-- La reunión no declara Local Agent activo.
-- La reunión no declara SUNAT real activo.
+- La reunión no declara activación de Local Agent.
+- La reunión no declara activación de SUNAT real.
 - La reunión no declara que CEREBRO ejecuta codigo.
 
 ## Archivos modificados

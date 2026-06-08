@@ -848,6 +848,7 @@ button:focus-visible {
 
 .quick-actions-band,
 .priority-apps-band,
+.departmental-simulation-band,
 .status-lanes-band {
   display: grid;
   gap: 10px;
@@ -2414,6 +2415,27 @@ body::before {
   overflow: auto;
 }
 
+.departmental-simulation-band {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.simulation-flows .status-lane {
+  min-height: 0;
+  gap: 8px;
+  padding: 12px;
+}
+
+.simulation-flows .lane-note {
+  min-height: 0;
+  padding: 10px;
+}
+
+.simulation-flows .lane-chip {
+  min-height: 38px;
+  padding: 8px;
+}
+
 .workspace {
   grid-template-columns: minmax(0, 1fr);
   max-height: 620px;
@@ -3520,6 +3542,15 @@ body {
     margin-top: 10px;
     max-height: none;
     overflow: visible;
+  }
+
+  .departmental-simulation-band {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .simulation-flows {
+    grid-template-columns: 1fr;
   }
 
   .departments-more-card {

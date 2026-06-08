@@ -36,6 +36,8 @@ def test_control_center_frontend_is_served() -> None:
     assert "Reunión con CEREBRO" in response.text
     assert "Reunión de Mañana" in response.text
     assert "Reunión de Tarde" in response.text
+    assert "Flujos de Empresa IA" in response.text
+    assert "Simulación departamental" in response.text
 
 
 def test_control_center_assets_are_served() -> None:
@@ -57,6 +59,14 @@ def test_control_center_assets_are_served() -> None:
     assert "escalate_approval" in js_response.text
     assert "companyDepartments" in js_response.text
     assert "dailyMeetingModels" in js_response.text
+    assert "departmentalSimulationFlows" in js_response.text
+    assert "Oportunidad IA / Video" in js_response.text
+    assert "Ciberseguridad para SENTINELA" in js_response.text
+    assert "Regulación DCFT" in js_response.text
+    assert "API / Skill vendible" in js_response.text
+    assert "Producto Amazon / Comercio" in js_response.text
+    assert "Simulación departamental" in js_response.text
+    assert "Sin ejecución real" in js_response.text
     assert "CEO, esto requiere tu decisión." in js_response.text
     assert "CEO, este es el cierre del día." in js_response.text
     assert "Esto puede generar ingresos" in js_response.text
@@ -104,6 +114,12 @@ def test_control_center_cerebro_copy_stays_truthful_and_protected() -> None:
     assert "sin SUNAT real" in text
     assert "Runtime local verificado" in text
     assert "Deploy conectado" not in text
+    assert "DCFT protegido/no-touch: no integrado, no SUNAT real" in text
+    assert "SENTINELA no productivo" in text
+    assert "ARSENAL no runtime" in text
+    assert "sin rutas reales activas" in text
+    assert "sin Local Agent" in text
+    assert "sin SUNAT" in text
 
     forbidden_claims = [
         "dcft esta integrado",

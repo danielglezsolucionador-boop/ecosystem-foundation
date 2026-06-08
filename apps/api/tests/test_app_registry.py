@@ -15,6 +15,7 @@ EXPECTED_APP_IDS = {
     "marketing",
     "web_factory",
     "doctor_contable_financiero_tributario",
+    "arsenal",
     "auditor",
     "hermes",
 }
@@ -28,7 +29,7 @@ def test_app_registry_lists_controlled_ecosystem_apps() -> None:
 
     assert response.status_code == 200
     assert isinstance(payload, list)
-    assert len(payload) == 13
+    assert len(payload) == 14
     assert {item["id"] for item in payload} == EXPECTED_APP_IDS
 
 
@@ -46,6 +47,16 @@ def test_app_registry_payload_contract() -> None:
         "depends_on",
         "description",
         "touch_policy",
+        "role",
+        "commercial_role",
+        "controlled_state",
+        "external_connection_enabled",
+        "runtime_connected",
+        "sunat_enabled",
+        "requires_ceo_approval",
+        "governance_execution_blocked",
+        "secrets_required",
+        "human_cabin_complete",
     }
 
     for item in payload:
@@ -57,6 +68,9 @@ def test_app_registry_payload_contract() -> None:
         assert isinstance(item["depends_on"], list)
         assert item["description"]
         assert item["touch_policy"]
+        assert item["external_connection_enabled"] is False
+        assert item["runtime_connected"] is False
+        assert item["governance_execution_blocked"] is True
 
 
 def test_external_apps_are_registry_only_not_connected() -> None:
@@ -68,6 +82,9 @@ def test_external_apps_are_registry_only_not_connected() -> None:
     for app_id in ("doctor_contable_financiero_tributario",):
         assert apps_by_id[app_id]["status"] == "external"
         assert apps_by_id[app_id]["touch_policy"] == "no_touch_external"
+        assert apps_by_id[app_id]["controlled_state"] == "protected_no_touch"
+        assert apps_by_id[app_id]["sunat_enabled"] is False
+        assert apps_by_id[app_id]["requires_ceo_approval"] is True
 
 
 def test_block_2_apps_are_prepared_without_runtime_connection() -> None:
@@ -112,17 +129,31 @@ def test_block_4_apps_are_prepared_without_runtime_connection() -> None:
         )
 
 
-def test_apps_outside_integrated_blocks_remain_registry_only() -> None:
+def test_block_7_future_apps_are_registered_but_not_connected() -> None:
     client = TestClient(app)
 
     response = client.get("/api/v1/apps")
     apps_by_id = {item["id"]: item for item in response.json()}
 
-    for app_id in (
-        "centinela",
-    ):
-        assert apps_by_id[app_id]["status"] == "planned"
-        assert apps_by_id[app_id]["touch_policy"] == "registry_only"
+    controlled_apps = {
+        "doctor_contable_financiero_tributario": "protected_no_touch",
+        "centinela": "pending_review_protected",
+        "arsenal": "planned_pending_integration",
+    }
+    for app_id, controlled_state in controlled_apps.items():
+        app_item = apps_by_id[app_id]
+        assert app_item["controlled_state"] == controlled_state
+        assert app_item["external_connection_enabled"] is False
+        assert app_item["runtime_connected"] is False
+        assert app_item["requires_ceo_approval"] is True
+        assert app_item["governance_execution_blocked"] is True
+
+    assert apps_by_id["doctor_contable_financiero_tributario"]["sunat_enabled"] is False
+    assert apps_by_id["doctor_contable_financiero_tributario"]["secrets_required"] is False
+    assert apps_by_id["centinela"]["touch_policy"] == "pending_review_protected_no_runtime"
+    assert apps_by_id["arsenal"]["touch_policy"] == "planned_pending_integration_no_runtime"
+    assert apps_by_id["arsenal"]["secrets_required"] is False
+    assert apps_by_id["arsenal"]["human_cabin_complete"] is False
 
 
 def test_app_detail_returns_single_registered_app() -> None:
@@ -132,7 +163,7 @@ def test_app_detail_returns_single_registered_app() -> None:
     payload = response.json()
 
     assert response.status_code == 200
-    assert payload == {
+    expected = {
         "id": "forja",
         "name": "FORJA",
         "type": "ecosystem_orchestrator",
@@ -144,6 +175,8 @@ def test_app_detail_returns_single_registered_app() -> None:
         ),
         "touch_policy": "integration_prepared_no_runtime_connection",
     }
+    for key, value in expected.items():
+        assert payload[key] == value
 
 
 def test_app_detail_normalizes_app_id() -> None:
@@ -179,9 +212,9 @@ def test_app_registry_status_summary() -> None:
 
     assert response.status_code == 200
     assert payload == {
-        "total": 13,
+        "total": 14,
         "by_status": {
-            "planned": 12,
+            "planned": 13,
             "internal": 0,
             "external": 1,
             "blocked": 0,
@@ -199,6 +232,7 @@ def test_app_registry_status_summary() -> None:
             "marketing",
             "web_factory",
             "doctor_contable_financiero_tributario",
+            "arsenal",
             "auditor",
             "hermes",
         ],
