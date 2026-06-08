@@ -14,6 +14,7 @@ def headers_for(path: str) -> dict[str, str] | None:
         "/api/v1/control-center",
         "/api/v1/audit",
         "/api/v1/observability",
+        "/api/v1/integration-bus",
     )
     return AUTH_HEADERS if path.startswith(protected_prefixes) else None
 
@@ -88,6 +89,7 @@ def test_backbone_invalid_integration_dispatch_is_controlled() -> None:
             "subject": "bad-dispatch",
             "payload": {},
         },
+        headers=headers_for("/api/v1/integration-bus/dispatch"),
     )
 
     assert response.status_code == 404

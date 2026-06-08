@@ -22,15 +22,27 @@ class IntegrationBusRouteCreate(BaseModel):
 
 class IntegrationBusRoute(BaseModel):
     id: str
+    route_id: str | None = None
+    source: str | None = None
+    target: str | None = None
+    action_type: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
     source_service: str
     target_service: str
     event_type: str
     channel: str
     status: str
+    allowed: bool = True
+    requires_ceo_approval: bool = False
     retry_policy: str
     dead_letter_enabled: bool
     external_connection_enabled: bool
+    runtime_connected: bool = False
+    audit_event_id: str | None = None
+    handler_result: dict[str, Any] = Field(default_factory=dict)
+    blocked_reason: str | None = None
     created_at: str
+    updated_at: str | None = None
 
 
 class IntegrationBusPreparedRoute(BaseModel):
@@ -59,6 +71,7 @@ class IntegrationDispatchRequest(BaseModel):
     subject: str = Field(min_length=1)
     payload: dict[str, Any]
     metadata: dict[str, Any] = Field(default_factory=dict)
+    action_type: str | None = Field(default=None, min_length=1)
     route_to_dead_letter: bool = False
 
 
@@ -67,9 +80,22 @@ class IntegrationDispatchResult(BaseModel):
     route_id: str
     status: str
     event_id: str | None
+    target_service: str | None = None
+    action_type: str | None = None
+    allowed: bool = True
+    blocked: bool = False
+    blocked_reason: str | None = None
+    handler_result: dict[str, Any] = Field(default_factory=dict)
     dead_letter_routed: bool
     audit_event_id: str | None
+    external_connection_enabled: bool = False
+    runtime_connected: bool = False
     created_at: str
+
+
+class IntegrationBusRouteStateUpdate(BaseModel):
+    status: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
 
 
 class IntegrationBusAuditEvent(BaseModel):

@@ -98,6 +98,13 @@
     "external_connection_enabled": false
   },
   {
+    "id": "creador_de_apis_y_skills",
+    "name": "CREADOR_DE_APIS_Y_SKILLS Internal Capability",
+    "category": "api_skill_app",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
+  },
+  {
     "id": "marketing",
     "name": "MARKETING Growth Capability",
     "category": "growth_app",
@@ -129,6 +136,20 @@
     "id": "forja",
     "name": "FORJA Construction Capability",
     "category": "ecosystem_orchestrator",
+    "status": "prepared_for_discovery",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "nube",
+    "name": "NUBE Documentary Capability",
+    "category": "cloud_profile",
+    "status": "documented_only",
+    "external_connection_enabled": false
+  },
+  {
+    "id": "sniff_amazon",
+    "name": "SNIFF_AMAZON Opportunity Capability",
+    "category": "commerce_research_app",
     "status": "prepared_for_discovery",
     "external_connection_enabled": false
   },

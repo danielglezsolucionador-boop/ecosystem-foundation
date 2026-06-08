@@ -70,7 +70,10 @@ def test_app_registry_payload_contract() -> None:
         assert item["touch_policy"]
         assert item["external_connection_enabled"] is False
         assert item["runtime_connected"] is False
-        assert item["governance_execution_blocked"] is True
+        if item["id"] == "cerebro":
+            assert item["governance_execution_blocked"] is False
+        else:
+            assert item["governance_execution_blocked"] is True
 
 
 def test_external_apps_are_registry_only_not_connected() -> None:
@@ -121,12 +124,16 @@ def test_block_4_apps_are_prepared_without_runtime_connection() -> None:
     response = client.get("/api/v1/apps")
     apps_by_id = {item["id"]: item for item in response.json()}
 
-    for app_id in ("forja", "cerebro"):
-        assert apps_by_id[app_id]["status"] == "planned"
-        assert (
-            apps_by_id[app_id]["touch_policy"]
-            == "integration_prepared_no_runtime_connection"
-        )
+    assert apps_by_id["forja"]["status"] == "planned"
+    assert (
+        apps_by_id["forja"]["touch_policy"]
+        == "integration_prepared_no_runtime_connection"
+    )
+    assert apps_by_id["cerebro"]["status"] == "internal"
+    assert apps_by_id["cerebro"]["controlled_state"] == "operational_internal"
+    assert apps_by_id["cerebro"]["touch_policy"] == "internal_operational_no_external_runtime"
+    assert apps_by_id["cerebro"]["external_connection_enabled"] is False
+    assert apps_by_id["cerebro"]["runtime_connected"] is False
 
 
 def test_block_7_future_apps_are_registered_but_not_connected() -> None:
@@ -214,8 +221,8 @@ def test_app_registry_status_summary() -> None:
     assert payload == {
         "total": 14,
         "by_status": {
-            "planned": 13,
-            "internal": 0,
+            "planned": 12,
+            "internal": 1,
             "external": 1,
             "blocked": 0,
             "unknown": 0,

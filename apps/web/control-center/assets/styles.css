@@ -2436,6 +2436,89 @@ body::before {
   padding: 8px;
 }
 
+.cerebro-operational-band {
+  display: grid;
+  gap: 12px;
+}
+
+.cerebro-operational-copy {
+  max-width: 780px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.cerebro-operational-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cerebro-operational-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 132px;
+  padding: 14px;
+  border: 1px solid rgba(248, 210, 122, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 18, 25, 0.82);
+}
+
+.cerebro-operational-card.wide {
+  grid-column: span 2;
+}
+
+.cerebro-operational-card.protected {
+  border-color: rgba(255, 113, 113, 0.34);
+}
+
+.cerebro-operational-card > strong {
+  font-size: 18px;
+}
+
+.cerebro-operational-card p,
+.cerebro-operational-card small {
+  margin: 0;
+  color: var(--muted);
+}
+
+.cerebro-operational-card p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cerebro-operational-card p span {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid rgba(248, 210, 122, 0.22);
+  border-radius: 999px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.cerebro-operational-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cerebro-operational-stats small,
+.mini-row {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mini-row strong,
+.mini-row small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .workspace {
   grid-template-columns: minmax(0, 1fr);
   max-height: 620px;
@@ -3508,8 +3591,24 @@ body {
   .command-cockpit > div,
   .quick-actions-band,
   .priority-apps-band,
+  .cerebro-operational-band,
   .status-lanes-band {
     padding: 8px;
+  }
+
+  .cerebro-operational-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cerebro-operational-card,
+  .cerebro-operational-card.wide {
+    grid-column: auto;
+    min-height: 0;
+    padding: 10px;
+  }
+
+  .cerebro-operational-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .command-cockpit .section-title h2 {

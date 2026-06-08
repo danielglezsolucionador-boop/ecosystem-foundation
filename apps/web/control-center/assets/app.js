@@ -20,7 +20,12 @@ const endpoints = {
   gates: "/api/v1/governance/integration-gates",
   policies: "/api/v1/governance/policies",
   risks: "/api/v1/governance/risks",
-  governanceAudit: "/api/v1/governance/audit"
+  governanceAudit: "/api/v1/governance/audit",
+  cerebroStatus: "/api/v1/cerebro/status",
+  cerebroMorning: "/api/v1/cerebro/brief/morning",
+  cerebroEvening: "/api/v1/cerebro/brief/evening",
+  cerebroDecisions: "/api/v1/cerebro/decisions",
+  cerebroTasks: "/api/v1/cerebro/tasks"
 };
 
 const AUTH_TOKEN_KEY = "ecosystem_control_center_session_v1";
@@ -45,12 +50,12 @@ const humanAppCatalog = [
     id: "cerebro",
     name: "CEREBRO",
     role: "Chief of Staff / Jefe de Gabinete IA",
-    capability: "Mano derecha del CEO: prepara decisiones, riesgos, oportunidades y prioridades.",
-    preparedCopy: "Preparado, sin conexión real.",
+    capability: "Mano derecha del CEO: coordina internamente decisiones, tareas, riesgos y prioridades.",
+    preparedCopy: "Operativo interno; sin apps protegidas ni runtimes externos.",
     action: "Hablar con CEREBRO",
-    lane: "prepared",
+    lane: "real",
     priority: true,
-    displayStatus: "discovery_prepared"
+    displayStatus: "operational_internal"
   },
   {
     id: "forja",
@@ -168,7 +173,7 @@ const humanAppCatalog = [
     name: "CREADOR DE APIS Y SKILLS",
     role: "Fábrica de APIs y skills",
     capability: "Prepara APIs internas, APIs vendibles, skills internas y skills vendibles.",
-    preparedCopy: "Documentado para revisión; sin rutas reales.",
+    preparedCopy: "Documentado para revisión; solo ruta interna, sin API externa real.",
     action: "Ver ficha",
     lane: "pending",
     displayStatus: "documented_only"
@@ -327,7 +332,7 @@ const dailyMeetingModels = {
     tasks: [
       ["FORJA", "Esto puede pasar a FORJA solo como propuesta aprobada; nada real se ejecuta."],
       ["HERMES", "Puede apoyar con mensajes y coordinación ligera, sin enviar comunicaciónes reales."],
-      ["CREADOR DE APIS Y SKILLS", "Debe preparar contratos y alcance; no crear rutas reales del bus."],
+      ["CREADOR DE APIS Y SKILLS", "Debe preparar especificaciones; el bus interno no crea API externa real."],
       ["AUDITORIA", "Debe revisar evidencia, permisos y riesgos antes de avanzar."],
       ["NUBE", "Debe controlar estado documental; no tocar secretos ni deploys."],
       ["SENTINELA", "Debe proteger límites y datos; sigue pendiente de revisión."],
@@ -349,7 +354,7 @@ const dailyMeetingModels = {
       ["BUSCADOR DE TENDENCIAS", "Puede reportar oportunidades preparadas, sin fuentes externas activadas."],
       ["FORJA", "No construyó en productivo; solo queda como construcción controlada futura."],
       ["HERMES", "No envió mensajes reales; puede preparar coordinación local."],
-      ["CREADOR DE APIS Y SKILLS", "No creó rutas reales; puede preparar contratos."],
+      ["CREADOR DE APIS Y SKILLS", "Preparó rutas internas seguras; no creó API externa real."],
       ["PLUMA / LENTE / MARKETING", "Pueden preparar contenido y visuales, sin publicar."],
       ["AUDITORIA / SENTINELA / NUBE", "Revisan, protegen y controlan; no ejecutan cambios reales."],
       ["MAÑANA", "Definir una sola decisión CEO y mantener DCFT protected_no_touch."]
@@ -358,8 +363,8 @@ const dailyMeetingModels = {
 };
 
 const dailyMeetingDataBoundaries = {
-  real: ["login local", "cabina local", "App Registry", "documentos", "capturas", "validaciones locales"],
-  prepared: ["CEREBRO discovery/preparado", "FORJA visual/preparada", "SENTINELA pendiente", "NUBE documental", "DCFT protected_no_touch", "Arsenal planned"]
+  real: ["login local", "cabina local", "App Registry", "documentos", "capturas", "validaciones locales", "CEREBRO operativo interno"],
+  prepared: ["FORJA visual/preparada", "SENTINELA pendiente", "NUBE documental", "DCFT protected_no_touch", "Arsenal planned"]
 };
 
 const departmentalSimulationFlows = [
@@ -371,7 +376,7 @@ const departmentalSimulationFlows = [
     departments: ["Buscador de Tendencias", "CEREBRO", "ARSENAL", "FORJA", "HERMES", "PLUMA", "LENTE", "MARKETING", "AUDITORÍA", "NUBE"],
     cerebro: "CEREBRO evalúa valor, riesgo y decisión CEO antes de pedir trabajo.",
     outcome: "ARSENAL registra capacidad futura, FORJA prepara posible integración, PLUMA/LENTE/MARKETING preparan piezas locales y CEREBRO reporta al CEO.",
-    guardrail: "Sin ejecución real, sin APIs externas y sin publicación."
+    guardrail: "Sin ejecución externa, sin APIs externas y sin publicación."
   },
   {
     id: "sentinela_cybersecurity",
@@ -401,7 +406,7 @@ const departmentalSimulationFlows = [
     departments: ["Buscador de Tendencias", "CEREBRO", "CREADOR DE APIS Y SKILLS", "FORJA", "ARSENAL", "WEB FACTORY", "MARKETING", "AUDITORÍA", "NUBE", "SENTINELA"],
     cerebro: "CEREBRO evalúa oportunidad, alcance y ruta de aprobación.",
     outcome: "Creador de APIs y Skills prepara idea; ARSENAL registra capacidad futura; WEB FACTORY y MARKETING preparan salida futura.",
-    guardrail: "ARSENAL no runtime, sin rutas reales activas, sin deploy y sin venta real."
+    guardrail: "ARSENAL no runtime, sin ruta interna activa hacia ARSENAL, sin deploy y sin venta real."
   },
   {
     id: "amazon_commerce",
@@ -429,7 +434,7 @@ function escapeHtml(value) {
 
 function normalizeStatus(value) {
   const status = String(value || "unknown").toLowerCase();
-  if (["healthy", "ok", "ready", "operational", "connected", "approved", "closed", "real_operational", "production_pass", "local_pass"].includes(status)) return "healthy";
+  if (["healthy", "ok", "ready", "operational", "connected", "approved", "closed", "real_operational", "operational_internal", "cerebro_operational_internal", "production_pass", "local_pass"].includes(status)) return "healthy";
   if (["degraded", "planned", "staging", "info", "pending", "pending_review", "pending_approval", "pending_integration", "prepared", "prepared_for_discovery", "discovery_prepared", "documented_only", "escalated"].includes(status)) return "degraded";
   if (["blocked", "error", "failed", "critical", "rejected", "suspended", "protected_no_touch"].includes(status)) return "blocked";
   return status;
@@ -451,6 +456,8 @@ function label(value) {
     production_pass: "Producción PASS",
     local_pass: "Local PASS",
     real_operational: "Real operativo",
+    operational_internal: "Operativo interno",
+    cerebro_operational_internal: "CEREBRO operativo interno",
     registry_only: "Solo registry",
     no_touch_external: "Protegida",
     integration_prepared_no_runtime_connection: "Preparada sin conexión",
@@ -561,6 +568,15 @@ function humanStateFor(appId) {
   const definition = humanAppCatalog.find((item) => item.id === appId);
   const app = appById(appId);
   const profile = profileById(appId);
+  if (app?.controlled_state === "operational_internal") {
+    return {
+      status: "operational_internal",
+      tone: "green",
+      source: "Operativo interno",
+      copy: "CEREBRO coordina dentro del backend/control center. Sin runtime externo.",
+      real: true
+    };
+  }
   if (profile?.external_connection_enabled === true) {
     return {
       status: "connected",
@@ -1038,6 +1054,7 @@ function renderRoleBoundary() {
 function renderExecutiveHome() {
   renderTrafficLights();
   renderCerebroDailyMeeting();
+  renderCerebroOperational();
   renderQuickActions();
   renderPriorityApps();
   renderDepartmentalSimulationFlows();
@@ -1099,6 +1116,76 @@ function renderCerebroDailyMeeting() {
         `).join("")}
       </div>
     </details>
+  `;
+}
+
+function renderCerebroOperational() {
+  const container = $("#cerebro-operational-grid");
+  if (!container) return;
+
+  const status = state.data.cerebroStatus || {};
+  const decisions = Array.isArray(state.data.cerebroDecisions) ? state.data.cerebroDecisions : [];
+  const tasks = Array.isArray(state.data.cerebroTasks) ? state.data.cerebroTasks : [];
+  const brief = state.meeting === "evening"
+    ? (state.data.cerebroEvening || {})
+    : (state.data.cerebroMorning || {});
+  const blocked = tasks.filter((task) => task.blocked || task.state === "blocked");
+  const delegated = tasks.filter((task) => !task.blocked).slice(0, 4);
+  const integration = state.data.integrationBus || {};
+  const busRoutes = Array.isArray(integration.routes) ? integration.routes : [];
+  const activeInternalRoutes = busRoutes.filter((route) => route.source === "cerebro" && route.allowed);
+  const blockedInternalRoutes = busRoutes.filter((route) => route.source === "cerebro" && !route.allowed);
+  const lastDispatch = busRoutes.find((route) => route.source === "cerebro" && route.audit_event_id);
+  const pending = decisions.filter((decision) => (
+    ["draft", "proposed", "waiting_ceo"].includes(String(decision.state || "").toLowerCase())
+  )).slice(0, 4);
+  const allowed = status.allowed_departments || [];
+  const protectedTargets = status.protected_targets || ["DCFT", "SENTINELA", "ARSENAL"];
+
+  container.innerHTML = `
+    <article class="cerebro-operational-card">
+      <span class="eyebrow">Estado CEREBRO</span>
+      <strong>${escapeHtml(label(status.status || "cerebro_operational_internal"))}</strong>
+      <p>${escapeHtml(brief.summary || "CEREBRO opera dentro del backend/control center, sin apps protegidas ni runtimes externos.")}</p>
+      <div class="cerebro-operational-stats">
+        <small><b>${number(status.decisions || decisions.length)}</b> decisiones</small>
+        <small><b>${number(status.tasks || tasks.length)}</b> tareas</small>
+        <small><b>${number(status.blocked_tasks || blocked.length)}</b> bloqueos</small>
+      </div>
+    </article>
+    <article class="cerebro-operational-card">
+      <span class="eyebrow">Decisiones CEO</span>
+      ${pending.length ? pending.map((decision) => `
+        <div class="mini-row">
+          <strong>${escapeHtml(decision.title)}</strong>
+          <small>${escapeHtml(label(decision.state))} · ${escapeHtml(decision.priority || "p1")}</small>
+        </div>
+      `).join("") : emptyState("Sin decisiones CEREBRO pendientes.", "CEREBRO puede preparar decisiones internas para revisión CEO.")}
+    </article>
+    <article class="cerebro-operational-card">
+      <span class="eyebrow">Tareas internas</span>
+      ${delegated.length ? delegated.map((task) => `
+        <div class="mini-row">
+          <strong>${escapeHtml(task.destination_label)}</strong>
+          <small>${escapeHtml(task.title)} · ${escapeHtml(label(task.state))}</small>
+        </div>
+      `).join("") : emptyState("Sin tareas internas delegadas.", "Los destinos permitidos reciben intención, no ejecución externa.")}
+    </article>
+    <article class="cerebro-operational-card protected">
+      <span class="eyebrow">Bloqueos activos</span>
+      <p>${protectedTargets.map((target) => `<span>${escapeHtml(target)}</span>`).join("")}</p>
+      <small>No-touch: DCFT, SENTINELA y ARSENAL no reciben ejecución real.</small>
+    </article>
+    <article class="cerebro-operational-card">
+      <span class="eyebrow">Bus interno</span>
+      <strong>${number(activeInternalRoutes.length)} rutas internas activas</strong>
+      <p><span>${number(blockedInternalRoutes.length)} bloqueadas</span><span>sin runtime externo</span></p>
+      <small>Último despacho: ${escapeHtml(lastDispatch ? label(lastDispatch.target || lastDispatch.target_service) : "sin dispatch registrado")}</small>
+    </article>
+    <article class="cerebro-operational-card wide">
+      <span class="eyebrow">Departamentos permitidos</span>
+      <p>${allowed.slice(0, 12).map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</p>
+    </article>
   `;
 }
 
@@ -1253,7 +1340,7 @@ function renderDepartmentalSimulationFlows() {
           <small>${escapeHtml(flow.cerebro)}</small>
         </div>
         <div class="lane-note">
-          <strong>Sin ejecución real</strong>
+          <strong>Sin ejecución externa</strong>
           <small>${escapeHtml(flow.guardrail)}</small>
         </div>
         ${flow.departments.slice(0, 3).map((department) => `
@@ -1670,12 +1757,22 @@ function renderSystem() {
   ].join("") || emptyState("Observabilidad sin datos.");
 
   $("#integration-list").innerHTML = [
-    ...(integration.prepared_routes || []).map((item) => listItem({
-      title: `${label(item.source)} → ${label(item.target)}`,
-      body: `Ruta futura bloqueada: ${(item.purpose || []).slice(0, 3).join(", ")}. Sin ejecución real.`,
+    ...(integration.routes || []).map((item) => listItem({
+      title: `${label(item.source || item.source_service)} → ${label(item.target || item.target_service)}`,
+      body: item.allowed
+        ? `Ruta interna real: ${label(item.action_type || "internal_request")}. Sin runtime externo ni API real.`
+        : `Ruta bloqueada: ${item.blocked_reason || "requiere revisión CEO"}.`,
       status: item.status,
-      meta: item.requires_ceo_approval ? "requiere CEO" : "preparada"
+      meta: item.allowed ? "interna activa" : "bloqueada"
     })),
+    ...(integration.prepared_routes || [])
+      .filter((item) => ["doctor_contable_financiero_tributario", "centinela", "arsenal"].includes(item.target))
+      .map((item) => listItem({
+        title: `${label(item.source)} → ${label(item.target)}`,
+        body: `Protegida: ${(item.purpose || []).slice(0, 3).join(", ")}. Sin ejecución externa.`,
+        status: item.status,
+        meta: "protegida"
+      })),
     ...(integration.services || []).map((item) => listItem({
       title: item.name,
       body: `Categoría ${label(item.category)}. Conexión externa: ${number(item.external_connection_enabled)}`,
@@ -1688,7 +1785,7 @@ function renderSystem() {
       status: item.status,
       meta: item.required ? "required" : "optional"
     }))
-  ].join("") || emptyState("Integration Bus preparado, sin rutas activas.");
+  ].join("") || emptyState("Integration Bus sin datos disponibles.");
 }
 
 function buildTimeline() {

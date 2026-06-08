@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
 from app.api.apps import router as apps_router
+from app.api.cerebro import router as cerebro_router
 from app.api.control_center import router as control_center_router
 from app.api.contracts import router as contracts_router
 from app.api.events import router as events_router
@@ -34,6 +35,7 @@ app = FastAPI(
 app.include_router(apps_router)
 app.include_router(audit_router)
 app.include_router(auth_router)
+app.include_router(cerebro_router)
 app.include_router(control_center_router)
 app.include_router(contracts_router)
 app.include_router(events_router)

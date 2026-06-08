@@ -95,14 +95,17 @@ def test_control_center_shows_block_4_apps_without_external_connections() -> Non
     apps = {item["id"]: item for item in response.json()}
 
     assert response.status_code == 200
-    for app_id in ("forja", "cerebro"):
-        assert app_id in apps
-        assert apps[app_id]["registry_status"] == "planned"
-        assert apps[app_id]["external_connection_enabled"] is False
-        assert (
-            apps[app_id]["touch_policy"]
-            == "integration_prepared_no_runtime_connection"
-        )
+    assert apps["forja"]["registry_status"] == "planned"
+    assert apps["forja"]["external_connection_enabled"] is False
+    assert (
+        apps["forja"]["touch_policy"]
+        == "integration_prepared_no_runtime_connection"
+    )
+    assert apps["cerebro"]["registry_status"] == "internal"
+    assert apps["cerebro"]["controlled_state"] == "operational_internal"
+    assert apps["cerebro"]["external_connection_enabled"] is False
+    assert apps["cerebro"]["runtime_connected"] is False
+    assert apps["cerebro"]["touch_policy"] == "internal_operational_no_external_runtime"
 
 
 def test_control_center_shows_block_7_future_apps_as_controlled() -> None:

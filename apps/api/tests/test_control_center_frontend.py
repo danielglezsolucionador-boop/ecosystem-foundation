@@ -36,6 +36,8 @@ def test_control_center_frontend_is_served() -> None:
     assert "Reunión con CEREBRO" in response.text
     assert "Reunión de Mañana" in response.text
     assert "Reunión de Tarde" in response.text
+    assert "CEREBRO operativo interno" in response.text
+    assert "CEREBRO ya coordina internamente" in response.text
     assert "Flujos de Empresa IA" in response.text
     assert "Simulación departamental" in response.text
 
@@ -59,6 +61,14 @@ def test_control_center_assets_are_served() -> None:
     assert "escalate_approval" in js_response.text
     assert "companyDepartments" in js_response.text
     assert "dailyMeetingModels" in js_response.text
+    assert "/api/v1/cerebro/status" in js_response.text
+    assert "/api/v1/cerebro/brief/morning" in js_response.text
+    assert "/api/v1/cerebro/brief/evening" in js_response.text
+    assert "/api/v1/cerebro/decisions" in js_response.text
+    assert "/api/v1/cerebro/tasks" in js_response.text
+    assert "cerebro-operational-grid" in js_response.text
+    assert "Bus interno" in js_response.text
+    assert "rutas internas activas" in js_response.text
     assert "departmentalSimulationFlows" in js_response.text
     assert "Oportunidad IA / Video" in js_response.text
     assert "Ciberseguridad para SENTINELA" in js_response.text
@@ -66,7 +76,7 @@ def test_control_center_assets_are_served() -> None:
     assert "API / Skill vendible" in js_response.text
     assert "Producto Amazon / Comercio" in js_response.text
     assert "Simulación departamental" in js_response.text
-    assert "Sin ejecución real" in js_response.text
+    assert "Sin ejecución externa" in js_response.text
     assert "CEO, esto requiere tu decisión." in js_response.text
     assert "CEO, este es el cierre del día." in js_response.text
     assert "Esto puede generar ingresos" in js_response.text
@@ -108,6 +118,8 @@ def test_control_center_cerebro_copy_stays_truthful_and_protected() -> None:
 
     assert "Chief of Staff / Jefe de Gabinete IA" in text
     assert "Mano derecha del CEO" in text
+    assert "Operativo interno; sin apps protegidas ni runtimes externos." in text
+    assert "CEREBRO coordina dentro del backend/control center. Sin runtime externo." in text
     assert "Preparado, sin conexión real" in text
     assert "Todas las conexiones externas siguen apagadas" in text
     assert "DCFT sigue protegido" in text
@@ -117,7 +129,7 @@ def test_control_center_cerebro_copy_stays_truthful_and_protected() -> None:
     assert "DCFT protegido/no-touch: no integrado, no SUNAT real" in text
     assert "SENTINELA no productivo" in text
     assert "ARSENAL no runtime" in text
-    assert "sin rutas reales activas" in text
+    assert "sin ruta interna activa hacia ARSENAL" in text
     assert "sin Local Agent" in text
     assert "sin SUNAT" in text
 
@@ -127,7 +139,7 @@ def test_control_center_cerebro_copy_stays_truthful_and_protected() -> None:
         "forja real esta conectada",
         "nube esta conectada",
         "arsenal ya funciona como runtime",
-        "hay rutas reales del bus",
+        "hay rutas externas del bus",
         "hay apps externas conectadas",
         "se toco produccion",
         "se activo sunat",

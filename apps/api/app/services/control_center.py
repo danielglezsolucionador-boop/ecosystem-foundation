@@ -294,7 +294,8 @@ def build_services(storage: StorageStatus) -> list[ControlCenterServiceStatus]:
                     source="touch_policy",
                     status=ControlCenterState.degraded,
                     detail=(
-                        "FORJA y CEREBRO están preparados para revisión; "
+                        "CEREBRO opera internamente en ecosystem-foundation; "
+                        "FORJA queda preparada para revisión; "
                         "DCFT y SENTINELA permanecen protegidos; "
                         "ARSENAL queda planificado sin conexión real."
                     ),
@@ -556,7 +557,10 @@ def build_readiness(
             label="External Apps Isolated",
             status=ControlCenterState.healthy,
             required=True,
-            detail="No real FORJA, CEREBRO, DCFT, SENTINELA or ARSENAL runtime is contacted.",
+            detail=(
+                "CEREBRO is internal only; no real FORJA, DCFT, SENTINELA, "
+                "ARSENAL or external runtime is contacted."
+            ),
         ),
         ReadinessCheck(
             id="postgres_for_production",
@@ -690,7 +694,7 @@ def build_next_actions(storage: StorageStatus) -> list[ControlCenterAction]:
 def build_risks(storage: StorageStatus) -> list[str]:
     risks = [
         "External app runtime is not connected by design during backbone construction.",
-        "Integration contracts are required before any FORJA, CEREBRO, DCFT, SENTINELA or ARSENAL runtime connection.",
+        "Integration contracts are required before any FORJA, DCFT, SENTINELA or ARSENAL runtime connection.",
     ]
 
     if storage.backend != "postgresql":

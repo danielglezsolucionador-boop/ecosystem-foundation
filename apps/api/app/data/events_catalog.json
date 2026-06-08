@@ -60,6 +60,12 @@
     "status": "active"
   },
   {
+    "id": "platform.creador_de_apis_y_skills.discovery.completed",
+    "description": "CREADOR_DE_APIS_Y_SKILLS internal API/skill brief was prepared without external API creation.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
+  },
+  {
     "id": "platform.marketing.discovery.completed",
     "description": "MARKETING growth discovery evidence was evaluated without external runtime connection.",
     "required_payload_fields": ["app_id", "status", "evidence_count"],
@@ -86,6 +92,18 @@
   {
     "id": "platform.forja.discovery.completed",
     "description": "FORJA construction discovery evidence was evaluated without external runtime connection.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
+  },
+  {
+    "id": "platform.nube.discovery.completed",
+    "description": "NUBE documentary cloud review was prepared without touching the local NUBE runtime.",
+    "required_payload_fields": ["app_id", "status", "evidence_count"],
+    "status": "active"
+  },
+  {
+    "id": "platform.sniff_amazon.discovery.completed",
+    "description": "SNIFF_AMAZON opportunity review was prepared without contacting Amazon.",
     "required_payload_fields": ["app_id", "status", "evidence_count"],
     "status": "active"
   },

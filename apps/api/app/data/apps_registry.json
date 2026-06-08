@@ -12,10 +12,20 @@
     "id": "cerebro",
     "name": "CEREBRO",
     "type": "executive_chief_of_staff",
-    "status": "planned",
+    "status": "internal",
     "depends_on": [],
-    "description": "Executive Chief of Staff application with local discovery evidence prepared for controlled integration.",
-    "touch_policy": "integration_prepared_no_runtime_connection"
+    "description": "Operational internal Chief of Staff inside ecosystem-foundation. It reads internal state, prepares CEO decisions and delegates safe internal tasks without external runtimes.",
+    "touch_policy": "internal_operational_no_external_runtime",
+    "role": "Chief of Staff / Jefe de Gabinete IA; mano derecha del CEO y coordinador operativo interno.",
+    "commercial_role": "Operacion interna de la Empresa IA; no es runtime externo ni producto conectado en este bloque.",
+    "controlled_state": "operational_internal",
+    "external_connection_enabled": false,
+    "runtime_connected": false,
+    "sunat_enabled": false,
+    "requires_ceo_approval": false,
+    "governance_execution_blocked": false,
+    "secrets_required": false,
+    "human_cabin_complete": true
   },
   {
     "id": "centinela",

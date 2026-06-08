@@ -43,13 +43,13 @@ def assert_prepared_route_blocked(route: dict, expected_status: str) -> None:
             "subject": "block-10-rupture-attempt",
             "payload": {"target": route["target"], "attempt": "real_execution"},
         },
+        headers=CEO_HEADERS,
     )
 
-    assert dispatch.status_code == 404
-    assert dispatch.json()["detail"] == {
-        "error": "route_not_found",
-        "route_id": route["id"],
-    }
+    assert dispatch.status_code == 403
+    assert dispatch.json()["detail"]["error"] == "internal_route_blocked"
+    assert dispatch.json()["detail"]["external_connection_enabled"] is False
+    assert dispatch.json()["detail"]["runtime_connected"] is False
 
 
 def test_block_10_dcft_real_discovery_connection_and_route_are_blocked() -> None:
@@ -159,23 +159,15 @@ def test_block_10_arsenal_runtime_api_secret_and_route_are_blocked() -> None:
     assert_prepared_route_blocked(routes["cerebro_to_arsenal_future"], "planned_blocked")
 
 
-def test_block_10_all_prepared_bus_routes_are_blocked_and_need_ceo_approval() -> None:
+def test_block_10_internal_bus_routes_keep_protected_targets_blocked() -> None:
     routes = routes_by_id()
 
     assert len(routes) == 16
     assert all(route["source"] == "cerebro" for route in routes.values())
-    assert all(route["requires_ceo_approval"] is True for route in routes.values())
     assert all(route["external_connection_enabled"] is False for route in routes.values())
     assert all(route["runtime_connected"] is False for route in routes.values())
-    assert all(route["status"].endswith("_blocked") for route in routes.values())
 
-    for route_id in [
-        "cerebro_to_dcft_future",
-        "cerebro_to_sentinela_future",
-        "cerebro_to_arsenal_future",
-        "cerebro_to_forja_future",
-        "cerebro_to_nube_future",
-    ]:
+    for route_id in ["cerebro_to_dcft_future", "cerebro_to_sentinela_future", "cerebro_to_arsenal_future"]:
         response = client.post(
             "/api/v1/integration-bus/dispatch",
             json={
@@ -183,9 +175,25 @@ def test_block_10_all_prepared_bus_routes_are_blocked_and_need_ceo_approval() ->
                 "subject": "block-10-prepared-route-attempt",
                 "payload": {"attempt": "real_bus_execution"},
             },
+            headers=CEO_HEADERS,
         )
-        assert response.status_code == 404
-        assert response.json()["detail"]["error"] == "route_not_found"
+        assert response.status_code == 403
+        assert response.json()["detail"]["error"] == "internal_route_blocked"
+
+    for route_id in ["cerebro_to_forja_future", "cerebro_to_nube_future"]:
+        response = client.post(
+            "/api/v1/integration-bus/dispatch",
+            json={
+                "route_id": route_id,
+                "subject": "block-10-internal-route-attempt",
+                "payload": {"attempt": "internal_safe_dispatch"},
+            },
+            headers=CEO_HEADERS,
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "completed"
+        assert response.json()["external_connection_enabled"] is False
+        assert response.json()["runtime_connected"] is False
 
 
 def test_block_10_cerebro_copy_stays_simulated_blocked_and_escalated_to_ceo() -> None:
@@ -204,7 +212,7 @@ def test_block_10_cerebro_copy_stays_simulated_blocked_and_escalated_to_ceo() ->
     assert "DCFT protegido/no-touch: no integrado, no SUNAT real" in text
     assert "SENTINELA no productivo" in text
     assert "ARSENAL no runtime" in text
-    assert "sin rutas reales activas" in text
+    assert "sin ruta interna activa hacia ARSENAL" in text
     assert "sin Local Agent" in text
 
     forbidden_claims = [
@@ -213,7 +221,7 @@ def test_block_10_cerebro_copy_stays_simulated_blocked_and_escalated_to_ceo() ->
         "forja real esta conectada",
         "nube esta conectada",
         "arsenal ya funciona como runtime",
-        "hay rutas reales del bus",
+        "hay rutas externas del bus",
         "hay apps externas conectadas",
         "se activo sunat",
         "local agent esta activo",

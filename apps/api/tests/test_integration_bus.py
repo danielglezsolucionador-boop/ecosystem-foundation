@@ -2,9 +2,13 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.main import app
+from app.schemas.auth import ControlCenterRole
+from auth_helpers import auth_headers
 
 
 client = TestClient(app)
+AUTH_HEADERS = auth_headers(client, ControlCenterRole.ceo)
+client.headers.update(AUTH_HEADERS)
 
 
 def create_test_route() -> dict:
@@ -38,6 +42,20 @@ def test_integration_bus_required_endpoints(path: str) -> None:
     response = client.get(path)
 
     assert response.status_code == 200
+
+
+def test_integration_bus_dispatch_requires_auth() -> None:
+    unauthenticated_client = TestClient(app)
+    response = unauthenticated_client.post(
+        "/api/v1/integration-bus/dispatch",
+        json={
+            "route_id": "cerebro_to_pluma_future",
+            "subject": "missing-session",
+            "payload": {"topic": "auth"},
+        },
+    )
+
+    assert response.status_code == 401
 
 
 def test_integration_bus_overview_contract() -> None:
@@ -85,7 +103,7 @@ def test_block_8_prepared_routes_are_defined_but_blocked() -> None:
     assert routes_by_id["cerebro_to_arsenal_future"]["status"] == "planned_blocked"
 
 
-def test_block_8_prepared_routes_are_not_dispatchable() -> None:
+def test_block_8_protected_route_is_not_dispatchable() -> None:
     response = client.post(
         "/api/v1/integration-bus/dispatch",
         json={
@@ -95,11 +113,9 @@ def test_block_8_prepared_routes_are_not_dispatchable() -> None:
         },
     )
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == {
-        "error": "route_not_found",
-        "route_id": "cerebro_to_dcft_future",
-    }
+    assert response.status_code == 403
+    assert response.json()["detail"]["error"] == "internal_route_blocked"
+    assert response.json()["detail"]["reason"] == "dcft_protected_no_touch"
 
 
 def test_route_can_be_registered_and_audited() -> None:
