@@ -6,7 +6,7 @@ Frente: ECOSISTEMA IA / AUDITORIA LOCAL FUERTE / CABINA EMPRESA IA
 
 ## Estado final
 
-- Auditoria local fuerte ejecutada.
+- Auditoría local fuerte ejecutada.
 - Cabina local autenticada validada.
 - Ruptura visual mobile/desktop validada.
 - Seguridad local validada.
@@ -14,7 +14,7 @@ Frente: ECOSISTEMA IA / AUDITORIA LOCAL FUERTE / CABINA EMPRESA IA
 - Correccion local aplicada y revalidada.
 - No push.
 - No deploy.
-- No produccion.
+- No producción.
 - No Vercel.
 - No runtimes externos.
 - No rutas reales del bus.
@@ -44,10 +44,10 @@ Servidor local:
 ### Cabina local
 
 - Login local CEO por API: PASS.
-- Sesion local CEO en cabina: PASS.
+- Sesión local CEO en cabina: PASS.
 - Cabina autenticada visible: PASS.
 - CEREBRO visible: PASS.
-- Reunion con CEREBRO visible: PASS.
+- Reunión con CEREBRO visible: PASS.
 - Departamentos visibles en DOM: PASS.
 - Arsenal visible: PASS.
 - Bottom nav mobile visible: PASS.
@@ -69,7 +69,7 @@ Resultados:
 - Sin scrolls internos excesivos.
 - Sin botones ilegibles.
 - Sin cards gigantes.
-- Sin informacion critica oculta.
+- Sin informacion crítica oculta.
 - Console errors: 0.
 
 Capturas:
@@ -88,11 +88,11 @@ Nota:
 
 Resultados API:
 
-- Sin sesion en `/api/v1/control-center`: 401 PASS.
+- Sin sesión en `/api/v1/control-center`: 401 PASS.
 - Token invalido en `/api/v1/control-center`: 401 PASS.
 - Login local CEO: 200 PASS.
-- `/api/v1/auth/me` con sesion local: rol `CEO` PASS.
-- `/api/v1/control-center` con sesion local: 200 PASS.
+- `/api/v1/auth/me` con sesión local: rol `CEO` PASS.
+- `/api/v1/control-center` con sesión local: 200 PASS.
 - Sin auth en `/api/v1/governance/auth-boundary`: 401 PASS.
 - Auth valida en `/api/v1/governance/auth-boundary`: 200 PASS.
 - Intento discovery DCFT protegido: 400 PASS.
@@ -108,7 +108,7 @@ Validado:
 
 - DCFT no integrado: PASS.
 - DCFT `protected_no_touch` / protegido: PASS.
-- SENTINELA no productivo, pendiente/revision: PASS.
+- SENTINELA no productivo, pendiente/revisión: PASS.
 - FORJA real no conectada: PASS.
 - FORJA visible/preparada: PASS.
 - NUBE documental/no tocada: PASS.
@@ -117,7 +117,7 @@ Validado:
 - No `INVESTIGADOR`: PASS.
 - No `RADAR IA`: PASS.
 - Sniff Amazon separado de Comercio Autonomo: PASS.
-- Hermes en Construccion: PASS.
+- Hermes en Construcción: PASS.
 - Creador de APIs y Skills correcto: PASS.
 - Datos reales vs preparados visibles: PASS.
 
@@ -136,7 +136,7 @@ Riesgo:
 
 Correccion:
 
-- `request_gate_discovery` ahora audita el intento y devuelve `400` con `protected_app_discovery_blocked` cuando el gate esta protegido.
+- `request_gate_discovery` ahora audita el intento y devuelve `400` con `protected_app_discovery_blocked` cuando el gate está protegido.
 - Se agrego test de regresion para bloquear discovery y connection de apps protegidas.
 
 Archivos:
@@ -150,7 +150,7 @@ Resultado despues:
 - Connection DCFT protegido: 400.
 - Gate DCFT sigue `blocked` y `protected=true`.
 
-## Validaciones tecnicas
+## Validaciones técnicas
 
 - `node --check apps/web/control-center/assets/app.js`: PASS.
 - `python -m compileall apps/api api scripts -q`: PASS.
@@ -161,7 +161,7 @@ Resultado despues:
 
 ## Archivos y artefactos
 
-Archivos modificados por correccion/auditoria:
+Archivos modificados por correccion/auditoría:
 
 - `apps/api/app/services/governance.py`.
 - `apps/api/tests/test_governance.py`.
@@ -181,7 +181,7 @@ Artefactos generados:
 - NUBE local.
 - Local Agent.
 - SUNAT real.
-- Produccion.
+- Producción.
 - Vercel.
 - Runtimes externos.
 - Rutas reales del bus.
@@ -191,18 +191,18 @@ Artefactos generados:
 
 - El working tree sigue mezclado con cambios previos de ecosistema.
 - No es seguro hacer commit local atomico sin separar paquetes.
-- La cabina local esta validada, pero sigue siendo local.
+- La cabina local está validada, pero sigue siendo local.
 - Arsenal sigue planned/pending, sin runtime real.
 - SENTINELA y NUBE siguen pendientes/documentales desde este frente.
 
 ## Backup final
 
-- Creado despues de auditoria PASS.
+- Creado despues de auditoría PASS.
 - Ruta: `backup/after-ecosystem-local-rupture-audit-pass-20260608-020124`.
 - Estrategia: carpeta backup + patch local.
 - Commit local: no realizado por working tree mezclado.
 - Tests y servicios Python se preservaron como `.py.bak` dentro del backup para no interferir con pytest.
 
-## Recomendacion
+## Recomendación
 
-Crear backup final por carpeta/patch, no commit local, porque el working tree contiene cambios mezclados. Despues, el CEO puede decidir si se separa en commits por paquete o si se sigue con una revision de consolidacion documental.
+Crear backup final por carpeta/patch, no commit local, porque el working tree contiene cambios mezclados. Despues, el CEO puede decidir si se separa en commits por paquete o si se sigue con una revisión de consolidación documental.

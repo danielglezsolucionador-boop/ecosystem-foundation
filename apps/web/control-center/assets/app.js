@@ -46,7 +46,7 @@ const humanAppCatalog = [
     name: "CEREBRO",
     role: "Chief of Staff / Jefe de Gabinete IA",
     capability: "Mano derecha del CEO: prepara decisiones, riesgos, oportunidades y prioridades.",
-    preparedCopy: "Preparado, sin conexion real.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Hablar con CEREBRO",
     lane: "prepared",
     priority: true,
@@ -55,9 +55,9 @@ const humanAppCatalog = [
   {
     id: "forja",
     name: "FORJA",
-    role: "Construccion principal",
+    role: "Construcción principal",
     capability: "Convierte decisiones aprobadas en entregables controlados.",
-    preparedCopy: "Produccion estable; no conectada desde ecosystem.",
+    preparedCopy: "Producción estable; no conectada desde ecosystem.",
     action: "Ver estado FORJA",
     lane: "prepared",
     displayStatus: "production_pass"
@@ -65,9 +65,9 @@ const humanAppCatalog = [
   {
     id: "nube",
     name: "NUBE",
-    role: "Operacion local y cloud",
+    role: "Operación local y cloud",
     capability: "URLs, deploys, costos, variables y backups.",
-    preparedCopy: "Documentado para revision; runtime apagado.",
+    preparedCopy: "Documentado para revisión; runtime apagado.",
     action: "Revisar NUBE",
     lane: "pending",
     displayStatus: "documented_only"
@@ -77,7 +77,7 @@ const humanAppCatalog = [
     name: "AUDITORIA",
     role: "Control y calidad",
     capability: "Evidencia, permisos, riesgos y aprobaciones.",
-    preparedCopy: "Preparada, sin conexion externa.",
+    preparedCopy: "Preparada, sin conexión externa.",
     action: "Ver AUDITORIA",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -87,7 +87,7 @@ const humanAppCatalog = [
     name: "SENTINELA",
     role: "Seguridad operativa",
     capability: "Permisos, agentes, datos sensibles e incidentes.",
-    preparedCopy: "Pendiente de revision CEO; no conectado.",
+    preparedCopy: "Pendiente de revisión CEO; no conectado.",
     action: "Ver SENTINELA",
     lane: "pending",
     displayStatus: "pending_review"
@@ -106,9 +106,9 @@ const humanAppCatalog = [
   {
     id: "hermes",
     name: "HERMES",
-    role: "Apoyo ligero de construccion",
-    capability: "Apoya a FORJA con preparacion, coordinacion y tareas tecnicas ligeras.",
-    preparedCopy: "Preparado, sin conexion real.",
+    role: "Apoyo ligero de construcción",
+    capability: "Apoya a FORJA con preparación, coordinación y tareas técnicas ligeras.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Ver HERMES",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -117,8 +117,8 @@ const humanAppCatalog = [
     id: "pluma",
     name: "PLUMA",
     role: "Contenido y escritura",
-    capability: "Prepara piezas editoriales, guiones y comunicacion cuando sea conectada.",
-    preparedCopy: "Preparado, sin conexion real.",
+    capability: "Prepara piezas editoriales, guiones y comunicación cuando sea conectada.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Ver ficha",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -127,8 +127,8 @@ const humanAppCatalog = [
     id: "lente",
     name: "LENTE",
     role: "Visual y audiovisual",
-    capability: "Prepara mirada visual, video, analisis y criterios audiovisuales.",
-    preparedCopy: "Preparado, sin conexion real.",
+    capability: "Prepara mirada visual, video, análisis y criterios audiovisuales.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Ver ficha",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -136,9 +136,9 @@ const humanAppCatalog = [
   {
     id: "web_factory",
     name: "WEB FACTORY",
-    role: "Produccion web",
-    capability: "Prepara fabricacion de sitios y experiencias digitales controladas.",
-    preparedCopy: "Preparado, sin conexion real.",
+    role: "Producción web",
+    capability: "Prepara fabricación de sitios y experiencias digitales controladas.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Ver ficha",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -146,9 +146,9 @@ const humanAppCatalog = [
   {
     id: "marketing",
     name: "MARKETING / GROWTH LAB",
-    role: "Crecimiento y campanas",
-    capability: "Prepara campanas, activacion y crecimiento cuando reciba aprobacion.",
-    preparedCopy: "Preparado, sin conexion real.",
+    role: "Crecimiento y campañas",
+    capability: "Prepara campañas, activación y crecimiento cuando reciba aprobación.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Ver ficha",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -157,8 +157,8 @@ const humanAppCatalog = [
     id: "marca_personal",
     name: "MARCA PERSONAL",
     role: "Marca del CEO",
-    capability: "Ordena identidad, narrativa y presencia publica para ejecucion futura.",
-    preparedCopy: "Preparado, sin conexion real.",
+    capability: "Ordena identidad, narrativa y presencia pública para ejecución futura.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Ver ficha",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -166,9 +166,9 @@ const humanAppCatalog = [
   {
     id: "api_creator",
     name: "CREADOR DE APIS Y SKILLS",
-    role: "Fabrica de APIs y skills",
+    role: "Fábrica de APIs y skills",
     capability: "Prepara APIs internas, APIs vendibles, skills internas y skills vendibles.",
-    preparedCopy: "Documentado para revision; sin rutas reales.",
+    preparedCopy: "Documentado para revisión; sin rutas reales.",
     action: "Ver ficha",
     lane: "pending",
     displayStatus: "documented_only"
@@ -177,8 +177,8 @@ const humanAppCatalog = [
     id: "buscador_de_tendencias",
     name: "BUSCADOR DE TENDENCIAS",
     role: "Radar oficial",
-    capability: "Detecta senales, oportunidades, amenazas y tendencias sin proveedores conectados.",
-    preparedCopy: "Preparado, sin conexion real.",
+    capability: "Detecta señales, oportunidades, amenazas y tendencias sin proveedores conectados.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Ver ficha",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -188,7 +188,7 @@ const humanAppCatalog = [
     name: "SNIFF AMAZON",
     role: "Producto comercial Amazon",
     capability: "Prepara oportunidades Amazon como producto separado de Comercio Autonomo.",
-    preparedCopy: "Documentado para revision; sin acciones reales.",
+    preparedCopy: "Documentado para revisión; sin acciones reales.",
     action: "Ver ficha",
     lane: "pending",
     displayStatus: "documented_only"
@@ -198,7 +198,7 @@ const humanAppCatalog = [
     name: "COMERCIO AUTONOMO",
     role: "Sistema propio de e-commerce/dropshipping/comercio",
     capability: "Prepara flujos comerciales propios sin activar ventas, pagos ni proveedores reales.",
-    preparedCopy: "Preparado, sin conexion real.",
+    preparedCopy: "Preparado, sin conexión real.",
     action: "Ver ficha",
     lane: "prepared",
     displayStatus: "discovery_prepared"
@@ -206,8 +206,8 @@ const humanAppCatalog = [
   {
     id: "arsenal",
     name: "ARSENAL",
-    role: "Almacen estrategico",
-    capability: "Inventario de APIs, modelos, skills, conectores, costos, limites, calidad, riesgos y mejor uso.",
+    role: "Almacen estratégico",
+    capability: "Inventario de APIs, modelos, skills, conectores, costos, límites, calidad, riesgos y mejor uso.",
     preparedCopy: "planned / pending_integration; sin runtime ni secretos.",
     action: "Ver Arsenal",
     lane: "pending",
@@ -218,26 +218,26 @@ const humanAppCatalog = [
 const companyDepartments = [
   {
     id: "direccion",
-    name: "DIRECCION",
-    shortName: "Direccion",
+    name: "DIRECCIÓN",
+    shortName: "Dirección",
     accent: "gold",
     icon: "cerebro",
     apps: ["CEO", "CEREBRO"],
     appIds: ["cerebro"],
-    function: "Decisiones, prioridades y coordinacion.",
-    action: "Abrir reunion",
+    function: "Decisiones, prioridades y coordinación.",
+    action: "Abrir reunión",
     target: "cerebro"
   },
   {
     id: "construccion",
-    name: "CONSTRUCCION",
-    shortName: "Construccion",
+    name: "CONSTRUCCIÓN",
+    shortName: "Construcción",
     accent: "amber",
     icon: "forja",
     apps: ["FORJA", "HERMES", "CREADOR DE APIS Y SKILLS", "WEB FACTORY"],
     appIds: ["forja", "hermes", "api_creator", "web_factory"],
-    function: "Entregables, APIs, skills, webs y soporte tecnico.",
-    action: "Ver construccion",
+    function: "Entregables, APIs, skills, webs y soporte técnico.",
+    action: "Ver construcción",
     target: "forja"
   },
   {
@@ -248,8 +248,8 @@ const companyDepartments = [
     icon: "buscador_de_tendencias",
     apps: ["BUSCADOR DE TENDENCIAS"],
     appIds: ["buscador_de_tendencias"],
-    function: "Senales, novedades, amenazas y oportunidades.",
-    action: "Ver senales",
+    function: "Señales, novedades, amenazas y oportunidades.",
+    action: "Ver señales",
     target: "buscador_de_tendencias"
   },
   {
@@ -272,14 +272,14 @@ const companyDepartments = [
     icon: "lente",
     apps: ["PLUMA", "LENTE", "MARKETING", "MARCA PERSONAL"],
     appIds: ["pluma", "lente", "marketing", "marca_personal"],
-    function: "Contenido, marca, campanas, video y crecimiento.",
+    function: "Contenido, marca, campañas, video y crecimiento.",
     action: "Ver contenido",
     target: "pluma"
   },
   {
     id: "operacion",
-    name: "OPERACION",
-    shortName: "Operacion",
+    name: "OPERACIÓN",
+    shortName: "Operación",
     accent: "cloud",
     icon: "nube",
     apps: ["NUBE"],
@@ -296,19 +296,19 @@ const companyDepartments = [
     icon: "centinela",
     apps: ["AUDITORIA", "SENTINELA"],
     appIds: ["auditor", "centinela"],
-    function: "Calidad, riesgos, aprobacion, seguridad y proteccion.",
+    function: "Calidad, riesgos, aprobación, seguridad y protección.",
     action: "Ver riesgos",
     target: "alerts"
   },
   {
-    id: "almacen_estrategico",
-    name: "ALMACEN ESTRATEGICO",
+    id: "almacen_estratégico",
+    name: "ALMACEN ESTRATÉGICO",
     shortName: "Arsenal",
     accent: "copper",
     icon: "arsenal",
     apps: ["ARSENAL"],
     appIds: ["arsenal"],
-    function: "APIs, modelos, skills, conectores, costos, limites, calidad, riesgos y mejor uso.",
+    function: "APIs, modelos, skills, conectores, costos, límites, calidad, riesgos y mejor uso.",
     action: "Ver Arsenal",
     target: "arsenal"
   }
@@ -316,43 +316,43 @@ const companyDepartments = [
 
 const dailyMeetingModels = {
   morning: {
-    label: "Reunion de Manana",
-    headline: "CEO, esto requiere tu decision.",
+    label: "Reunión de Mañana",
+    headline: "CEO, esto requiere tu decisión.",
     summary: "CEREBRO separa lo real, lo preparado y lo protegido.",
     priority: "Validar cabina local sin abrir frentes nuevos.",
-    decision: "Elegir siguiente revision o pedir mas evidencia.",
+    decision: "Elegir siguiente revisión o pedir más evidencia.",
     opportunity: "Esto puede generar ingresos: APIs, skills y productos vendibles; sin ventas reales.",
-    risk: "Esto esta protegido y no se toca: DCFT, FORJA real, SENTINELA real, NUBE, Local Agent y SUNAT real.",
-    approval: "Esto debe esperar aprobacion CEO antes de cualquier conexion real.",
+    risk: "Esto está protegido y no se toca: DCFT, FORJA real, SENTINELA real, NUBE, Local Agent y SUNAT real.",
+    approval: "Esto debe esperar aprobación CEO antes de cualquier conexión real.",
     tasks: [
       ["FORJA", "Esto puede pasar a FORJA solo como propuesta aprobada; nada real se ejecuta."],
-      ["HERMES", "Puede apoyar con mensajes y coordinacion ligera, sin enviar comunicaciones reales."],
+      ["HERMES", "Puede apoyar con mensajes y coordinación ligera, sin enviar comunicaciónes reales."],
       ["CREADOR DE APIS Y SKILLS", "Debe preparar contratos y alcance; no crear rutas reales del bus."],
       ["AUDITORIA", "Debe revisar evidencia, permisos y riesgos antes de avanzar."],
       ["NUBE", "Debe controlar estado documental; no tocar secretos ni deploys."],
-      ["SENTINELA", "Debe proteger limites y datos; sigue pendiente de revision."],
+      ["SENTINELA", "Debe proteger límites y datos; sigue pendiente de revisión."],
       ["INGRESOS", "Puede priorizar productos vendibles, manteniendo pagos y ventas reales apagados."]
     ]
   },
   evening: {
-    label: "Reunion de Tarde",
-    headline: "CEO, este es el cierre del dia.",
+    label: "Reunión de Tarde",
+    headline: "CEO, este es el cierre del día.",
     summary: "CEREBRO cierra avances locales sin prometer integraciones reales.",
-    priority: "Registrar evidencia y dejar una accion concreta.",
-    decision: "Manana: definir paquete o corregir cabina.",
+    priority: "Registrar evidencia y dejar una acción concreta.",
+    decision: "Mañana: definir paquete o corregir cabina.",
     opportunity: "Buscador de Tendencias queda preparado; sin APIs externas ni scraping real.",
     risk: "Esto debe auditarse antes de avanzar: bus real, proveedor, secreto o deploy.",
-    approval: "Esto debe esperar aprobacion CEO para pasar de preparado a ejecucion.",
+    approval: "Esto debe esperar aprobación CEO para pasar de preparado a ejecución.",
     tasks: [
       ["HECHO", "Se valida cabina local, documentos y pruebas locales cuando se ejecutan."],
-      ["NO HECHO", "No se toca produccion, no se conecta runtime externo y no se abre Local Agent."],
+      ["NO HECHO", "No se toca producción, no se conecta runtime externo y no se abre Local Agent."],
       ["BUSCADOR DE TENDENCIAS", "Puede reportar oportunidades preparadas, sin fuentes externas activadas."],
-      ["FORJA", "No construyo en productivo; solo queda como construccion controlada futura."],
-      ["HERMES", "No envio mensajes reales; puede preparar coordinacion local."],
-      ["CREADOR DE APIS Y SKILLS", "No creo rutas reales; puede preparar contratos."],
+      ["FORJA", "No construyó en productivo; solo queda como construcción controlada futura."],
+      ["HERMES", "No envió mensajes reales; puede preparar coordinación local."],
+      ["CREADOR DE APIS Y SKILLS", "No creó rutas reales; puede preparar contratos."],
       ["PLUMA / LENTE / MARKETING", "Pueden preparar contenido y visuales, sin publicar."],
       ["AUDITORIA / SENTINELA / NUBE", "Revisan, protegen y controlan; no ejecutan cambios reales."],
-      ["MANANA", "Definir una sola decision CEO y mantener DCFT protected_no_touch."]
+      ["MAÑANA", "Definir una sola decisión CEO y mantener DCFT protected_no_touch."]
     ]
   }
 };
@@ -384,45 +384,45 @@ function normalizeStatus(value) {
 
 function label(value) {
   const translated = {
-    blocked: "En revision CEO",
+    blocked: "En revisión CEO",
     degraded: "Degradado",
     healthy: "Saludable",
     ready: "Listo",
     operational: "Operativo",
     connected: "Conectado",
     prepared: "Preparado",
-    prepared_for_discovery: "Preparado para revision",
-    discovery_prepared: "Preparado, sin conexion real",
+    prepared_for_discovery: "Preparado para revisión",
+    discovery_prepared: "Preparado, sin conexión real",
     documented_only: "Documentado",
     protected_no_touch: "Protegido, no conectado",
-    production_pass: "Produccion PASS",
+    production_pass: "Producción PASS",
     local_pass: "Local PASS",
     real_operational: "Real operativo",
     registry_only: "Solo registry",
     no_touch_external: "Protegida",
-    integration_prepared_no_runtime_connection: "Preparada sin conexion",
+    integration_prepared_no_runtime_connection: "Preparada sin conexión",
     external: "Externo",
     internal: "Interno",
     planned: "Planeado",
     unknown: "Desconocido",
     staging: "Staging",
-    production: "Produccion",
+    production: "Producción",
     sqlite: "SQLite",
     postgresql: "PostgreSQL",
-    governance_attention_required: "Atencion requerida",
+    governance_attention_required: "Atención requerida",
     governance_ready: "Governance listo",
     pending_review: "Pendiente CEO",
-    pending_approval: "Aprobacion pendiente",
-    pending_integration: "Integracion pendiente",
+    pending_approval: "Aprobación pendiente",
+    pending_integration: "Integración pendiente",
     approved_for_discovery: "Discovery aprobado",
-    approved_for_connection: "Conexion aprobada",
+    approved_for_connection: "Conexión aprobada",
     not_ready: "No lista",
     suspended: "Suspendida",
     escalated: "Escalada",
     open: "Abierto",
     mitigated: "Mitigado",
     closed: "Cerrado",
-    critical: "Critico",
+    critical: "Crítico",
     high: "Alto",
     medium: "Medio",
     low: "Bajo",
@@ -513,7 +513,7 @@ function humanStateFor(appId) {
       status: "connected",
       tone: "green",
       source: "Dato real conectado",
-      copy: "Conexion real habilitada y reportada por Integration Bus.",
+      copy: "Conexión real habilitada y reportada por Integration Bus.",
       real: true
     };
   }
@@ -521,8 +521,8 @@ function humanStateFor(appId) {
     return {
       status: definition?.displayStatus || "prepared_for_discovery",
       tone: "amber",
-      source: "Preparado, sin conexion real",
-      copy: "Contrato y evidencia listos. Conexion externa apagada.",
+      source: "Preparado, sin conexión real",
+      copy: "Contrato y evidencia listos. Conexión externa apagada.",
       real: false
     };
   }
@@ -532,7 +532,7 @@ function humanStateFor(appId) {
       status: definition?.displayStatus || "pending_integration",
       tone,
       source: "Protegido, no conectado",
-      copy: "Referenciada para seguimiento. Sin conexion ni integracion real.",
+      copy: "Referenciada para seguimiento. Sin conexión ni integración real.",
       real: false
     };
   }
@@ -542,7 +542,7 @@ function humanStateFor(appId) {
       status: definition?.displayStatus || app.status || "planned",
       tone,
       source: "App Registry",
-      copy: "Registrada para seguimiento. Falta aprobacion antes de conectar.",
+      copy: "Registrada para seguimiento. Falta aprobación antes de conectar.",
       real: false
     };
   }
@@ -550,8 +550,8 @@ function humanStateFor(appId) {
     return {
       status: "documented_only",
       tone: "amber",
-      source: "Documentado para revision",
-      copy: "Visible para revision local. Sin conexion real.",
+      source: "Documentado para revisión",
+      copy: "Visible para revisión local. Sin conexión real.",
       real: false
     };
   }
@@ -560,7 +560,7 @@ function humanStateFor(appId) {
       status: "protected_no_touch",
       tone: "red",
       source: "Protegido, no conectado",
-      copy: "No se toca ni se conecta sin aprobacion CEO.",
+      copy: "No se toca ni se conecta sin aprobación CEO.",
       real: false
     };
   }
@@ -576,14 +576,14 @@ function humanStateFor(appId) {
 function nextDecision() {
   if (appById("doctor_contable_financiero_tributario") && !profileById("doctor_contable_financiero_tributario")) {
     return {
-      title: "En revision CEO",
-      body: "Cabina lista para validar localmente. DCFT sigue protegido; no hay SUNAT real ni produccion tocada."
+      title: "En revisión CEO",
+      body: "Cabina lista para validar localmente. DCFT sigue protegido; no hay SUNAT real ni producción tocada."
     };
   }
   if (appById("centinela") && !profileById("centinela")) {
     return {
-      title: "En revision CEO",
-      body: "SENTINELA sigue pendiente de autorizacion antes de cualquier integracion."
+      title: "En revisión CEO",
+      body: "SENTINELA sigue pendiente de autorización antes de cualquier integración."
     };
   }
   if (disconnectedProfiles().length) {
@@ -593,7 +593,7 @@ function nextDecision() {
     };
   }
   return {
-    title: "Sin decision urgente",
+    title: "Sin decisión urgente",
     body: "La cabina no detecta acciones ejecutivas inmediatas."
   };
 }
@@ -670,7 +670,7 @@ async function fetchJson(name, url) {
   });
   if (response.status === 401) {
     clearSession();
-    showLogin("Tu sesion expiro. Entra nuevamente.");
+    showLogin("Tu sesión expiró. Entra nuevamente.");
   }
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();
@@ -687,7 +687,7 @@ async function loadCurrentUser() {
   });
   if (!response.ok) {
     clearSession();
-    showLogin("No hay sesion activa.");
+    showLogin("No hay sesión activa.");
     return false;
   }
   state.user = await response.json();
@@ -722,7 +722,7 @@ function renderUserShell() {
   $("#active-user-name").textContent = state.user.name;
   $("#active-user-role").textContent = label(state.user.role);
   $("#active-user-email").textContent = state.user.email;
-  $("#role-boundary-copy").textContent = `Sesion real: ${state.user.name} / ${label(state.user.role)}. Cargando permisos.`;
+  $("#role-boundary-copy").textContent = `Sesión real: ${state.user.name} / ${label(state.user.role)}. Cargando permisos.`;
 }
 
 async function loadData() {
@@ -757,7 +757,7 @@ function setLoading() {
   banner.className = "state-banner loading";
   banner.innerHTML = `
     <span class="pulse"></span>
-    <strong>Local / revision CEO</strong>
+    <strong>Local / revisión CEO</strong>
     <small>Preparando cabina local.</small>
   `;
 }
@@ -794,14 +794,14 @@ function renderCompanyShell() {
         <span class="brand-mark ecosystem-mark" aria-hidden="true"><span class="globe-core"></span></span>
         <span>
           <strong>Empresa IA</strong>
-          <small>Local / revision CEO</small>
+          <small>Local / revisión CEO</small>
         </span>
       </div>
     `);
   }
   setText(".topbar .eyebrow", "Empresa IA");
-  setText(".topbar h1", "Local / revision CEO");
-  setText(".topbar p", "Cabina ejecutiva local. Sin produccion tocada.");
+  setText(".topbar h1", "Local / revisión CEO");
+  setText(".topbar p", "Cabina ejecutiva local. Sin producción tocada.");
   setText(".search-box span", "Buscar");
   const search = $("#search");
   if (search) search.placeholder = "Buscar...";
@@ -828,18 +828,18 @@ function renderCompanyShell() {
   const departmentsBand = $(".priority-apps-band");
   if (departmentsBand) departmentsBand.id = "departments";
   setText(".priority-apps-band .eyebrow", "Departamentos");
-  setText(".priority-apps-band h2", "Areas clave");
+  setText(".priority-apps-band h2", "Áreas clave");
 
   setText(".status-lanes-band .eyebrow", "Datos separados");
   setText(".status-lanes-band h2", "Estados");
-  setText("#ecosystem .eyebrow", "Mapa tecnico");
+  setText("#ecosystem .eyebrow", "Mapa técnico");
   setText("#ecosystem h2", "Registro protegido y fuente del dato");
   setText("#alerts .eyebrow", "Riesgos");
   setText("#alerts h2", "Alertas ejecutivas");
   setText(".rail-primary-actions .eyebrow", "Mando rapido");
   setText(".rail-primary-actions h2", "Acciones CEO");
   setText(".decision-rail .rail-panel:nth-of-type(2) .eyebrow", "Departamentos");
-  setText(".decision-rail .rail-panel:nth-of-type(2) h2", "Areas clave");
+  setText(".decision-rail .rail-panel:nth-of-type(2) h2", "Áreas clave");
   setText(".decision-rail .rail-panel:nth-of-type(3) .eyebrow", "Decisiones y riesgos");
   setText(".decision-rail .rail-panel:nth-of-type(3) h2", "Control humano");
 
@@ -905,7 +905,7 @@ function departmentState(department) {
 
   if (department.id === "direccion") {
     tone = snapshot.pendingDecisions ? "amber" : "green";
-    status = snapshot.pendingDecisions ? "Decision pendiente" : "Agenda clara";
+    status = snapshot.pendingDecisions ? "Decisión pendiente" : "Agenda clara";
     issues = snapshot.pendingDecisions;
   } else if (department.id === "construccion") {
     tone = "amber";
@@ -923,7 +923,7 @@ function departmentState(department) {
     tone = snapshot.activeRisks ? "red" : "green";
     status = snapshot.activeRisks ? "Riesgo activo" : "Protegido";
     issues = snapshot.activeRisks;
-  } else if (department.id === "almacen_estrategico") {
+  } else if (department.id === "almacen_estratégico") {
     tone = "amber";
     status = "Planned / pending integration";
     issues = 1;
@@ -948,16 +948,16 @@ function renderStatus() {
   $("#state-banner").className = `state-banner ${status === "healthy" ? "ready" : status}`;
   $("#state-banner").innerHTML = `
     <span class="pulse"></span>
-    <strong>${hasErrors ? "Cabina local con areas en revision" : "Local / revision CEO"}</strong>
-    <small>${hasErrors ? "Revision local" : "Sin conexion real"}</small>
+    <strong>${hasErrors ? "Cabina local con áreas en revisión" : "Local / revisión CEO"}</strong>
+    <small>${hasErrors ? "Revisión local" : "Sin conexión real"}</small>
   `;
 
-  $("#global-status").textContent = "Reunion con CEREBRO";
+  $("#global-status").textContent = "Reunión con CEREBRO";
   $("#global-summary").textContent = "Buenos dias, CEO. Tengo tu resumen.";
   $("#next-decision").innerHTML = `
-    <span>Proxima decision CEO</span>
-    <strong>En revision CEO</strong>
-    <small>Validar cabina local antes de produccion. DCFT protegido. Sin SUNAT real.</small>
+    <span>Próxima decisión CEO</span>
+    <strong>En revisión CEO</strong>
+    <small>Validar cabina local antes de producción. DCFT protegido. Sin SUNAT real.</small>
   `;
   $("#sidebar-readiness").textContent = label(readiness.status || control.readiness?.status || "ready");
   $("#sidebar-db").textContent = `${snapshot.connected} reales · ${snapshot.prepared} preparados`;
@@ -1017,7 +1017,7 @@ function renderCerebroDailyMeeting() {
       <p>${escapeHtml(meeting.summary)}</p>
       <div class="meeting-focus-grid">
         <small><b>Prioridad</b>${escapeHtml(meeting.priority)}</small>
-        <small><b>Decision</b>${escapeHtml(meeting.decision)}</small>
+        <small><b>Decisión</b>${escapeHtml(meeting.decision)}</small>
         <small><b>Oportunidad</b>${escapeHtml(meeting.opportunity)}</small>
         <small><b>Riesgo</b>${escapeHtml(meeting.risk)}</small>
       </div>
@@ -1054,13 +1054,13 @@ function renderTrafficLights() {
 
   const lights = [
     {
-      title: "Direccion",
+      title: "Dirección",
       tone: snapshot.pendingDecisions ? "amber" : "green",
       status: snapshot.pendingDecisions ? "Pendiente" : "Activa",
       body: snapshot.pendingDecisions ? "Revisar hoy." : "Local activo."
     },
     {
-      title: "Construccion",
+      title: "Construcción",
       tone: "amber",
       status: "Preparada",
       body: "Apps preparadas."
@@ -1093,14 +1093,14 @@ function renderTrafficLights() {
 
 function renderQuickActions() {
   const commands = [
-    { label: "Hablar con CEREBRO", detail: "Reunion diaria", target: "cerebro", appId: "cerebro" },
-    { label: "Pedir trabajo a FORJA", detail: "Construccion controlada", target: "construccion", appId: "forja" },
+    { label: "Hablar con CEREBRO", detail: "Reunión diaria", target: "cerebro", appId: "cerebro" },
+    { label: "Pedir trabajo a FORJA", detail: "Construcción controlada", target: "construccion", appId: "forja" },
     { label: "Ver AUDITORIA", detail: "Calidad y gates", target: "control_seguridad", appId: "auditor" },
-    { label: "Ver NUBE", detail: "Operacion local", target: "operacion", appId: "nube" },
+    { label: "Ver NUBE", detail: "Operación local", target: "operacion", appId: "nube" },
     { label: "Ver riesgos", detail: "Riesgos CEO", target: "alerts" },
     { label: "Ver SENTINELA", detail: "Seguridad pendiente", target: "control_seguridad", appId: "centinela" },
-    { label: "Ver DCFT protegido", detail: "Proteccion activa", target: "doctor_contable_financiero_tributario", appId: "doctor_contable_financiero_tributario" },
-    { label: "Ver Arsenal", detail: "Almacen pendiente", target: "arsenal", appId: "arsenal" },
+    { label: "Ver DCFT protegido", detail: "Protección activa", target: "doctor_contable_financiero_tributario", appId: "doctor_contable_financiero_tributario" },
+    { label: "Ver Arsenal", detail: "Almacén pendiente", target: "arsenal", appId: "arsenal" },
     { label: "Ver oportunidades", detail: "Productos e ingresos", target: "productos_comerciales" }
   ];
 
@@ -1108,7 +1108,7 @@ function renderQuickActions() {
     const human = command.appId ? humanStateFor(command.appId) : { status: "ready", source: "Cabina", tone: "green" };
     const connected = human.real === true;
     const copy = command.appId
-      ? (connected ? "Conexion real" : "Sin conexion real")
+      ? (connected ? "Conexión real" : "Sin conexión real")
       : "Local activo";
     return `
       <button class="quick-command ${escapeHtml(human.tone)}" data-quick-target="${escapeHtml(command.target)}" type="button">
@@ -1149,13 +1149,13 @@ function renderPriorityApps() {
   const orderedDepartments = [...firstDepartments, ...restDepartments];
   $("#priority-apps").innerHTML = orderedDepartments.map((department, index) => {
     const stateInfo = departmentState(department);
-    const anchorId = department.id === "almacen_estrategico" ? "arsenal" : department.id;
+    const anchorId = department.id === "almacen_estratégico" ? "arsenal" : department.id;
     const insertMore = index === firstDepartments.length;
     return `
       ${insertMore ? `
         <article class="departments-more-card" aria-label="Ver todos los departamentos">
           <strong>Ver todos</strong>
-          <small>Mas areas quedan abajo.</small>
+          <small>Más áreas quedan abajo.</small>
           <button class="mini-action" data-quick-target="${escapeHtml(anchorId)}" type="button">Ver todos</button>
         </article>
       ` : ""}
@@ -1201,12 +1201,12 @@ function renderStatusLanes() {
     {
       id: "protected",
       title: "Protegido / no-touch",
-      copy: "DCFT protegido. Produccion intacta.",
+      copy: "DCFT protegido. Producción intacta.",
       apps: humanAppCatalog.filter((definition) => definition.lane === "protected" || ["forja", "centinela", "nube"].includes(definition.id))
     },
     {
       id: "next",
-      title: "Proximos pasos",
+      title: "Próximos pasos",
       copy: "Validar cabina local.",
       apps: []
     }
@@ -1232,7 +1232,7 @@ function renderStatusLanes() {
             }).join("")
             : `
               <div class="lane-note">
-                <strong>Sin conexion nueva</strong>
+                <strong>Sin conexión nueva</strong>
                 <small>Runtimes apagados.</small>
               </div>
             `
@@ -1253,7 +1253,7 @@ function renderDecisionRail() {
     railApps.innerHTML = companyDepartments.slice(0, 6).map((department) => {
       const stateInfo = departmentState(department);
       return `
-        <button class="rail-app ${escapeHtml(stateInfo.tone)} dept-${escapeHtml(department.accent)}" data-quick-target="${escapeHtml(department.id === "almacen_estrategico" ? "arsenal" : department.id)}" type="button">
+        <button class="rail-app ${escapeHtml(stateInfo.tone)} dept-${escapeHtml(department.accent)}" data-quick-target="${escapeHtml(department.id === "almacen_estratégico" ? "arsenal" : department.id)}" type="button">
           ${appIcon(department.icon)}
           <span>
             <strong>${escapeHtml(department.shortName)}</strong>
@@ -1279,12 +1279,12 @@ function renderDecisionRail() {
       },
       {
         title: risks.length ? `${risks.length} riesgos abiertos` : "Riesgos bajo control",
-        body: risks[0]?.description || "Sin riesgo critico abierto desde governance.",
+        body: risks[0]?.description || "Sin riesgo crítico abierto desde governance.",
         tone: risks.length ? "red" : "green"
       },
       {
-        title: decisions.length ? `${decisions.length} decisiones pendientes` : "Sin cola critica",
-        body: decisions[0]?.description || "No hay decision urgente creada desde governance.",
+        title: decisions.length ? `${decisions.length} decisiones pendientes` : "Sin cola crítica",
+        body: decisions[0]?.description || "No hay decisión urgente creada desde governance.",
         tone: decisions.length ? "amber" : "green"
       }
     ];
@@ -1304,7 +1304,7 @@ function renderMetrics() {
     { id: "decisions", label: "Decisiones CEO", value: snapshot.pendingDecisions, status: snapshot.pendingDecisions ? "degraded" : "healthy" },
     { id: "opportunities", label: "Oportunidades", value: snapshot.preparedOpportunities, status: "degraded" },
     { id: "risks", label: "Riesgos", value: snapshot.activeRisks, status: snapshot.activeRisks ? "blocked" : "healthy" },
-    { id: "construction", label: "En construccion", value: snapshot.constructionTasks, status: "degraded" }
+    { id: "construction", label: "En construcción", value: snapshot.constructionTasks, status: "degraded" }
   ];
   $("#metric-grid").innerHTML = cards.map((metric) => `
     <article class="metric">
@@ -1372,7 +1372,7 @@ function renderCeo() {
     status: item.status,
     meta: `Solicita: ${label(item.requested_by)}`,
     actions: `${actionButton("approve_decision", "Aprobar", item.id)}${actionButton("reject_decision", "Rechazar", item.id)}${actionButton("block_decision", "Bloquear", item.id)}`
-  })).join("") : emptyState("Sin decisiones pendientes.", "La cabina queda lista para crear una nueva decision.");
+  })).join("") : emptyState("Sin decisiones pendientes.", "La cabina queda lista para crear una nueva decisión.");
 
   $("#ceo-risks").innerHTML = criticalRisks.length ? criticalRisks.slice(0, 4).map((item) => listItem({
     title: item.title,
@@ -1380,7 +1380,7 @@ function renderCeo() {
     status: item.severity,
     meta: label(item.status),
     actions: `${actionButton("mitigate_risk", "Mitigar", item.id)}${actionButton("close_risk", "Cerrar", item.id)}`
-  })).join("") : emptyState("Sin riesgos criticos abiertos.");
+  })).join("") : emptyState("Sin riesgos críticos abiertos.");
 
   $("#timeline").innerHTML = timeline.map((item) => `
     <article class="timeline-item">
@@ -1426,7 +1426,7 @@ function renderDecisionCenter() {
     status: item.status,
     meta: `Solicita: ${label(item.requested_by)}`,
     actions: `${actionButton("approve_decision", "Aprobar", item.id)}${actionButton("reject_decision", "Rechazar", item.id)}${actionButton("block_decision", "Bloquear", item.id)}`
-  })).join("") : emptyState("Sin decisiones registradas.", "Usa Crear decision para generar la primera entrada.");
+  })).join("") : emptyState("Sin decisiones registradas.", "Usa Crear decisión para generar la primera entrada.");
 }
 
 function renderApprovalCenter() {
@@ -1437,7 +1437,7 @@ function renderApprovalCenter() {
     status: item.status,
     meta: label(item.approval_type),
     actions: `${actionButton("approve_approval", "Aprobar", item.id)}${actionButton("reject_approval", "Rechazar", item.id)}${actionButton("escalate_approval", "Escalar", item.id)}`
-  })).join("") : emptyState("Sin solicitudes registradas.", "Crea una solicitud para probar el flujo de aprobacion.");
+  })).join("") : emptyState("Sin solicitudes registradas.", "Crea una solicitud para probar el flujo de aprobación.");
 }
 
 function renderIntegrationGates() {
@@ -1447,8 +1447,8 @@ function renderIntegrationGates() {
     body: item.reason || "Gate controlado por politica humana.",
     status: item.state,
     meta: item.protected ? "Protegida" : "Disponible",
-    actions: `${actionButton("request_discovery", "Solicitar discovery", item.app_id)}${actionButton("approve_discovery", "Aprobar discovery", item.app_id)}${actionButton("approve_connection", "Conexion futura", item.app_id)}${actionButton("block_gate", "Bloquear", item.app_id)}${actionButton("suspend_gate", "Suspender", item.app_id)}`
-  })).join("") : emptyState("Sin gates de integracion.");
+    actions: `${actionButton("request_discovery", "Solicitar discovery", item.app_id)}${actionButton("approve_discovery", "Aprobar discovery", item.app_id)}${actionButton("approve_connection", "Conexión futura", item.app_id)}${actionButton("block_gate", "Bloquear", item.app_id)}${actionButton("suspend_gate", "Suspender", item.app_id)}`
+  })).join("") : emptyState("Sin gates de integración.");
 }
 
 function renderPolicyCenter() {
@@ -1480,7 +1480,7 @@ function renderGovernanceAudit() {
     body: item.detail,
     status: item.status,
     meta: `${label(item.severity)} / ${item.source}`
-  })).join("") : emptyState("Sin eventos governance auditados todavia.");
+  })).join("") : emptyState("Sin eventos governance auditados todavía.");
 }
 
 function renderGovernanceReport() {
@@ -1494,7 +1494,7 @@ function renderGovernanceReport() {
     }),
     listItem({
       title: "Cobertura de control",
-      body: `${number((state.data.decisions || []).length)} decisiones, ${number((state.data.approvals || []).length)} solicitudes, ${number((state.data.risks || []).length)} riesgos, ${number((state.data.gates || []).length)} gates.`,
+      body: `${number((state.data.decisions || []).length)} decisions, ${number((state.data.approvals || []).length)} solicitudes, ${number((state.data.risks || []).length)} riesgos, ${number((state.data.gates || []).length)} gates.`,
       status: "healthy",
       meta: "Reporte"
     })
@@ -1519,14 +1519,14 @@ function renderOperator() {
     body: event.payload ? JSON.stringify(event.payload).slice(0, 160) : event.source,
     status: event.status,
     meta: event.source
-  })).join("") : emptyState("No hay eventos internos registrados todavia.");
+  })).join("") : emptyState("No hay eventos internos registrados todavía.");
 
   $("#memory-list").innerHTML = memory.length ? memory.map((entry) => listItem({
     title: entry.title || entry.id,
     body: entry.content || entry.summary,
     status: entry.status,
     meta: entry.app_id || "memoria"
-  })).join("") : emptyState("Memoria compartida preparada, sin entradas todavia.");
+  })).join("") : emptyState("Memoria compartida preparada, sin entradas todavía.");
 }
 
 function renderAuditor() {
@@ -1544,9 +1544,9 @@ function renderAuditor() {
   $("#audit-list").innerHTML = [
     listItem({
       title: label(audit.status || "central_audit_operational"),
-      body: `${number(audit.events)} eventos, ${number(audit.reports)} reportes, categorias: ${(audit.categories || []).length}`,
+      body: `${number(audit.events)} eventos, ${number(audit.reports)} reportes, categorías: ${(audit.categories || []).length}`,
       status: "healthy",
-      meta: "Auditoria"
+      meta: "Auditoría"
     })
   ].join("");
 
@@ -1588,7 +1588,7 @@ function renderSystem() {
   $("#integration-list").innerHTML = [
     ...(integration.services || []).map((item) => listItem({
       title: item.name,
-      body: `Categoria ${label(item.category)}. Conexion externa: ${number(item.external_connection_enabled)}`,
+      body: `Categoría ${label(item.category)}. Conexión externa: ${number(item.external_connection_enabled)}`,
       status: item.status,
       meta: "servicio"
     })),
@@ -1608,7 +1608,7 @@ function buildTimeline() {
   return [
     {
       title: "Runtime local verificado",
-      body: `Commit ${runtime.commit || version.commit || "desconocido"} observado en ${runtime.environment || "local"}; sin produccion tocada.`,
+      body: `Commit ${runtime.commit || version.commit || "desconocido"} observado en ${runtime.environment || "local"}; sin producción tocada.`,
       meta: state.lastUpdated ? state.lastUpdated.toLocaleString("es") : "ahora"
     },
     {
@@ -1736,7 +1736,7 @@ async function loginFromForm(event) {
     renderUserShell();
     await loadData();
   } catch (error) {
-    showLogin(error.message === "invalid_credentials" ? "Credenciales incorrectas." : "No se pudo iniciar sesion.");
+    showLogin(error.message === "invalid_credentials" ? "Credenciales incorrectas." : "No se pudo iniciar sesión.");
   } finally {
     button.disabled = false;
   }
@@ -1745,7 +1745,7 @@ async function loginFromForm(event) {
 async function logout() {
   const token = state.token;
   clearSession();
-  showLogin("Sesion cerrada.");
+  showLogin("Sesión cerrada.");
   if (!token) return;
   await fetch("/api/v1/auth/logout", {
     method: "POST",
@@ -1797,19 +1797,19 @@ function openActionDialog(actionId, explicitTarget = "") {
   $("#dialog-copy").textContent = `${action.description} Rol activo: ${label(state.role)}. ${targetId ? `Recurso: ${targetId}.` : ""}`;
   $("#reason-field").classList.toggle("hidden", !action.requires_reason);
   $("#evidence-field").classList.toggle("hidden", !action.requires_evidence);
-  $("#action-reason").value = action.requires_reason ? action.payload_template.reason || "Razon validada desde Control Center." : "";
+  $("#action-reason").value = action.requires_reason ? action.payload_template.reason || "Razón validada desde Control Center." : "";
   $("#action-evidence").value = action.requires_evidence ? action.payload_template.evidence || "Evidencia validada desde Control Center." : "";
   $("#action-dialog").showModal();
 }
 
 function buildPayload(action) {
   const payload = structuredClone(action.payload_template || {});
-  if (action.requires_reason) payload.reason = $("#action-reason").value || "Razon registrada desde Control Center.";
+  if (action.requires_reason) payload.reason = $("#action-reason").value || "Razón registrada desde Control Center.";
   if (action.requires_evidence) payload.evidence = $("#action-evidence").value || "Evidencia registrada desde Control Center.";
 
   if (action.id === "create_decision") {
     payload.title = `Decision Control Center ${new Date().toISOString()}`;
-    payload.description = "Decision creada desde la Cabina Humana Premium ECO-035.";
+    payload.description = "Decisión creada desde la Cabina Humana Premium ECO-035.";
     payload.requested_by = state.role;
   }
   if (action.id === "create_approval") {

@@ -2,7 +2,7 @@
 
 Estado: Ajuste quirurgico mobile-first implementado localmente.
 Fecha local: 2026-06-07.
-Repositorio: `C:\Users\admin\Documents\Codex\2026-05-31\auditoria-final-forja-render-he-validado`
+Repositorio: `C:\Users\admin\Documents\Codex\2026-05-31\auditoría-final-forja-render-he-validado`
 URL local: `http://127.0.0.1:8000/control-center`
 
 ## 1. Cambios implementados
@@ -15,7 +15,7 @@ Archivos modificados en este bloque:
 
 No se hizo push.
 No se hizo deploy.
-No se toco produccion.
+No se toco producción.
 No se tocaron DCFT real, FORJA real, SENTINELA real, NUBE local, Local Agent, SUNAT real, runtimes externos, rutas reales del bus ni secretos.
 
 ## 2. Limpieza mobile-first
@@ -23,9 +23,9 @@ No se tocaron DCFT real, FORJA real, SENTINELA real, NUBE local, Local Agent, SU
 La primera pantalla mobile queda concentrada en:
 
 - header compacto;
-- reunion con CEREBRO;
-- proxima decision CEO;
-- semaforo de 4 senales;
+- reunión con CEREBRO;
+- próxima decisión CEO;
+- semáforo de 4 señales;
 - bottom nav.
 
 Se ocultaron en mobile los elementos no esenciales del primer pantallazo:
@@ -44,42 +44,42 @@ El header mobile muestra:
 
 - globo dorado;
 - `Empresa IA`;
-- `Local / revision CEO`.
+- `Local / revisión CEO`.
 
 Se redujo el titular anterior y el copy largo. El texto de topbar ahora es breve y ejecutivo.
 
-## 4. Reunion con CEREBRO compacta
+## 4. Reunión con CEREBRO compacta
 
 La home abre con:
 
-- Titulo: `Reunion con CEREBRO`.
+- Titulo: `Reunión con CEREBRO`.
 - Texto: `Buenos dias, CEO. Tengo tu resumen.`
 - Chips: `Decisiones`, `Oportunidades`, `Riesgos`.
 - Boton principal: `Hablar con CEREBRO`.
 
 Se retiraron parrafos largos del primer bloque.
 
-## 5. Proxima decision CEO
+## 5. Próxima decisión CEO
 
-La decision queda compacta:
+La decisión queda compacta:
 
-- `En revision CEO`.
-- `Validar cabina local antes de produccion. DCFT protegido. Sin SUNAT real.`
+- `En revisión CEO`.
+- `Validar cabina local antes de producción. DCFT protegido. Sin SUNAT real.`
 
-No se afirma conexion real ni produccion tocada.
+No se afirma conexión real ni producción tocada.
 
-## 6. Semaforo limpio
+## 6. Semáforo limpio
 
-Se redujo el semaforo a 4 senales:
+Se redujo el semáforo a 4 señales:
 
-- Direccion: `Activa` / `Local activo.`
-- Construccion: `Preparada` / `Apps preparadas.`
+- Dirección: `Activa` / `Local activo.`
+- Construcción: `Preparada` / `Apps preparadas.`
 - Seguridad: `Protegida` / `Protegido.`
 - Ingresos: `Pendiente` / `Sin ventas reales.`
 
 Se retiraron frases largas como:
 
-- `CEREBRO no marca una decision critica.`
+- `CEREBRO no marca una decisión crítica.`
 - `FORJA, HERMES, APIs y Web Factory visibles sin runtime conectado.`
 - textos extensos sobre conexiones externas.
 
@@ -87,8 +87,8 @@ Se retiraron frases largas como:
 
 En mobile, los departamentos principales quedan primero:
 
-- Direccion.
-- Construccion.
+- Dirección.
+- Construcción.
 - Seguridad.
 
 Despues aparece `Ver todos`, y el resto queda abajo:
@@ -96,21 +96,21 @@ Despues aparece `Ver todos`, y el resto queda abajo:
 - Inteligencia.
 - Productos.
 - Crecimiento.
-- Operacion.
+- Operación.
 - Arsenal.
 
 ### Paquete 3 - Departamentos + Arsenal
 
-Revision local del 2026-06-08:
+Revisión local del 2026-06-08:
 
-- La cabina conserva 8 departamentos: Direccion, Construccion, Inteligencia, Productos Comerciales, Contenido y Crecimiento, Operacion, Control y Seguridad, Almacen Estrategico.
+- La cabina conserva 8 departamentos: Dirección, Construcción, Inteligencia, Productos Comerciales, Contenido y Crecimiento, Operación, Control y Seguridad, Almacen Estratégico.
 - `ARSENAL` queda visible como `planned / pending_integration`.
-- `ARSENAL` representa inventario futuro de APIs, modelos, skills, conectores, costos, limites, calidad, riesgos y mejor uso.
+- `ARSENAL` representa inventario futuro de APIs, modelos, skills, conectores, costos, límites, calidad, riesgos y mejor uso.
 - `BUSCADOR DE TENDENCIAS` queda como radar oficial.
 - No se crea Investigador ni Radar IA.
 - `SNIFF AMAZON` queda en Productos Comerciales y separado de `COMERCIO AUTONOMO`.
-- `HERMES` queda en Construccion.
-- `NUBE` queda sola en Operacion.
+- `HERMES` queda en Construcción.
+- `NUBE` queda sola en Operación.
 - No se conecto runtime real ni proveedor externo.
 
 ## 8. Panel derecho
@@ -139,14 +139,14 @@ Etiquetas aplicadas:
 - Riesgos.
 - Decisiones.
 
-El perfil queda en la tarjeta de sesion del sidebar y en bottom nav mobile.
+El perfil queda en la tarjeta de sesión del sidebar y en bottom nav mobile.
 
 ## 10. Textos cortados
 
 Se agregaron overrides para evitar truncado visible en:
 
-- semaforo;
-- decision;
+- semáforo;
+- decisión;
 - chips;
 - bottom nav;
 - tarjetas de departamento;
@@ -164,11 +164,11 @@ Se quitaron scrolls internos innecesarios en:
 - `view-panel.active`;
 - `priority-apps-band`;
 - `status-lanes-band`;
-- `decision-rail`.
+- `decisión-rail`.
 
 El panel derecho ya no usa lista larga ni scroll interno.
 
-## 12. Validaciones tecnicas
+## 12. Validaciones técnicas
 
 Ejecutadas:
 
@@ -179,7 +179,7 @@ Ejecutadas:
 - Secret scan directo: OK.
 - `git diff --check`: OK, solo warning esperado de CRLF.
 
-## 13. Validacion visual exacta
+## 13. Validación visual exacta
 
 URL local:
 
@@ -200,9 +200,9 @@ Mobile exacto `390x844`:
 - Textos cortados detectados: 0.
 - Scrolls internos detectados: 0.
 - Header compacto visible.
-- Reunion con CEREBRO visible.
-- Proxima decision CEO visible.
-- Semaforo visible.
+- Reunión con CEREBRO visible.
+- Próxima decisión CEO visible.
+- Semáforo visible.
 - Bottom nav visible.
 - Departamentos quedan debajo del viewport visible.
 
@@ -216,9 +216,9 @@ Desktop exacto `1280x720`:
 - Textos cortados detectados: 0.
 - Scrolls internos detectados: 0.
 - Header compacto visible.
-- Reunion con CEREBRO visible.
-- Proxima decision CEO visible.
-- Semaforo completo visible.
+- Reunión con CEREBRO visible.
+- Próxima decisión CEO visible.
+- Semáforo completo visible.
 - Panel derecho reducido visible.
 - Lectura rapida secundaria se oculta solo en desktop bajo 760px de alto para evitar saturacion visual.
 
@@ -233,14 +233,14 @@ Rutas locales:
 
 - `C:\Users\admin\Documents\Codex\2026-06-07\files-mentioned-by-the-user-texto\outputs\ecosystem-company-cabin-mobile-clean-390x844.png`
 - `C:\Users\admin\Documents\Codex\2026-06-07\files-mentioned-by-the-user-texto\outputs\ecosystem-company-cabin-desktop-clean-1280x720.png`
-- Auditoria JSON: `C:\Users\admin\Documents\Codex\2026-06-07\files-mentioned-by-the-user-texto\outputs\ecosystem-company-cabin-visual-audit.json`
+- Auditoría JSON: `C:\Users\admin\Documents\Codex\2026-06-07\files-mentioned-by-the-user-texto\outputs\ecosystem-company-cabin-visual-audit.json`
 
 ## 15. Riesgos
 
 - El working tree ya tenia cambios previos antes de esta iteracion.
 - El HTML base conserva textos antiguos hasta que `app.js` compacta la shell tras login; se respeto el alcance permitido y no se modifico `index.html`.
-- La cabina sigue mostrando datos preparados; no significa conexion real.
-- Las capturas son evidencia local para revision CEO; no representan produccion.
+- La cabina sigue mostrando datos preparados; no significa conexión real.
+- Las capturas son evidencia local para revisión CEO; no representan producción.
 
 ## 16. Que puede revisar el CEO
 
@@ -253,20 +253,20 @@ Revisar:
 1. Que la primera pantalla mobile no este cargada.
 2. Que no aparezcan textos cortados.
 3. Que el header no ocupe media pantalla.
-4. Que CEREBRO se lea como reunion ejecutiva.
-5. Que el semaforo sea claro.
+4. Que CEREBRO se lea como reunión ejecutiva.
+5. Que el semáforo sea claro.
 6. Que departamentos y listas queden debajo.
 7. Que el panel derecho no se sienta como lista interminable.
 
-## 17. Recomendacion
+## 17. Recomendación
 
-Revisar las dos capturas exactas y la URL local antes de cualquier decision posterior.
+Revisar las dos capturas exactas y la URL local antes de cualquier decisión posterior.
 
 Mantener no push/no deploy hasta que el CEO decida si la evidencia visual local es suficiente.
 
 ## 18. Siguiente paso
 
-Revision CEO con:
+Revisión CEO con:
 
 - captura mobile 390x844;
 - captura desktop 1280x720;

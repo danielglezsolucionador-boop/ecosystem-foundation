@@ -4,15 +4,15 @@ Fecha: 2026-06-06
 
 ## 1. Que cambio
 
-Se actualizo la cabina humana del Control Center para que la primera vista lea como Centro de Direccion del Ecosistema IA, no como inventario tecnico.
+Se actualizo la cabina humana del Control Center para que la primera vista lea como Centro de Dirección del Ecosistema IA, no como inventario técnico.
 
 Cambios frontend-only:
 
-- Header renombrado a ECOSISTEMA IA / Centro de Direccion Empresarial.
-- Navegacion humana: Inicio CEO, Gobierno, Operacion, Auditoria, Sistema.
-- Semaforo principal: Operacion, Construccion, Seguridad, Finanzas / Cloud.
+- Header renombrado a ECOSISTEMA IA / Centro de Dirección Empresarial.
+- Navegacion humana: Inicio CEO, Gobierno, Operación, Auditoría, Sistema.
+- Semáforo principal: Operación, Construcción, Seguridad, Finanzas / Cloud.
 - Indicador de apps conectadas reales.
-- Proxima decision CEO visible en el primer pantallazo.
+- Próxima decisión CEO visible en el primer pantallazo.
 - Accesos rapidos compactos.
 - Cards prioritarias para CEREBRO, FORJA, NUBE, AUDITORIA, SENTINELA, DCFT, HERMES y apps de contenido/crecimiento.
 - Bottom nav mobile: Inicio, Apps, Cerebro, Riesgos, Perfil.
@@ -43,7 +43,7 @@ Aparecen en la cabina:
 
 Datos reales de plataforma:
 
-- Auth/login y sesion Bearer.
+- Auth/login y sesión Bearer.
 - Control Center protegido.
 - App Registry.
 - Integration profiles.
@@ -80,12 +80,12 @@ Discovery profiles preparados, con `external_connection_enabled=false`:
 ## 5. Apps pendientes
 
 - DCFT: registry externo/protegido; no integrado desde Ecosystem Foundation.
-- SENTINELA/CENTINELA: reservado en App Registry; falta discovery profile e integracion.
-- NUBE: no registrada todavia en App Registry ni discovery profiles.
+- SENTINELA/CENTINELA: reservado en App Registry; falta discovery profile e integración.
+- NUBE: no registrada todavía en App Registry ni discovery profiles.
 
 ## 6. CEREBRO
 
-Queda presentado como Director estrategico / mano derecha CEO.
+Queda presentado como Director estratégico / mano derecha CEO.
 
 Estado mostrado:
 
@@ -95,11 +95,11 @@ Estado mostrado:
 
 ## 7. FORJA
 
-Queda presentada como Directora de construccion.
+Queda presentada como Directora de construcción.
 
 Estado mostrado:
 
-- Produccion externa congelada y validada por evidencia previa.
+- Producción externa congelada y validada por evidencia previa.
 - En Ecosystem Foundation solo discovery preparado.
 - Runtime externo no conectado.
 - Accion visible: Enviar tarea controlada, sin ejecutar tareas reales desde esta cabina.
@@ -110,16 +110,16 @@ Queda presentada como Torre de control cloud.
 
 Estado mostrado:
 
-- No registrada todavia en Ecosistema.
+- No registrada todavía en Ecosistema.
 - Cloud/DB se separa del rol NUBE: la plataforma puede reportar PostgreSQL vivo, pero NUBE sigue pendiente.
 
 ## 9. AUDITORIA
 
-Queda presentada como Juez de calidad, costos y aprobacion.
+Queda presentada como Juez de calidad, costos y aprobación.
 
 Estado mostrado:
 
-- Auditoria interna operativa.
+- Auditoría interna operativa.
 - App Auditor preparada como discovery profile.
 - Sin runtime externo.
 
@@ -129,31 +129,31 @@ Queda presentada como Doctor contable financiero tributario.
 
 Estado mostrado:
 
-- Piloto SUNAT auxiliar en preparacion controlada.
+- Piloto SUNAT auxiliar en preparación controlada.
 - Referenciada como externa/protegida.
 - No integrada ni conectada desde Ecosystem Foundation.
 
 ## 11. SENTINELA
 
-Queda presentada como Seguridad y proteccion del ecosistema.
+Queda presentada como Seguridad y protección del ecosistema.
 
 Estado mostrado:
 
 - Reservada en registry como pendiente.
 - Falta discovery profile.
-- Falta integration gate completo para integracion futura.
+- Falta integration gate completo para integración futura.
 
 ## 12. Mobile
 
 Se preparo layout mobile-first:
 
 - Primer bloque: estado global.
-- Semaforo compacto.
-- Proxima decision CEO.
+- Semáforo compacto.
+- Próxima decisión CEO.
 - Apps prioritarias.
 - Bottom nav fijo con Inicio, Apps, Cerebro, Riesgos, Perfil.
 
-Validacion ejecutada:
+Validación ejecutada:
 
 - Viewport 390x844 sobre shell de login local.
 - Console errors: 0.
@@ -162,7 +162,7 @@ Validacion ejecutada:
 
 Limitacion de herramienta:
 
-- El navegador integrado no permitio escribir inputs ni storage para completar login visual autenticado. La sesion autenticada fue validada por API local con Bearer sin imprimir token.
+- El navegador integrado no permitio escribir inputs ni storage para completar login visual autenticado. La sesión autenticada fue validada por API local con Bearer sin imprimir token.
 
 ## 13. Desktop
 
@@ -172,16 +172,16 @@ Se mantiene:
 - Centro operativo.
 - Paneles de decisiones, riesgos, governance, operador, auditor y sistema.
 
-La home ahora prioriza decision ejecutiva y separa dato real de preparado.
+La home ahora prioriza decisión ejecutiva y separa dato real de preparado.
 
-Validacion ejecutada:
+Validación ejecutada:
 
 - Viewport 1280x720 sobre shell de login local.
 - Console errors: 0.
 - Overflow horizontal: NO.
 - Login screen visible: SI.
 
-Validacion autenticada local por API:
+Validación autenticada local por API:
 
 - `/api/v1/auth/me`: 200.
 - `/api/v1/control-center`: 200.
@@ -193,7 +193,7 @@ Validacion autenticada local por API:
 - `/api/v1/contracts/status`: 200.
 - `/api/v1/integrations/apps`: 200, 11 profiles, 0 external connections enabled.
 
-Proteccion sin sesion:
+Protección sin sesión:
 
 - `/api/v1/auth/me`: 401.
 - `/api/v1/control-center`: 401.
@@ -212,21 +212,21 @@ Tests:
 ## 14. Riesgos
 
 - No hay runtime externo conectado para apps preparadas.
-- NUBE no existe todavia en registry.
+- NUBE no existe todavía en registry.
 - SENTINELA solo esta reservada como planned/registry.
-- DCFT sigue protegido y fuera de esta integracion.
-- La validacion autenticada productiva no se ejecuto en esta tarea porque no se solicitaron credenciales ni autorizacion de produccion.
-- La validacion visual autenticada en navegador quedo limitada por la herramienta; los endpoints autenticados si pasaron localmente con token Bearer no impreso.
+- DCFT sigue protegido y fuera de esta integración.
+- La validación autenticada productiva no se ejecuto en esta tarea porque no se solicitaron credenciales ni autorización de producción.
+- La validación visual autenticada en navegador quedo limitada por la herramienta; los endpoints autenticados si pasaron localmente con token Bearer no impreso.
 - Si no existe `package.json`, `npm run build` no aplica al frontend estatico actual.
 
-## 15. Recomendacion
+## 15. Recomendación
 
-Recomendado para revision CEO local antes de push/deploy.
+Recomendado para revisión CEO local antes de push/deploy.
 
 Siguiente paso recomendado:
 
 1. Levantar backend local.
-2. Entrar con sesion local segura.
+2. Entrar con sesión local segura.
 3. Validar mobile 390x844 y desktop.
 4. Confirmar console errors = 0.
 5. Confirmar overflow horizontal = NO.

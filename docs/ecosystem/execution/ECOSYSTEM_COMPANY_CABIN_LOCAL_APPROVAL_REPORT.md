@@ -10,12 +10,12 @@ Fecha local: 2026-06-08 01:16:00 -05:00
 - No se ejecuto siguiente paquete.
 - No push.
 - No deploy.
-- No produccion.
+- No producción.
 
 ## Que aprobo el CEO
 
 - La primera pantalla mobile-first de la cabina Empresa IA queda aceptable para seguir.
-- La cabina local conserva header compacto, reunion con CEREBRO visible, proxima decision CEO visible, semaforo visible y bottom nav visible en mobile.
+- La cabina local conserva header compacto, reunión con CEREBRO visible, próxima decisión CEO visible, semáforo visible y bottom nav visible en mobile.
 - La version desktop conserva panel derecho reducido y evita scrolls internos excesivos.
 - Las mejoras menores futuras no bloquean el avance.
 
@@ -46,7 +46,7 @@ Fecha local: 2026-06-08 01:16:00 -05:00
 - Patch local: `backup/local-ecosystem-company-cabin-approved-20260608-011458/working-tree.diff`.
 - Estado Git capturado: `backup/local-ecosystem-company-cabin-approved-20260608-011458/git-status-short.txt`.
 
-## Validaciones tecnicas
+## Validaciones técnicas
 
 - `node --check apps/web/control-center/assets/app.js`: PASS.
 - `python -m compileall apps\api api scripts -q`: PASS.
@@ -65,7 +65,7 @@ Fecha local: 2026-06-08 01:16:00 -05:00
 - NUBE local: no tocada.
 - Local Agent: no activado.
 - SUNAT real: no tocado.
-- Produccion publica: no tocada.
+- Producción pública: no tocada.
 - Vercel: no tocado.
 - Rutas reales del bus: no creadas.
 - Runtimes externos: no conectados.
@@ -80,8 +80,8 @@ Fecha local: 2026-06-08 01:16:00 -05:00
 
 - No se creo commit local.
 - Motivo: working tree sucio con cambios y documentos amplios de ecosistema; no es seguro confirmar todo sin separar alcance exacto.
-- Recomendacion: hacer commit local solo despues de revisar/stagear explicitamente el paquete de cabina.
+- Recomendación: hacer commit local solo despues de revisar/stagear explícitamente el paquete de cabina.
 
 ## Siguiente paquete recomendado
 
-PAQUETE 1: Validacion de CEREBRO como Chief of Staff / Jefe de Gabinete IA con 12 preguntas, separando real/preparado/protegido y sin alucinar integraciones reales.
+PAQUETE 1: Validación de CEREBRO como Chief of Staff / Jefe de Gabinete IA con 12 preguntas, separando real/preparado/protegido y sin alucinar integraciones reales.

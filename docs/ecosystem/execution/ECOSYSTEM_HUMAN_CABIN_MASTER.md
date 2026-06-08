@@ -8,35 +8,35 @@ Fecha: 2026-06-06
 La cabina humana debe sentirse como:
 
 ```text
-Centro de Direccion de la empresa IA.
+Centro de Dirección de la empresa IA.
 ```
 
 No debe sentirse como:
 
 - lista de tabs;
-- dashboard tecnico;
+- dashboard técnico;
 - consola de programador;
-- pagina larga sin decision;
+- pagina larga sin decisión;
 - tablero saturado;
 - inventario sin alma.
 
-## Inspiracion operacional
+## Inspiracion operaciónal
 
 Se toma lo aprendido de DCFT:
 
 - entrada clara;
 - estado global visible;
-- semaforo;
+- semáforo;
 - alerta principal;
-- proxima accion;
+- próxima accion;
 - botones compactos;
 - drawers/paneles colapsados;
 - mobile-first;
 - lenguaje humano;
-- nada tecnico innecesario en Home;
-- decision en menos de 10 segundos.
+- nada técnico innecesario en Home;
+- decisión en menos de 10 segundos.
 
-No se copia DCFT literalmente. DCFT es doctor empresarial. El ecosistema es centro de direccion de la empresa IA.
+No se copia DCFT literalmente. DCFT es doctor empresarial. El ecosistema es centro de dirección de la empresa IA.
 
 ## Home propuesta
 
@@ -44,13 +44,13 @@ No se copia DCFT literalmente. DCFT es doctor empresarial. El ecosistema es cent
 
 ```text
 ECOSISTEMA IA
-Centro de Direccion Empresarial
+Centro de Dirección Empresarial
 ```
 
 Texto de apoyo:
 
 ```text
-Direccion, construccion, auditoria, seguridad, nube y productos IA bajo control humano.
+Dirección, construcción, auditoría, seguridad, nube y productos IA bajo control humano.
 ```
 
 ### 2. Estado global
@@ -58,26 +58,26 @@ Direccion, construccion, auditoria, seguridad, nube y productos IA bajo control 
 Estados permitidos:
 
 - Operativo.
-- En construccion.
-- Atencion.
+- En construcción.
+- Atención.
 - Bloqueado.
 
 Nunca usar "todo listo" si hay apps en discovery, pending_review o protected_no_touch.
 
-### 3. Semaforo principal
+### 3. Semáforo principal
 
-| Semaforo | Verde | Ambar | Rojo | Gris |
+| Semáforo | Verde | Ambar | Rojo | Gris |
 | --- | --- | --- | --- | --- |
-| Operacion | Backbone responde | Hay endpoints pendientes | Runtime caido | No configurado |
-| Construccion | FORJA aprobada para tarea | FORJA estable pero sin tarea CEO | Tarea bloqueada | No configurado |
-| Seguridad | SENTINELA/Audit sin riesgo | Requiere revision | Secreto/riesgo critico | Pendiente |
+| Operación | Backbone responde | Hay endpoints pendientes | Runtime caido | No configurado |
+| Construcción | FORJA aprobada para tarea | FORJA estable pero sin tarea CEO | Tarea bloqueada | No configurado |
+| Seguridad | SENTINELA/Audit sin riesgo | Requiere revisión | Secreto/riesgo crítico | Pendiente |
 | Cloud/Costos | NUBE auditada | NUBE documental | Variable/deploy en riesgo | No registrada |
 
-### 4. Proxima decision CEO
+### 4. Próxima decisión CEO
 
 Debe responder:
 
-- que decision falta;
+- que decisión falta;
 - por que importa;
 - que pasa si se aprueba;
 - que no se tocara.
@@ -85,7 +85,7 @@ Debe responder:
 Ejemplo:
 
 ```text
-Proxima decision: revisar cabina con CEREBRO antes de push/deploy.
+Próxima decisión: revisar cabina con CEREBRO antes de push/deploy.
 No tocar: DCFT, SENTINELA, NUBE local ni Local Agent.
 ```
 
@@ -116,8 +116,8 @@ Mostrar separadas:
 - DCFT: `protected_no_touch`.
 - FORJA productiva: no tocar; solo discovery interno.
 - CEREBRO productivo: no tocar; solo discovery interno.
-- SENTINELA: pendiente, no integrar sin revision.
-- NUBE local: no tocar sin auditoria.
+- SENTINELA: pendiente, no integrar sin revisión.
+- NUBE local: no tocar sin auditoría.
 
 ### 7. Apps preparadas/discovery
 
@@ -139,7 +139,7 @@ Botones compactos:
 
 - Hablar con CEREBRO.
 - Enviar tarea a FORJA.
-- Ejecutar auditoria.
+- Ejecutar auditoría.
 - Revisar NUBE.
 - Ver riesgos.
 - Ver pendientes.
@@ -152,7 +152,7 @@ Regla: si el boton no ejecuta una accion real, debe decir "ver", "preparar" o "s
 Debe decir:
 
 - Que sabe: estado, prioridades, riesgos, pendientes.
-- Que puede recomendar: siguiente paso, decision CEO, que no tocar.
+- Que puede recomendar: siguiente paso, decisión CEO, que no tocar.
 - Que no puede hacer: ejecutar codigo, abrir agentes, conectar runtimes.
 
 ## Panel FORJA
@@ -160,8 +160,8 @@ Debe decir:
 Debe decir:
 
 - Que puede construir: apps, documentos, entregables, pruebas.
-- Que necesita: aprobacion CEO, alcance, heartbeat si hay Local Agent.
-- Que no puede hacer: tomar tareas reales sin aprobacion.
+- Que necesita: aprobación CEO, alcance, heartbeat si hay Local Agent.
+- Que no puede hacer: tomar tareas reales sin aprobación.
 
 ## Panel AUDITORIA
 
@@ -184,7 +184,7 @@ Debe decir:
 - Backups.
 - Health.
 
-Estado actual: documental/preparada, no registrada. No tocar NUBE local sin auditoria.
+Estado actual: documental/preparada, no registrada. No tocar NUBE local sin auditoría.
 
 ## Panel SENTINELA
 
@@ -204,8 +204,8 @@ Estado actual: pending_review, defensiva, no ofensiva.
 Primera pantalla mobile:
 
 1. Estado global.
-2. Semaforo compacto.
-3. Proxima accion.
+2. Semáforo compacto.
+3. Próxima accion.
 4. Apps prioritarias.
 5. Riesgos.
 6. Bottom nav.
@@ -223,9 +223,9 @@ Bottom nav sugerido:
 Layout sugerido:
 
 - Sidebar izquierda: vistas principales y rol.
-- Centro: direccion y apps prioritarias.
+- Centro: dirección y apps prioritarias.
 - Panel derecho: decisiones CEO, riesgos, pendientes.
-- Drawers: detalle tecnico, auditoria, cloud, contratos.
+- Drawers: detalle técnico, auditoría, cloud, contratos.
 
 ## Lenguaje
 
@@ -233,17 +233,17 @@ Usar:
 
 - "Preparado para discovery".
 - "Protegido".
-- "Pendiente de aprobacion".
-- "Conexion externa apagada".
-- "Proxima decision".
+- "Pendiente de aprobación".
+- "Conexión externa apagada".
+- "Próxima decisión".
 
 Evitar:
 
-- "mock" visible al CEO salvo en vista tecnica.
+- "mock" visible al CEO salvo en vista técnica.
 - "routes=0" en Home.
 - "payload", "endpoint", "schema" en Home.
 - "operativo" para apps sin runtime.
 
 ## Cierre
 
-La cabina humana debe convertir complejidad tecnica en decision ejecutiva sin mentir sobre conexiones reales.
+La cabina humana debe convertir complejidad técnica en decisión ejecutiva sin mentir sobre conexiones reales.

@@ -6,14 +6,14 @@ Frente: ECOSISTEMA IA / CONSOLIDACION FINAL LOCAL
 
 ## Estado general
 
-- Consolidacion final local ejecutada.
+- Consolidación final local ejecutada.
 - Cabina Empresa IA local revisada.
 - Paquetes 0, 1, 2, 3 y 4 revisados desde reportes locales y artefactos disponibles.
-- Validaciones tecnicas finales ejecutadas.
+- Validaciones técnicas finales ejecutadas.
 - Capturas faltantes `clean` generadas localmente.
 - No push.
 - No deploy.
-- No produccion.
+- No producción.
 - No Vercel.
 - No runtimes externos.
 - No rutas reales del bus.
@@ -36,7 +36,7 @@ Estado:
 
 - Cabina local mobile-first revisada.
 - Selector/experiencia de Empresa IA local conservada.
-- No produccion.
+- No producción.
 
 Evidencia:
 
@@ -56,12 +56,12 @@ Evidencia:
 
 - `CEREBRO_12_QUESTIONS_VALIDATION_REPORT.md`.
 
-### Paquete 2 - Reunion diaria con CEREBRO
+### Paquete 2 - Reunión diaria con CEREBRO
 
 Estado:
 
-- Modelo de reunion de manana y tarde creado.
-- Cabina local muestra `Reunion con CEREBRO`.
+- Modelo de reunión de mañana y tarde creado.
+- Cabina local muestra `Reunión con CEREBRO`.
 - Datos reales y preparados separados.
 
 Evidencia:
@@ -83,11 +83,11 @@ Evidencia:
 
 - `DEPARTMENTS_AND_ARSENAL_CONSOLIDATION_REPORT.md`.
 
-### Paquete 4 - Auditoria local fuerte
+### Paquete 4 - Auditoría local fuerte
 
 Estado:
 
-- Auditoria local fuerte PASS tras correccion.
+- Auditoría local fuerte PASS tras correccion.
 - Se intento romper cabina visual, rutas protegidas y consistencia.
 - Se corrigio discovery sobre app protegida.
 
@@ -150,7 +150,7 @@ Nota:
 REAL LOCAL:
 
 - Login local.
-- Sesion local.
+- Sesión local.
 - Cabina local.
 - Documentos locales.
 - Capturas locales.
@@ -188,7 +188,7 @@ PROTEGIDO / NO TOUCH:
 - NUBE local.
 - SUNAT real.
 - Local Agent.
-- Produccion.
+- Producción.
 - Vercel.
 - Runtimes externos.
 - Rutas reales del bus.
@@ -200,13 +200,13 @@ PENDIENTE:
 
 - Push.
 - Deploy.
-- Produccion.
-- Validacion publica.
-- Validacion autenticada productiva.
-- Integracion real de runtimes.
+- Producción.
+- Validación pública.
+- Validación autenticada productiva.
+- Integración real de runtimes.
 - Rutas reales del bus.
-- Aprobacion CEO para subir.
-- Separacion de cambios en commits si el CEO/CTO quiere granularidad por paquete.
+- Aprobación CEO para subir.
+- Separación de cambios en commits si el CEO/CTO quiere granularidad por paquete.
 
 ## Validaciones finales
 
@@ -215,7 +215,8 @@ PENDIENTE:
 - `$env:PYTHONPATH="apps/api"; python -m pytest -q`: PASS, 258 tests.
 - `python scripts/validate_v1.py`: PASS, 258 tests y `secret scan PASS`.
 - `git diff --check`: PASS, solo avisos CRLF.
-- Secret scan manual sin imprimir secretos: PASS, `NO_MATCHES`.
+- Secret scan manual de alta confianza sin imprimir secretos: PASS, `SECRET_SCAN_HIGH_CONFIDENCE_NO_MATCHES`.
+- Escaneo de signos `?` dentro de palabras en cabina/reportes recientes: PASS; solo queda `?role_id` como query interna leg?tima.
 
 ## Error corregido
 
@@ -225,7 +226,7 @@ Error:
 
 Correccion:
 
-- `request_gate_discovery` ahora audita el intento y devuelve `400 protected_app_discovery_blocked` cuando el gate esta protegido.
+- `request_gate_discovery` ahora audita el intento y devuelve `400 protected_app_discovery_blocked` cuando el gate está protegido.
 - Test de regresion agregado en `apps/api/tests/test_governance.py`.
 
 Resultado:
@@ -259,7 +260,7 @@ Nota:
 
 ## Commit local
 
-Evaluacion:
+Evaluación:
 
 - Los cambios de codigo, frontend, tests y documentos pertenecen al frente ECOSISTEMA IA.
 - `backup/` queda como artefacto local no commiteado.
@@ -274,22 +275,29 @@ Resultado:
 
 ## Riesgos
 
-- El trabajo acumulado viene de varios paquetes y toca varias areas del ecosistema local.
+- El trabajo acumulado viene de varios paquetes y toca varias áreas del ecosistema local.
 - Si se requiere trazabilidad granular, conviene separar commits por paquete antes de push futuro.
-- La cabina esta validada localmente, no en produccion.
+- La cabina está validada localmente, no en producción.
 - Arsenal sigue planificado, sin runtime.
 - SENTINELA y NUBE siguen protegidos/pendientes desde este frente.
 
-## Recomendacion para push/deploy
+## Recomendación para push/deploy
 
-- No hacer push ni deploy todavia.
+- No hacer push ni deploy todavía.
 - Revisar el commit local y reporte final con CEO/CTO.
-- Si el CEO autoriza subir, preparar un plan de push/deploy separado con validacion publica y autenticada.
-- Mantener DCFT, FORJA real, SENTINELA real, NUBE local, Local Agent, SUNAT real y secretos como no-touch salvo autorizacion explicita.
+- Si el CEO autoriza subir, preparar un plan de push/deploy separado con validación pública y autenticada.
+- Mantener DCFT, FORJA real, SENTINELA real, NUBE local, Local Agent, SUNAT real y secretos como no-touch salvo autorización explícita.
 
-## Confirmacion
+## Corrección de español y codificación
 
-- Produccion no tocada.
+- Se corrigieron textos visibles de la cabina y reportes recientes para usar ñ, tildes y español ejecutivo limpio.
+- Revisión especial ejecutada sobre Reunión de Mañana, Reunión de Tarde, Próxima decisión CEO, Estado Empresa IA, Departamentos, Riesgos, Oportunidades y Acciones ejecutivas.
+- Se restauraron identificadores técnicos internos en ASCII cuando correspondía: `decision`, `decisions`, `critical`, `arsenal`, ids de departamentos, acciones y rutas.
+- No se cambió lógica de negocio. No se tocaron DCFT real, FORJA real, SENTINELA real, NUBE local, SUNAT ni runtimes externos.
+
+## Confirmación
+
+- Producción no tocada.
 - Vercel no tocado.
 - No se conectaron runtimes externos.
 - No se crearon rutas reales del bus.

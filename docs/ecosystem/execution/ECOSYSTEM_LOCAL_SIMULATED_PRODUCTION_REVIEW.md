@@ -7,11 +7,11 @@ URL local: `http://127.0.0.1:8012/control-center`
 
 ## Resumen
 
-La cabina humana del Ecosistema IA queda revisable localmente como centro de direccion de empresa IA.
+La cabina humana del Ecosistema IA queda revisable localmente como centro de dirección de empresa IA.
 
 No se hizo push.
 No se hizo deploy.
-No se toco produccion real.
+No se toco producción real.
 No se tocaron DCFT, FORJA real, SENTINELA real, CEREBRO productivo ni NUBE local.
 No se abrio Local Agent.
 No se activo SUNAT real.
@@ -23,22 +23,22 @@ No se crearon rutas reales del Integration Bus.
 En la URL local puede revisar:
 
 - Home `ECOSISTEMA IA`.
-- Centro de Direccion Empresarial.
+- Centro de Dirección Empresarial.
 - Estado global.
-- Semaforo principal: Operacion, Construccion, Seguridad, Finanzas / Cloud.
-- Proxima decision CEO.
+- Semáforo principal: Operación, Construcción, Seguridad, Finanzas / Cloud.
+- Próxima decisión CEO.
 - Accesos rapidos.
 - Apps prioritarias.
 - Apps preparadas/discovery.
 - Apps pendientes/documented_only.
 - Apps protegidas/no-touch.
-- Riesgos y proximos pasos.
-- Tabs principales: Inicio CEO, Gobierno, Operacion, Auditoria, Sistema.
+- Riesgos y próximos pasos.
+- Tabs principales: Inicio CEO, Gobierno, Operación, Auditoría, Sistema.
 - Mobile y desktop.
 
 ## Que esta real
 
-Real local en esta revision:
+Real local en esta revisión:
 
 - Backend local: PASS.
 - Login local: PASS.
@@ -54,10 +54,10 @@ Real local en esta revision:
 
 Real previamente validado, no tocado en esta fase:
 
-- Produccion publica `https://ecosystem-foundation.vercel.app`.
-- PostgreSQL persistente en produccion.
-- FORJA produccion externa congelada/estable por evidencia previa.
-- DCFT produccion externa protegida por reglas no-touch.
+- Producción pública `https://ecosystem-foundation.vercel.app`.
+- PostgreSQL persistente en producción.
+- FORJA producción externa congelada/estable por evidencia previa.
+- DCFT producción externa protegida por reglas no-touch.
 
 ## Que esta simulado/preparado
 
@@ -85,17 +85,17 @@ En la cabina local se muestra como preparado o simulado:
 - Runtime real de FORJA desde ecosystem: pendiente.
 - Rutas reales del Integration Bus: pendientes.
 
-## Que esta protegido/no-touch
+## Que está protegido/no-touch
 
 - DCFT: protected_no_touch.
 - SUNAT real: apagado.
 - Clave SOL principal: no usar.
 - Credenciales reales: no usar ni exponer.
-- FORJA productiva: no tocar sin aprobacion CEO.
+- FORJA productiva: no tocar sin aprobación CEO.
 - CEREBRO productivo: no tocar sin alcance aprobado.
 - SENTINELA productivo: no tocar.
-- NUBE local: no tocar sin auditoria.
-- Local Agent: no abrir sin aprobacion CEO.
+- NUBE local: no tocar sin auditoría.
+- Local Agent: no abrir sin aprobación CEO.
 
 ## Apps que aparecen
 
@@ -122,30 +122,30 @@ SNIFF AMAZON y COMERCIO AUTONOMO aparecen separados.
 
 ## Estado CEREBRO
 
-Visible como Director estrategico / mano derecha CEO.
+Visible como Director estratégico / mano derecha CEO.
 
 Indica:
 
-- Que sabe estado, riesgos, prioridades y proximos pasos.
+- Que sabe estado, riesgos, prioridades y próximos pasos.
 - Que puede recomendar.
-- Que debe responder las 12 preguntas de validacion.
+- Que debe responder las 12 preguntas de validación.
 - Que no ejecuta codigo directamente.
-- Que no toca produccion.
+- Que no toca producción.
 
 ## Estado FORJA
 
-Visible como Directora de construccion.
+Visible como Directora de construcción.
 
 Indica:
 
-- Produccion externa congelada/estable.
+- Producción externa congelada/estable.
 - En ecosystem solo discovery/preparada.
-- No tocar sin aprobacion CEO.
-- Local Agent requiere aprobacion CEO.
+- No tocar sin aprobación CEO.
+- Local Agent requiere aprobación CEO.
 
 ## Estado AUDITORIA
 
-Visible como Juez de calidad, costos y aprobacion.
+Visible como Juez de calidad, costos y aprobación.
 
 Indica:
 
@@ -161,20 +161,20 @@ Visible como Torre de control cloud.
 Indica:
 
 - Estado documented_only / planned.
-- No registrada todavia en registry/contracts/bus.
+- No registrada todavía en registry/contracts/bus.
 - Herramienta local existe en `C:\Users\admin\nube`.
-- No tocar sin auditoria.
+- No tocar sin auditoría.
 
 ## Estado SENTINELA
 
-Visible como Seguridad y proteccion.
+Visible como Seguridad y protección.
 
 Indica:
 
 - Estado pending_review / planned / registry-only.
-- Human Cabin local pendiente de revision CEO.
-- No integrar todavia.
-- No tocar produccion.
+- Human Cabin local pendiente de revisión CEO.
+- No integrar todavía.
+- No tocar producción.
 
 ## Estado DCFT
 
@@ -183,7 +183,7 @@ Visible como Producto comercial prioritario protegido.
 Indica:
 
 - Estado protected_no_touch.
-- No integrar todavia.
+- No integrar todavía.
 - Frente principal del CTO principal.
 - Vault/SUNAT auxiliar/pilotos en proceso.
 - No activar SUNAT real.
@@ -197,7 +197,7 @@ Viewport: 390x844.
 
 - App autenticada visible: SI.
 - Titulo: `ECOSISTEMA IA`.
-- Semaforo: 4 cards.
+- Semáforo: 4 cards.
 - Apps prioritarias: 6 cards.
 - Accesos rapidos: 9.
 - Lanes de estado: 4.
@@ -214,7 +214,7 @@ Viewport: 1280x720.
 
 - App autenticada visible: SI.
 - Titulo: `ECOSISTEMA IA`.
-- Semaforo: 4 cards.
+- Semáforo: 4 cards.
 - Apps prioritarias: 6 cards.
 - Accesos rapidos: 9.
 - Lanes de estado: 4.
@@ -223,9 +223,9 @@ Viewport: 1280x720.
 - Console errors: 0.
 - Overflow horizontal: NO.
 
-## Validacion local
+## Validación local
 
-| Validacion | Resultado |
+| Validación | Resultado |
 | --- | --- |
 | `node --check apps/web/control-center/assets/app.js` | PASS |
 | `python -m compileall apps/api api scripts -q` | PASS |
@@ -243,33 +243,33 @@ Viewport: 1280x720.
 
 ## Errores encontrados
 
-- Una primera validacion de tests fallo porque se ejecutaron `pytest` y `validate_v1.py` en paralelo, compartiendo estado de sesiones de auth.
-- Se repitio la validacion secuencialmente y paso: `257 passed` y `validate_v1.py PASS`.
+- Una primera validación de tests falló porque se ejecutaron `pytest` y `validate_v1.py` en paralelo, compartiendo estado de sesiónes de auth.
+- Se repitió la validación secuencialmente y pasó: `257 passed` y `validate_v1.py PASS`.
 
 ## Errores corregidos
 
 - Se completo la cabina local para incluir CREADOR DE APIS y SNIFF AMAZON.
 - Se separo SNIFF AMAZON de COMERCIO AUTONOMO.
-- Se agregaron lanes de estado: preparadas, pendientes, protegidas y proximos pasos.
+- Se agregaron lanes de estado: preparadas, pendientes, protegidas y próximos pasos.
 - Se ajustaron accesos rapidos obligatorios.
 - Se mantuvo `connectedScore=0/11`, dejando claro que no hay runtime externo real conectado.
 
-## Que falta para produccion
+## Que falta para producción
 
-Antes de produccion se requiere:
+Antes de producción se requiere:
 
-1. Revision CEO/CTO de la URL local.
+1. Revisión CEO/CTO de la URL local.
 2. Validar que las respuestas de CEREBRO no alucinen conexiones reales.
 3. Commit local aprobado.
-4. Push solo con autorizacion.
-5. Deploy solo con autorizacion.
-6. Validacion productiva publica.
-7. Validacion productiva autenticada.
+4. Push solo con autorización.
+5. Deploy solo con autorización.
+6. Validación productiva pública.
+7. Validación productiva autenticada.
 8. Secret scan final.
 9. Confirmar que DCFT, FORJA real, SENTINELA real y NUBE local siguen no-touch.
 
-## Recomendacion final
+## Recomendación final
 
-Recomendado para revision CEO local.
+Recomendado para revisión CEO local.
 
 No recomendar push/deploy hasta que el CEO revise visualmente la cabina, confirme que se siente como empresa IA viva y apruebe el siguiente paso.

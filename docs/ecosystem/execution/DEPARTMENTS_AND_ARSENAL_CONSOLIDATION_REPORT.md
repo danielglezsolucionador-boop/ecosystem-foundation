@@ -9,7 +9,7 @@ Frente: ECOSISTEMA IA / DEPARTAMENTOS / ARSENAL
 - Paquete 3 ejecutado localmente.
 - No push.
 - No deploy.
-- No produccion.
+- No producción.
 - No Vercel.
 - No runtimes externos.
 - No rutas reales del bus.
@@ -41,16 +41,16 @@ Riesgo de backup:
 
 ## Departamentos finales
 
-### DIRECCION
+### DIRECCIÓN
 
 - CEO.
 - CEREBRO.
 
 Rol:
 
-- Gobierno ejecutivo, prioridades, reunion diaria y decisiones.
+- Gobierno ejecutivo, prioridades, reunión diaria y decisiones.
 
-### CONSTRUCCION
+### CONSTRUCCIÓN
 
 - FORJA.
 - HERMES.
@@ -59,12 +59,12 @@ Rol:
 
 Rol:
 
-- Convertir decisiones aprobadas en entregables, APIs, skills, webs y soporte tecnico preparado.
+- Convertir decisiones aprobadas en entregables, APIs, skills, webs y soporte técnico preparado.
 
 Reglas:
 
 - FORJA productiva no se toca.
-- HERMES queda en Construccion.
+- HERMES queda en Construcción.
 
 ### INTELIGENCIA
 
@@ -72,7 +72,7 @@ Reglas:
 
 Rol:
 
-- Radar oficial de senales, oportunidades, amenazas y tendencias.
+- Radar oficial de señales, oportunidades, amenazas y tendencias.
 
 Reglas:
 
@@ -111,19 +111,19 @@ Reglas:
 
 Rol:
 
-- Contenido, narrativa, campanas, video, crecimiento y presencia publica.
+- Contenido, narrativa, campañas, video, crecimiento y presencia pública.
 
-### OPERACION
+### OPERACIÓN
 
 - NUBE.
 
 Rol:
 
-- Operacion documental: URLs, deploys, costos, variables, backups y health checks.
+- Operación documental: URLs, deploys, costos, variables, backups y health checks.
 
 Reglas:
 
-- NUBE queda sola en Operacion.
+- NUBE queda sola en Operación.
 - NUBE local no se toca.
 
 ### CONTROL Y SEGURIDAD
@@ -133,19 +133,19 @@ Reglas:
 
 Rol:
 
-- Calidad, riesgos, revision, seguridad, proteccion y control.
+- Calidad, riesgos, revisión, seguridad, protección y control.
 
 Reglas:
 
-- SENTINELA aparece como seguridad pendiente/revision, sin integrar productivo.
+- SENTINELA aparece como seguridad pendiente/revisión, sin integrar productivo.
 
-### ALMACEN ESTRATEGICO
+### ALMACEN ESTRATÉGICO
 
 - ARSENAL.
 
 Rol:
 
-- Inventario estrategico de capacidades reutilizables y vendibles.
+- Inventario estratégico de capacidades reutilizables y vendibles.
 
 Estado:
 
@@ -173,19 +173,19 @@ ARSENAL representa:
 - Riesgos.
 - Mejor uso recomendado.
 
-ARSENAL no representa todavia:
+ARSENAL no representa todavía:
 
 - Runtime real.
 - Secretos.
-- Conexion a APIs reales.
+- Conexión a APIs reales.
 - Proveedores activados.
 - Rutas reales del bus.
-- Produccion.
+- Producción.
 
 Cabinas futuras:
 
-- Debe tener cabina corazon futura.
-- Debe tener cabina tecnica futura.
+- Debe tener cabina corazón futura.
+- Debe tener cabina técnica futura.
 - No necesita cabina humana completa en este paquete.
 
 ## Que esta real
@@ -211,12 +211,12 @@ Cabinas futuras:
 ## Que esta pendiente
 
 - ARSENAL `planned / pending_integration`.
-- SENTINELA como seguridad pendiente/revision.
-- NUBE documental, pendiente de auditoria local si el CEO lo autoriza.
+- SENTINELA como seguridad pendiente/revisión.
+- NUBE documental, pendiente de auditoría local si el CEO lo autoriza.
 - Runtimes reales de departamentos.
-- Cabina corazon y cabina tecnica futuras de Arsenal.
+- Cabina corazón y cabina técnica futuras de Arsenal.
 
-## Que esta protegido
+## Que está protegido
 
 - DCFT real.
 - FORJA productiva.
@@ -225,7 +225,7 @@ Cabinas futuras:
 - Local Agent.
 - SUNAT real.
 - Secretos.
-- Produccion.
+- Producción.
 - Vercel.
 - Rutas reales del bus.
 
@@ -268,7 +268,7 @@ Nota:
 - NUBE local.
 - Local Agent.
 - SUNAT real.
-- Produccion.
+- Producción.
 - Vercel.
 - Runtimes externos.
 - Rutas reales del bus.
@@ -278,8 +278,8 @@ Nota:
 
 - El working tree mantiene cambios previos no relacionados con este paquete.
 - ARSENAL queda documentado y visible, pero no funcional.
-- Si se intenta avanzar a runtime sin aprobacion CEO/CTO, podria abrir riesgo de secretos, costos o integraciones externas.
+- Si se intenta avanzar a runtime sin aprobación CEO/CTO, podria abrir riesgo de secretos, costos o integraciones externas.
 
-## Recomendacion
+## Recomendación
 
-Mantener este paquete como consolidacion local. El siguiente paquete debe ser definido por el CEO despues de revisar la estructura de departamentos y confirmar si ARSENAL pasa a diseño de cabina corazon/tecnica o si se prioriza otro frente.
+Mantener este paquete como consolidación local. El siguiente paquete debe ser definido por el CEO despues de revisar la estructura de departamentos y confirmar si ARSENAL pasa a diseño de cabina corazón/técnica o si se prioriza otro frente.
