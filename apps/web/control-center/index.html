@@ -12,7 +12,7 @@
     <section id="login-screen" class="login-screen" aria-label="Acceso Control Center">
       <div class="login-card">
         <div class="login-brand">
-          <span class="brand-mark">CC</span>
+          <span class="brand-mark ecosystem-mark" aria-label="Mundo del ecosistema"><span class="globe-core"></span></span>
           <div>
             <span class="eyebrow">Control Center</span>
             <h1>Acceso ejecutivo</h1>
@@ -38,14 +38,14 @@
     <div id="app" class="shell hidden" aria-live="polite">
       <aside class="sidebar" aria-label="Navegacion principal">
         <a class="brand" href="#top" aria-label="Control Center inicio">
-          <span class="brand-mark">CC</span>
+          <span class="brand-mark ecosystem-mark" aria-label="Mundo del ecosistema"><span class="globe-core"></span></span>
           <span>
-            <strong>CONTROL CENTER</strong>
-            <small>Human Governance OS</small>
+            <strong>ECOSISTEMA IA</strong>
+            <small>Centro de Direccion</small>
           </span>
         </a>
 
-        <section class="role-card">
+        <section class="role-card" id="profile">
           <span>Sesion activa</span>
           <strong id="active-user-name">Usuario</strong>
           <small id="active-user-email">email</small>
@@ -55,11 +55,11 @@
         </section>
 
         <nav class="nav" id="view-tabs" aria-label="Vistas">
-          <button class="active" data-view="ceo" type="button">Vista CEO</button>
-          <button data-view="governance" type="button">Governance</button>
-          <button data-view="operator" type="button">Vista Operador</button>
-          <button data-view="auditor" type="button">Vista Auditor</button>
-          <button data-view="system" type="button">Vista Sistema</button>
+          <button class="active" data-view="ceo" type="button">Inicio CEO</button>
+          <button data-view="governance" type="button">Gobierno</button>
+          <button data-view="operator" type="button">Operacion</button>
+          <button data-view="auditor" type="button">Auditoria</button>
+          <button data-view="system" type="button">Sistema</button>
         </nav>
 
         <div class="sidebar-card">
@@ -70,11 +70,11 @@
       </aside>
 
       <main class="main" id="top">
-        <header class="topbar">
+        <header class="topbar executive-hero">
           <div>
-            <span class="eyebrow">Cabina humana premium</span>
-            <h1>Control Center</h1>
-            <p>Gobierno ejecutivo del ecosistema con acciones humanas, permisos por rol y trazabilidad completa.</p>
+            <span class="eyebrow">Centro de Direccion Empresarial</span>
+            <h1>Decision CEO</h1>
+            <p>Prioridad, semaforo y datos separados: real, preparado y protegido.</p>
           </div>
           <div class="topbar-actions">
             <label class="search-box">
@@ -96,39 +96,111 @@
             <span class="eyebrow">Estado global</span>
             <h2 id="global-status">Cargando</h2>
             <p id="global-summary">Leyendo datos reales del backbone.</p>
+            <div id="next-decision" class="decision-strip">
+              <span>Proxima decision CEO</span>
+              <strong>Cargando prioridades</strong>
+            </div>
             <div class="hero-actions">
-              <button class="ghost-action" data-action="create_decision" type="button">Crear decision</button>
-              <button class="ghost-action" data-action="evaluate_policy" type="button">Evaluar politica</button>
-              <button class="ghost-action" data-view-jump="alerts" type="button">Ver alertas</button>
+              <button class="ghost-action" data-quick="cerebro" type="button">Hablar con CEREBRO</button>
+              <button class="ghost-action" data-quick="forja" type="button">Ver estado FORJA</button>
+              <button class="ghost-action" data-view-jump="alerts" type="button">Ver riesgos</button>
             </div>
           </article>
           <article class="score-card">
-            <span>Salud de servicios</span>
+            <span>Apps conectadas reales</span>
             <strong id="service-score">--</strong>
-            <small id="service-score-copy">Calculando senales operativas</small>
+            <small id="service-score-copy">Calculando conexiones reales y perfiles preparados</small>
           </article>
         </section>
 
-        <section class="metric-grid" id="metric-grid" aria-label="Metricas principales">
-          <article class="metric skeleton"></article>
-          <article class="metric skeleton"></article>
-          <article class="metric skeleton"></article>
-          <article class="metric skeleton"></article>
+        <section class="cerebro-meeting-panel" id="cerebro-meeting" aria-label="Reunion diaria con CEREBRO">
+          <div class="section-title compact">
+            <div>
+              <span class="eyebrow">Reunion con CEREBRO</span>
+              <h2>Manana y tarde</h2>
+            </div>
+            <div class="meeting-switch" role="group" aria-label="Elegir reunion">
+              <button class="active" data-meeting="morning" type="button">Reunion de Manana</button>
+              <button data-meeting="evening" type="button">Reunion de Tarde</button>
+            </div>
+          </div>
+          <div id="daily-meeting-content" class="daily-meeting-content"></div>
+        </section>
+
+        <section class="command-cockpit" aria-label="Resumen ejecutivo premium">
+          <div>
+            <div class="section-title compact">
+              <div>
+                <span class="eyebrow">Semaforo principal</span>
+                <h2>Cuatro senales para decidir</h2>
+              </div>
+            </div>
+            <div id="traffic-grid" class="traffic-grid" aria-label="Semaforo principal">
+              <article class="traffic-card skeleton"></article>
+              <article class="traffic-card skeleton"></article>
+              <article class="traffic-card skeleton"></article>
+              <article class="traffic-card skeleton"></article>
+            </div>
+          </div>
+          <div>
+            <div class="section-title compact">
+              <div>
+                <span class="eyebrow">Lectura rapida</span>
+                <h2>Numeros clave</h2>
+              </div>
+            </div>
+            <div class="metric-grid" id="metric-grid" aria-label="Metricas principales">
+              <article class="metric skeleton"></article>
+              <article class="metric skeleton"></article>
+              <article class="metric skeleton"></article>
+              <article class="metric skeleton"></article>
+            </div>
+          </div>
+        </section>
+
+        <section class="quick-actions-band premium-action-rail" aria-label="Accesos rapidos">
+          <div class="section-title compact">
+            <div>
+              <span class="eyebrow">Accesos compactos</span>
+              <h2>Mapa rapido</h2>
+            </div>
+          </div>
+          <div id="quick-actions-map" class="quick-actions compact-map"></div>
+        </section>
+
+        <section class="priority-apps-band" aria-label="Apps prioritarias">
+          <div class="section-title compact">
+            <div>
+              <span class="eyebrow">Apps prioritarias</span>
+              <h2>Lo que el CEO debe entender primero</h2>
+            </div>
+          </div>
+          <div id="priority-apps" class="priority-apps"></div>
+        </section>
+
+        <section class="status-lanes-band" aria-label="Estados operativos del ecosistema">
+          <div class="section-title compact">
+            <div>
+              <span class="eyebrow">Estado por tipo</span>
+              <h2>Preparadas, pendientes y protegidas</h2>
+            </div>
+          </div>
+          <div id="status-lanes" class="status-lanes"></div>
         </section>
 
         <section class="workspace">
           <article class="panel wide" id="ecosystem">
             <div class="panel-head">
               <div>
-                <span class="eyebrow">Resumen del ecosistema</span>
-                <h2>Aplicaciones registradas</h2>
+                <span class="eyebrow">Mapa del ecosistema</span>
+                <h2>Apps, estados y fuente del dato</h2>
               </div>
               <select id="status-filter" aria-label="Filtrar aplicaciones por estado">
                 <option value="all">Todos los estados</option>
                 <option value="external">Externas</option>
                 <option value="planned">Planeadas</option>
                 <option value="unknown">Desconocidas</option>
-                <option value="blocked">Bloqueadas</option>
+                <option value="blocked">En revision CEO</option>
                 <option value="internal">Internas</option>
               </select>
             </div>
@@ -148,8 +220,8 @@
 
         <section class="view-panel active" data-panel="ceo">
           <div class="section-title">
-            <span class="eyebrow">Vista CEO</span>
-            <h2>Direccion ejecutiva</h2>
+            <span class="eyebrow">Inicio CEO</span>
+            <h2>Decisiones y riesgos</h2>
           </div>
           <div class="dashboard-grid">
             <article class="panel">
@@ -169,7 +241,7 @@
 
         <section class="view-panel" data-panel="governance">
           <div class="section-title">
-            <span class="eyebrow">Governance UI Actions</span>
+            <span class="eyebrow">Gobierno</span>
             <h2>Control humano de decisiones e integraciones</h2>
           </div>
 
@@ -264,7 +336,7 @@
 
         <section class="view-panel" data-panel="operator">
           <div class="section-title">
-            <span class="eyebrow">Vista Operador</span>
+            <span class="eyebrow">Operacion</span>
             <h2>Servicios, eventos y memoria</h2>
           </div>
           <div class="dashboard-grid">
@@ -285,7 +357,7 @@
 
         <section class="view-panel" data-panel="auditor">
           <div class="section-title">
-            <span class="eyebrow">Vista Auditor</span>
+            <span class="eyebrow">Auditoria</span>
             <h2>Contratos, auditoria y permisos</h2>
           </div>
           <div class="dashboard-grid">
@@ -306,7 +378,7 @@
 
         <section class="view-panel" data-panel="system">
           <div class="section-title">
-            <span class="eyebrow">Vista Sistema</span>
+            <span class="eyebrow">Sistema</span>
             <h2>Readiness y observabilidad</h2>
           </div>
           <div class="dashboard-grid">
@@ -325,6 +397,46 @@
           </div>
         </section>
       </main>
+
+      <aside class="decision-rail" aria-label="Panel derecho de decisiones CEO">
+        <section class="rail-panel rail-primary-actions">
+          <div class="section-title compact">
+            <div>
+              <span class="eyebrow">Acciones ejecutivas del CEO</span>
+              <h2>Mando rapido</h2>
+            </div>
+          </div>
+          <div id="quick-actions" class="quick-actions rail-actions"></div>
+        </section>
+
+        <section class="rail-panel">
+          <div class="section-title compact">
+            <div>
+              <span class="eyebrow">Apps clave</span>
+              <h2>Prioridad CEO</h2>
+            </div>
+          </div>
+          <div id="rail-priority-apps" class="rail-priority-apps"></div>
+        </section>
+
+        <section class="rail-panel">
+          <div class="section-title compact">
+            <div>
+              <span class="eyebrow">Riesgos y decisiones</span>
+              <h2>Control humano</h2>
+            </div>
+          </div>
+          <div id="rail-decisions" class="rail-stack"></div>
+        </section>
+      </aside>
+
+      <nav class="bottom-nav" id="bottom-nav" aria-label="Navegacion mobile">
+        <button class="active" data-bottom-target="top" type="button">Inicio</button>
+        <button data-bottom-target="ecosystem" type="button">Apps</button>
+        <button data-bottom-target="cerebro" type="button">Cerebro</button>
+        <button data-bottom-target="alerts" type="button">Riesgos</button>
+        <button data-bottom-target="profile" type="button">Perfil</button>
+      </nav>
     </div>
 
     <dialog id="action-dialog" class="action-dialog">

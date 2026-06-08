@@ -926,7 +926,15 @@ def request_gate_discovery(
             severity=AuditSeverity.high,
         )
         append_audit_id(gate, event)
-        return save_gate(gate)
+        save_gate(gate)
+        raise GovernanceError(
+            status_code=400,
+            detail={
+                "error": "protected_app_discovery_blocked",
+                "app_id": gate.app_id,
+                "state": gate.state.value,
+            },
+        )
 
     gate.state = IntegrationGateState.pending_approval
     gate.requested_by = request.role_id

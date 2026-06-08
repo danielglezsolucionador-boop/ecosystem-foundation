@@ -17,7 +17,15 @@ def test_control_center_frontend_is_served() -> None:
     assert "login-form" in response.text
     assert "active-user-role" in response.text
     assert "logout" in response.text
-    assert "Governance UI Actions" in response.text
+    assert "ECOSISTEMA IA" in response.text
+    assert "Centro de Direccion Empresarial" in response.text
+    assert "Decision CEO" in response.text
+    assert "Semaforo principal" in response.text
+    assert "Mapa rapido" in response.text
+    assert "Panel derecho de decisiones CEO" in response.text
+    assert "Acciones ejecutivas del CEO" in response.text
+    assert "Lo que el CEO debe entender primero" in response.text
+    assert "Control humano de decisiones e integraciones" in response.text
     assert "Decision Center" in response.text
     assert "Approval Center" in response.text
     assert "Integration Gates" in response.text
@@ -25,6 +33,9 @@ def test_control_center_frontend_is_served() -> None:
     assert "Risk Center" in response.text
     assert "Governance Audit" in response.text
     assert "Governance Reports" in response.text
+    assert "Reunion con CEREBRO" in response.text
+    assert "Reunion de Manana" in response.text
+    assert "Reunion de Tarde" in response.text
 
 
 def test_control_center_assets_are_served() -> None:
@@ -44,4 +55,68 @@ def test_control_center_assets_are_served() -> None:
     assert "Authorization" in js_response.text
     assert "executePendingAction" in js_response.text
     assert "escalate_approval" in js_response.text
+    assert "companyDepartments" in js_response.text
+    assert "dailyMeetingModels" in js_response.text
+    assert "CEO, esto requiere tu decision." in js_response.text
+    assert "CEO, este es el cierre del dia." in js_response.text
+    assert "Esto puede generar ingresos" in js_response.text
+    assert "Esto esta protegido y no se toca" in js_response.text
+    assert "Esto debe auditarse antes de avanzar" in js_response.text
+    assert "Esto puede pasar a FORJA" in js_response.text
+    assert "Esto debe esperar aprobacion" in js_response.text or "debe esperar aprobacion" in js_response.text
+    assert "datos reales" in js_response.text.lower()
+    assert "datos preparados" in js_response.text.lower()
+    assert "Empresa IA" in js_response.text
+    assert "CREADOR DE APIS Y SKILLS" in js_response.text
+    assert "BUSCADOR DE TENDENCIAS" in js_response.text
+    assert "ARSENAL" in js_response.text
+    assert "SNIFF AMAZON" in js_response.text
+    assert "DIRECCION" in js_response.text
+    assert "CONSTRUCCION" in js_response.text
+    assert "INTELIGENCIA" in js_response.text
+    assert "PRODUCTOS COMERCIALES" in js_response.text
+    assert "CONTENIDO Y CRECIMIENTO" in js_response.text
+    assert "OPERACION" in js_response.text
+    assert "CONTROL Y SEGURIDAD" in js_response.text
+    assert "ALMACEN ESTRATEGICO" in js_response.text
+    assert "planned / pending_integration" in js_response.text
+    assert "Inventario de APIs, modelos, skills, conectores" in js_response.text
+    assert "COMERCIO AUTONOMO" in js_response.text
+    assert "INVESTIGADOR" not in js_response.text
+    assert "RADAR IA" not in js_response.text
     assert "forbidden" in css_response.text
+    assert "mobile-brand-chip" in css_response.text
+    assert "department-card" in css_response.text
+
+
+def test_control_center_cerebro_copy_stays_truthful_and_protected() -> None:
+    js_response = client.get("/control-center/assets/app.js")
+
+    assert js_response.status_code == 200
+    text = js_response.text
+    normalized = text.lower()
+
+    assert "Chief of Staff / Jefe de Gabinete IA" in text
+    assert "Mano derecha del CEO" in text
+    assert "Preparado, sin conexion real" in text
+    assert "Todas las conexiones externas siguen apagadas" in text
+    assert "DCFT sigue protegido" in text
+    assert "sin SUNAT real" in text
+    assert "Runtime local verificado" in text
+    assert "Deploy conectado" not in text
+
+    forbidden_claims = [
+        "dcft esta integrado",
+        "sentinela esta activo en produccion",
+        "forja real esta conectada",
+        "nube esta conectada",
+        "arsenal ya funciona como runtime",
+        "hay rutas reales del bus",
+        "hay apps externas conectadas",
+        "se toco produccion",
+        "se activo sunat",
+        "local agent esta activo",
+        "cerebro ejecuto codigo",
+    ]
+    for claim in forbidden_claims:
+        assert claim not in normalized

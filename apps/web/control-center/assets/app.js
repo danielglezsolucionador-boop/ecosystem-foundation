@@ -4,6 +4,7 @@ const endpoints = {
   runtime: "/runtime/status",
   version: "/version",
   apps: "/api/v1/apps",
+  integrationProfiles: "/api/v1/integrations/apps",
   controlCenter: "/api/v1/control-center",
   roles: "/api/v1/security/roles",
   memory: "/api/v1/memory",
@@ -32,10 +33,333 @@ const state = {
   role: "ceo",
   boundary: null,
   view: "ceo",
+  meeting: "morning",
   search: "",
   statusFilter: "all",
   lastUpdated: null,
   pendingAction: null
+};
+
+const humanAppCatalog = [
+  {
+    id: "cerebro",
+    name: "CEREBRO",
+    role: "Chief of Staff / Jefe de Gabinete IA",
+    capability: "Mano derecha del CEO: prepara decisiones, riesgos, oportunidades y prioridades.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Hablar con CEREBRO",
+    lane: "prepared",
+    priority: true,
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "forja",
+    name: "FORJA",
+    role: "Construccion principal",
+    capability: "Convierte decisiones aprobadas en entregables controlados.",
+    preparedCopy: "Produccion estable; no conectada desde ecosystem.",
+    action: "Ver estado FORJA",
+    lane: "prepared",
+    displayStatus: "production_pass"
+  },
+  {
+    id: "nube",
+    name: "NUBE",
+    role: "Operacion local y cloud",
+    capability: "URLs, deploys, costos, variables y backups.",
+    preparedCopy: "Documentado para revision; runtime apagado.",
+    action: "Revisar NUBE",
+    lane: "pending",
+    displayStatus: "documented_only"
+  },
+  {
+    id: "auditor",
+    name: "AUDITORIA",
+    role: "Control y calidad",
+    capability: "Evidencia, permisos, riesgos y aprobaciones.",
+    preparedCopy: "Preparada, sin conexion externa.",
+    action: "Ver AUDITORIA",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "centinela",
+    name: "SENTINELA",
+    role: "Seguridad operativa",
+    capability: "Permisos, agentes, datos sensibles e incidentes.",
+    preparedCopy: "Pendiente de revision CEO; no conectado.",
+    action: "Ver SENTINELA",
+    lane: "pending",
+    displayStatus: "pending_review"
+  },
+  {
+    id: "doctor_contable_financiero_tributario",
+    name: "DCFT",
+    role: "Producto comercial protegido",
+    capability: "Doctor contable, financiero y tributario.",
+    preparedCopy: "Protegido, no conectado; sin SUNAT real.",
+    action: "Revisar DCFT",
+    lane: "protected",
+    priority: true,
+    displayStatus: "protected_no_touch"
+  },
+  {
+    id: "hermes",
+    name: "HERMES",
+    role: "Apoyo ligero de construccion",
+    capability: "Apoya a FORJA con preparacion, coordinacion y tareas tecnicas ligeras.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Ver HERMES",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "pluma",
+    name: "PLUMA",
+    role: "Contenido y escritura",
+    capability: "Prepara piezas editoriales, guiones y comunicacion cuando sea conectada.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Ver ficha",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "lente",
+    name: "LENTE",
+    role: "Visual y audiovisual",
+    capability: "Prepara mirada visual, video, analisis y criterios audiovisuales.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Ver ficha",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "web_factory",
+    name: "WEB FACTORY",
+    role: "Produccion web",
+    capability: "Prepara fabricacion de sitios y experiencias digitales controladas.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Ver ficha",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "marketing",
+    name: "MARKETING / GROWTH LAB",
+    role: "Crecimiento y campanas",
+    capability: "Prepara campanas, activacion y crecimiento cuando reciba aprobacion.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Ver ficha",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "marca_personal",
+    name: "MARCA PERSONAL",
+    role: "Marca del CEO",
+    capability: "Ordena identidad, narrativa y presencia publica para ejecucion futura.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Ver ficha",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "api_creator",
+    name: "CREADOR DE APIS Y SKILLS",
+    role: "Fabrica de APIs y skills",
+    capability: "Prepara APIs internas, APIs vendibles, skills internas y skills vendibles.",
+    preparedCopy: "Documentado para revision; sin rutas reales.",
+    action: "Ver ficha",
+    lane: "pending",
+    displayStatus: "documented_only"
+  },
+  {
+    id: "buscador_de_tendencias",
+    name: "BUSCADOR DE TENDENCIAS",
+    role: "Radar oficial",
+    capability: "Detecta senales, oportunidades, amenazas y tendencias sin proveedores conectados.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Ver ficha",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "sniff_amazon",
+    name: "SNIFF AMAZON",
+    role: "Producto comercial Amazon",
+    capability: "Prepara oportunidades Amazon como producto separado de Comercio Autonomo.",
+    preparedCopy: "Documentado para revision; sin acciones reales.",
+    action: "Ver ficha",
+    lane: "pending",
+    displayStatus: "documented_only"
+  },
+  {
+    id: "comercio_autonomo",
+    name: "COMERCIO AUTONOMO",
+    role: "Sistema propio de e-commerce/dropshipping/comercio",
+    capability: "Prepara flujos comerciales propios sin activar ventas, pagos ni proveedores reales.",
+    preparedCopy: "Preparado, sin conexion real.",
+    action: "Ver ficha",
+    lane: "prepared",
+    displayStatus: "discovery_prepared"
+  },
+  {
+    id: "arsenal",
+    name: "ARSENAL",
+    role: "Almacen estrategico",
+    capability: "Inventario de APIs, modelos, skills, conectores, costos, limites, calidad, riesgos y mejor uso.",
+    preparedCopy: "planned / pending_integration; sin runtime ni secretos.",
+    action: "Ver Arsenal",
+    lane: "pending",
+    displayStatus: "pending_integration"
+  }
+];
+
+const companyDepartments = [
+  {
+    id: "direccion",
+    name: "DIRECCION",
+    shortName: "Direccion",
+    accent: "gold",
+    icon: "cerebro",
+    apps: ["CEO", "CEREBRO"],
+    appIds: ["cerebro"],
+    function: "Decisiones, prioridades y coordinacion.",
+    action: "Abrir reunion",
+    target: "cerebro"
+  },
+  {
+    id: "construccion",
+    name: "CONSTRUCCION",
+    shortName: "Construccion",
+    accent: "amber",
+    icon: "forja",
+    apps: ["FORJA", "HERMES", "CREADOR DE APIS Y SKILLS", "WEB FACTORY"],
+    appIds: ["forja", "hermes", "api_creator", "web_factory"],
+    function: "Entregables, APIs, skills, webs y soporte tecnico.",
+    action: "Ver construccion",
+    target: "forja"
+  },
+  {
+    id: "inteligencia",
+    name: "INTELIGENCIA",
+    shortName: "Inteligencia",
+    accent: "violet",
+    icon: "buscador_de_tendencias",
+    apps: ["BUSCADOR DE TENDENCIAS"],
+    appIds: ["buscador_de_tendencias"],
+    function: "Senales, novedades, amenazas y oportunidades.",
+    action: "Ver senales",
+    target: "buscador_de_tendencias"
+  },
+  {
+    id: "productos_comerciales",
+    name: "PRODUCTOS COMERCIALES",
+    shortName: "Productos",
+    accent: "emerald",
+    icon: "doctor_contable_financiero_tributario",
+    apps: ["DCFT", "SENTINELA", "SNIFF AMAZON", "COMERCIO AUTONOMO", "APIs vendibles", "Skills vendibles", "Apps vendibles"],
+    appIds: ["doctor_contable_financiero_tributario", "centinela", "sniff_amazon", "comercio_autonomo", "api_creator", "arsenal"],
+    function: "Activos con potencial de ingresos.",
+    action: "Ver productos",
+    target: "productos_comerciales"
+  },
+  {
+    id: "contenido_crecimiento",
+    name: "CONTENIDO Y CRECIMIENTO",
+    shortName: "Crecimiento",
+    accent: "cyan",
+    icon: "lente",
+    apps: ["PLUMA", "LENTE", "MARKETING", "MARCA PERSONAL"],
+    appIds: ["pluma", "lente", "marketing", "marca_personal"],
+    function: "Contenido, marca, campanas, video y crecimiento.",
+    action: "Ver contenido",
+    target: "pluma"
+  },
+  {
+    id: "operacion",
+    name: "OPERACION",
+    shortName: "Operacion",
+    accent: "cloud",
+    icon: "nube",
+    apps: ["NUBE"],
+    appIds: ["nube"],
+    function: "URLs, deploys, costos, variables, backups y health checks.",
+    action: "Ver NUBE",
+    target: "nube"
+  },
+  {
+    id: "control_seguridad",
+    name: "CONTROL Y SEGURIDAD",
+    shortName: "Seguridad",
+    accent: "military",
+    icon: "centinela",
+    apps: ["AUDITORIA", "SENTINELA"],
+    appIds: ["auditor", "centinela"],
+    function: "Calidad, riesgos, aprobacion, seguridad y proteccion.",
+    action: "Ver riesgos",
+    target: "alerts"
+  },
+  {
+    id: "almacen_estrategico",
+    name: "ALMACEN ESTRATEGICO",
+    shortName: "Arsenal",
+    accent: "copper",
+    icon: "arsenal",
+    apps: ["ARSENAL"],
+    appIds: ["arsenal"],
+    function: "APIs, modelos, skills, conectores, costos, limites, calidad, riesgos y mejor uso.",
+    action: "Ver Arsenal",
+    target: "arsenal"
+  }
+];
+
+const dailyMeetingModels = {
+  morning: {
+    label: "Reunion de Manana",
+    headline: "CEO, esto requiere tu decision.",
+    summary: "CEREBRO separa lo real, lo preparado y lo protegido.",
+    priority: "Validar cabina local sin abrir frentes nuevos.",
+    decision: "Elegir siguiente revision o pedir mas evidencia.",
+    opportunity: "Esto puede generar ingresos: APIs, skills y productos vendibles; sin ventas reales.",
+    risk: "Esto esta protegido y no se toca: DCFT, FORJA real, SENTINELA real, NUBE, Local Agent y SUNAT real.",
+    approval: "Esto debe esperar aprobacion CEO antes de cualquier conexion real.",
+    tasks: [
+      ["FORJA", "Esto puede pasar a FORJA solo como propuesta aprobada; nada real se ejecuta."],
+      ["HERMES", "Puede apoyar con mensajes y coordinacion ligera, sin enviar comunicaciones reales."],
+      ["CREADOR DE APIS Y SKILLS", "Debe preparar contratos y alcance; no crear rutas reales del bus."],
+      ["AUDITORIA", "Debe revisar evidencia, permisos y riesgos antes de avanzar."],
+      ["NUBE", "Debe controlar estado documental; no tocar secretos ni deploys."],
+      ["SENTINELA", "Debe proteger limites y datos; sigue pendiente de revision."],
+      ["INGRESOS", "Puede priorizar productos vendibles, manteniendo pagos y ventas reales apagados."]
+    ]
+  },
+  evening: {
+    label: "Reunion de Tarde",
+    headline: "CEO, este es el cierre del dia.",
+    summary: "CEREBRO cierra avances locales sin prometer integraciones reales.",
+    priority: "Registrar evidencia y dejar una accion concreta.",
+    decision: "Manana: definir paquete o corregir cabina.",
+    opportunity: "Buscador de Tendencias queda preparado; sin APIs externas ni scraping real.",
+    risk: "Esto debe auditarse antes de avanzar: bus real, proveedor, secreto o deploy.",
+    approval: "Esto debe esperar aprobacion CEO para pasar de preparado a ejecucion.",
+    tasks: [
+      ["HECHO", "Se valida cabina local, documentos y pruebas locales cuando se ejecutan."],
+      ["NO HECHO", "No se toca produccion, no se conecta runtime externo y no se abre Local Agent."],
+      ["BUSCADOR DE TENDENCIAS", "Puede reportar oportunidades preparadas, sin fuentes externas activadas."],
+      ["FORJA", "No construyo en productivo; solo queda como construccion controlada futura."],
+      ["HERMES", "No envio mensajes reales; puede preparar coordinacion local."],
+      ["CREADOR DE APIS Y SKILLS", "No creo rutas reales; puede preparar contratos."],
+      ["PLUMA / LENTE / MARKETING", "Pueden preparar contenido y visuales, sin publicar."],
+      ["AUDITORIA / SENTINELA / NUBE", "Revisan, protegen y controlan; no ejecutan cambios reales."],
+      ["MANANA", "Definir una sola decision CEO y mantener DCFT protected_no_touch."]
+    ]
+  }
+};
+
+const dailyMeetingDataBoundaries = {
+  real: ["login local", "cabina local", "App Registry", "documentos", "capturas", "validaciones locales"],
+  prepared: ["CEREBRO discovery/preparado", "FORJA visual/preparada", "SENTINELA pendiente", "NUBE documental", "DCFT protected_no_touch", "Arsenal planned"]
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -52,20 +376,31 @@ function escapeHtml(value) {
 
 function normalizeStatus(value) {
   const status = String(value || "unknown").toLowerCase();
-  if (["healthy", "ok", "ready", "operational", "connected", "approved", "closed"].includes(status)) return "healthy";
-  if (["degraded", "planned", "staging", "info", "pending", "pending_review", "pending_approval", "escalated"].includes(status)) return "degraded";
-  if (["blocked", "error", "failed", "critical", "rejected", "suspended"].includes(status)) return "blocked";
+  if (["healthy", "ok", "ready", "operational", "connected", "approved", "closed", "real_operational", "production_pass", "local_pass"].includes(status)) return "healthy";
+  if (["degraded", "planned", "staging", "info", "pending", "pending_review", "pending_approval", "pending_integration", "prepared", "prepared_for_discovery", "discovery_prepared", "documented_only", "escalated"].includes(status)) return "degraded";
+  if (["blocked", "error", "failed", "critical", "rejected", "suspended", "protected_no_touch"].includes(status)) return "blocked";
   return status;
 }
 
 function label(value) {
   const translated = {
-    blocked: "Bloqueado",
+    blocked: "En revision CEO",
     degraded: "Degradado",
     healthy: "Saludable",
     ready: "Listo",
     operational: "Operativo",
     connected: "Conectado",
+    prepared: "Preparado",
+    prepared_for_discovery: "Preparado para revision",
+    discovery_prepared: "Preparado, sin conexion real",
+    documented_only: "Documentado",
+    protected_no_touch: "Protegido, no conectado",
+    production_pass: "Produccion PASS",
+    local_pass: "Local PASS",
+    real_operational: "Real operativo",
+    registry_only: "Solo registry",
+    no_touch_external: "Protegida",
+    integration_prepared_no_runtime_connection: "Preparada sin conexion",
     external: "Externo",
     internal: "Interno",
     planned: "Planeado",
@@ -76,8 +411,9 @@ function label(value) {
     postgresql: "PostgreSQL",
     governance_attention_required: "Atencion requerida",
     governance_ready: "Governance listo",
-    pending_review: "Revision pendiente",
+    pending_review: "Pendiente CEO",
     pending_approval: "Aprobacion pendiente",
+    pending_integration: "Integracion pendiente",
     approved_for_discovery: "Discovery aprobado",
     approved_for_connection: "Conexion aprobada",
     not_ready: "No lista",
@@ -101,6 +437,26 @@ function label(value) {
   return String(value || "Pendiente").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function statusToneFor(value, fallback = "amber") {
+  const normalized = normalizeStatus(value);
+  if (normalized === "healthy") return "green";
+  if (normalized === "blocked") return "red";
+  return fallback;
+}
+
+function appIcon(appId) {
+  const common = `viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"`;
+  const icons = {
+    cerebro: `<svg ${common} aria-hidden="true"><path d="M8.4 6.1c-.9-.7-2.5-.4-3.1.7-.9.2-1.6 1-1.6 2 0 .5.2 1 .5 1.4-.7.4-1.1 1.1-1.1 2 0 1.1.8 2 1.8 2.2-.1 1.4 1 2.6 2.4 2.6.6 0 1.1-.2 1.5-.5"/><path d="M15.6 6.1c.9-.7 2.5-.4 3.1.7.9.2 1.6 1 1.6 2 0 .5-.2 1-.5 1.4.7.4 1.1 1.1 1.1 2 0 1.1-.8 2-1.8 2.2.1 1.4-1 2.6-2.4 2.6-.6 0-1.1-.2-1.5-.5"/><path d="M12 5.5v13"/><path d="M8.7 9.2c1.1-.3 2.2.2 3.3 1"/><path d="M15.3 9.2c-1.1-.3-2.2.2-3.3 1"/><path d="M8.5 14c1.2.2 2.4-.3 3.5-1"/><path d="M15.5 14c-1.2.2-2.4-.3-3.5-1"/></svg>`,
+    forja: `<svg ${common} aria-hidden="true"><path d="M5 9h14"/><path d="M7 9l2.2 9h5.6L17 9"/><path d="M8 6h8l1 3H7l1-3Z"/><path d="M4 19h16"/><path d="M10 13h4"/></svg>`,
+    auditor: `<svg ${common} aria-hidden="true"><path d="M12 3v18"/><path d="M5 6h14"/><path d="M6 6l-3 6h6L6 6Z"/><path d="M18 6l-3 6h6l-3-6Z"/><path d="M8 21h8"/></svg>`,
+    nube: `<svg ${common} aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.5-1.8A4.7 4.7 0 0 0 7 18Z"/><path d="M9 14h6"/></svg>`,
+    centinela: `<svg ${common} aria-hidden="true"><path d="M12 3l7 3v5c0 4.2-2.7 7.7-7 9-4.3-1.3-7-4.8-7-9V6l7-3Z"/><path d="M8.5 12s1.2-2 3.5-2 3.5 2 3.5 2-1.2 2-3.5 2-3.5-2-3.5-2Z"/><circle cx="12" cy="12" r="1"/></svg>`,
+    doctor_contable_financiero_tributario: `<svg ${common} aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M9.5 12h5"/><path d="M9.5 15h5"/><path d="M10 18h3"/></svg>`
+  };
+  return `<span class="app-icon" aria-hidden="true">${icons[appId] || `<svg ${common}><circle cx="12" cy="12" r="7"/><path d="M5 12h14"/><path d="M12 5a12 12 0 0 1 0 14"/><path d="M12 5a12 12 0 0 0 0 14"/></svg>`}</span>`;
+}
+
 function authHeaders(extra = {}) {
   return {
     ...extra,
@@ -122,6 +478,148 @@ function number(value) {
 function badge(value, extra = "") {
   const normalized = normalizeStatus(value);
   return `<span class="badge ${normalized} ${escapeHtml(extra)}">${escapeHtml(label(value))}</span>`;
+}
+
+function apps() {
+  return Array.isArray(state.data.apps) ? state.data.apps : [];
+}
+
+function integrationProfiles() {
+  return Array.isArray(state.data.integrationProfiles) ? state.data.integrationProfiles : [];
+}
+
+function appById(appId) {
+  return apps().find((app) => app.id === appId);
+}
+
+function profileById(appId) {
+  return integrationProfiles().find((profile) => profile.app_id === appId);
+}
+
+function connectedProfiles() {
+  return integrationProfiles().filter((profile) => profile.external_connection_enabled === true);
+}
+
+function disconnectedProfiles() {
+  return integrationProfiles().filter((profile) => profile.external_connection_enabled !== true);
+}
+
+function humanStateFor(appId) {
+  const definition = humanAppCatalog.find((item) => item.id === appId);
+  const app = appById(appId);
+  const profile = profileById(appId);
+  if (profile?.external_connection_enabled === true) {
+    return {
+      status: "connected",
+      tone: "green",
+      source: "Dato real conectado",
+      copy: "Conexion real habilitada y reportada por Integration Bus.",
+      real: true
+    };
+  }
+  if (profile) {
+    return {
+      status: definition?.displayStatus || "prepared_for_discovery",
+      tone: "amber",
+      source: "Preparado, sin conexion real",
+      copy: "Contrato y evidencia listos. Conexion externa apagada.",
+      real: false
+    };
+  }
+  if (app?.status === "external") {
+    const tone = definition?.displayStatus === "protected_no_touch" ? "red" : "amber";
+    return {
+      status: definition?.displayStatus || "pending_integration",
+      tone,
+      source: "Protegido, no conectado",
+      copy: "Referenciada para seguimiento. Sin conexion ni integracion real.",
+      real: false
+    };
+  }
+  if (app) {
+    const tone = definition?.displayStatus === "protected_no_touch" ? "red" : statusToneFor(definition?.displayStatus || app.status, "amber");
+    return {
+      status: definition?.displayStatus || app.status || "planned",
+      tone,
+      source: "App Registry",
+      copy: "Registrada para seguimiento. Falta aprobacion antes de conectar.",
+      real: false
+    };
+  }
+  if (definition?.displayStatus === "documented_only") {
+    return {
+      status: "documented_only",
+      tone: "amber",
+      source: "Documentado para revision",
+      copy: "Visible para revision local. Sin conexion real.",
+      real: false
+    };
+  }
+  if (definition?.displayStatus === "protected_no_touch") {
+    return {
+      status: "protected_no_touch",
+      tone: "red",
+      source: "Protegido, no conectado",
+      copy: "No se toca ni se conecta sin aprobacion CEO.",
+      real: false
+    };
+  }
+  return {
+    status: definition?.displayStatus || "pending_integration",
+    tone: "amber",
+    source: "No registrada",
+    copy: "Aun no aparece en el registro operativo.",
+    real: false
+  };
+}
+
+function nextDecision() {
+  if (appById("doctor_contable_financiero_tributario") && !profileById("doctor_contable_financiero_tributario")) {
+    return {
+      title: "En revision CEO",
+      body: "Cabina lista para validar localmente. DCFT sigue protegido; no hay SUNAT real ni produccion tocada."
+    };
+  }
+  if (appById("centinela") && !profileById("centinela")) {
+    return {
+      title: "En revision CEO",
+      body: "SENTINELA sigue pendiente de autorizacion antes de cualquier integracion."
+    };
+  }
+  if (disconnectedProfiles().length) {
+    return {
+      title: "Cabina lista para validar",
+      body: `${disconnectedProfiles().length} perfiles preparados. Todas las conexiones externas siguen apagadas.`
+    };
+  }
+  return {
+    title: "Sin decision urgente",
+    body: "La cabina no detecta acciones ejecutivas inmediatas."
+  };
+}
+
+function scrollToSection(targetId) {
+  const targetMap = {
+    forja: "construccion",
+    hermes: "construccion",
+    api_creator: "construccion",
+    web_factory: "construccion",
+    auditor: "control_seguridad",
+    centinela: "control_seguridad",
+    nube: "operacion",
+    buscador_de_tendencias: "inteligencia",
+    sniff_amazon: "productos_comerciales",
+    comercio_autonomo: "productos_comerciales",
+    doctor_contable_financiero_tributario: "productos_comerciales",
+    pluma: "contenido_crecimiento",
+    lente: "contenido_crecimiento",
+    marketing: "contenido_crecimiento",
+    marca_personal: "contenido_crecimiento",
+    ecosystem: "departments"
+  };
+  const target = document.getElementById(targetMap[targetId] || targetId);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function emptyState(text, detail = "") {
@@ -214,6 +712,7 @@ function showLogin(message = "") {
 }
 
 function showApp() {
+  renderCompanyShell();
   $("#login-screen").classList.add("hidden");
   $("#app").classList.remove("hidden");
 }
@@ -258,14 +757,16 @@ function setLoading() {
   banner.className = "state-banner loading";
   banner.innerHTML = `
     <span class="pulse"></span>
-    <strong>Actualizando cabina...</strong>
-    <small>Conectando endpoints reales y boundary de permisos.</small>
+    <strong>Local / revision CEO</strong>
+    <small>Preparando cabina local.</small>
   `;
 }
 
 function render() {
+  renderCompanyShell();
   renderStatus();
   renderRoleBoundary();
+  renderExecutiveHome();
   renderMetrics();
   renderApps();
   renderAlerts();
@@ -278,6 +779,163 @@ function render() {
   bindActionButtons();
 }
 
+function setText(selector, text) {
+  const element = $(selector);
+  if (element) element.textContent = text;
+}
+
+function renderCompanyShell() {
+  setText(".brand strong", "Empresa IA");
+  setText(".brand small", "Centro CEO");
+  const topbar = $(".topbar");
+  if (topbar && !topbar.querySelector(".mobile-brand-chip")) {
+    topbar.insertAdjacentHTML("afterbegin", `
+      <div class="mobile-brand-chip" aria-label="Empresa IA local">
+        <span class="brand-mark ecosystem-mark" aria-hidden="true"><span class="globe-core"></span></span>
+        <span>
+          <strong>Empresa IA</strong>
+          <small>Local / revision CEO</small>
+        </span>
+      </div>
+    `);
+  }
+  setText(".topbar .eyebrow", "Empresa IA");
+  setText(".topbar h1", "Local / revision CEO");
+  setText(".topbar p", "Cabina ejecutiva local. Sin produccion tocada.");
+  setText(".search-box span", "Buscar");
+  const search = $("#search");
+  if (search) search.placeholder = "Buscar...";
+
+  const hero = $(".hero-card");
+  if (hero) hero.id = "cerebro";
+  const heroActions = $(".hero-actions");
+  if (heroActions) {
+    heroActions.innerHTML = `
+      <div class="cerebro-chips" aria-label="Resumen CEREBRO">
+        <span>Decisiones</span>
+        <span>Oportunidades</span>
+        <span>Riesgos</span>
+      </div>
+      <button class="primary-action" data-quick="cerebro" type="button">Hablar con CEREBRO</button>
+    `;
+  }
+
+  const quickBand = $(".quick-actions-band");
+  if (quickBand) quickBand.id = "opportunities";
+  setText(".quick-actions-band .eyebrow", "Mando rapido");
+  setText(".quick-actions-band h2", "Acciones");
+
+  const departmentsBand = $(".priority-apps-band");
+  if (departmentsBand) departmentsBand.id = "departments";
+  setText(".priority-apps-band .eyebrow", "Departamentos");
+  setText(".priority-apps-band h2", "Areas clave");
+
+  setText(".status-lanes-band .eyebrow", "Datos separados");
+  setText(".status-lanes-band h2", "Estados");
+  setText("#ecosystem .eyebrow", "Mapa tecnico");
+  setText("#ecosystem h2", "Registro protegido y fuente del dato");
+  setText("#alerts .eyebrow", "Riesgos");
+  setText("#alerts h2", "Alertas ejecutivas");
+  setText(".rail-primary-actions .eyebrow", "Mando rapido");
+  setText(".rail-primary-actions h2", "Acciones CEO");
+  setText(".decision-rail .rail-panel:nth-of-type(2) .eyebrow", "Departamentos");
+  setText(".decision-rail .rail-panel:nth-of-type(2) h2", "Areas clave");
+  setText(".decision-rail .rail-panel:nth-of-type(3) .eyebrow", "Decisiones y riesgos");
+  setText(".decision-rail .rail-panel:nth-of-type(3) h2", "Control humano");
+
+  const viewLabels = [
+    ["ceo", "Inicio"],
+    ["governance", "CEREBRO"],
+    ["operator", "Departamentos"],
+    ["auditor", "Riesgos"],
+    ["system", "Decisiones"]
+  ];
+  viewLabels.forEach(([view, text]) => {
+    const button = $(`#view-tabs button[data-view="${view}"]`);
+    if (button) button.textContent = text;
+  });
+
+  const bottomItems = [
+    ["top", "Inicio"],
+    ["cerebro", "CEREBRO"],
+    ["departments", "Deptos"],
+    ["alerts", "Riesgos"],
+    ["profile", "Perfil"]
+  ];
+  $$("#bottom-nav button").forEach((button, index) => {
+    const item = bottomItems[index];
+    if (!item) return;
+    button.dataset.bottomTarget = item[0];
+    button.textContent = item[1];
+  });
+}
+
+function companySnapshot() {
+  const governance = state.data.governance || {};
+  const decisions = Array.isArray(state.data.decisions) ? state.data.decisions : [];
+  const risks = Array.isArray(state.data.risks) ? state.data.risks : [];
+  const pendingDecisions = decisions.filter((item) => !["approved", "rejected", "closed"].includes(String(item.status || "").toLowerCase())).length
+    || governance.pending_decisions?.length
+    || 0;
+  const activeRisks = risks.filter((risk) => String(risk.status || "").toLowerCase() !== "closed").length
+    || governance.critical_risks?.length
+    || 0;
+  const preparedOpportunities = humanAppCatalog.filter((definition) => (
+    ["sniff_amazon", "comercio_autonomo", "api_creator", "buscador_de_tendencias", "arsenal"].includes(definition.id)
+  )).length;
+  const constructionTasks = companyDepartments.find((department) => department.id === "construccion")?.appIds.length || 0;
+  return {
+    pendingDecisions,
+    activeRisks,
+    preparedOpportunities,
+    constructionTasks,
+    connected: connectedProfiles().length,
+    prepared: integrationProfiles().length
+  };
+}
+
+function departmentState(department) {
+  const snapshot = companySnapshot();
+  const tones = department.appIds.map((appId) => humanStateFor(appId).tone);
+  const hasRed = tones.includes("red");
+  const hasAmber = tones.includes("amber");
+  let tone = hasRed ? "red" : hasAmber ? "amber" : "green";
+  let status = "Estable";
+  let issues = department.appIds.length;
+
+  if (department.id === "direccion") {
+    tone = snapshot.pendingDecisions ? "amber" : "green";
+    status = snapshot.pendingDecisions ? "Decision pendiente" : "Agenda clara";
+    issues = snapshot.pendingDecisions;
+  } else if (department.id === "construccion") {
+    tone = "amber";
+    status = "Preparado";
+    issues = department.appIds.length;
+  } else if (department.id === "inteligencia") {
+    tone = "amber";
+    status = "Radar preparado";
+    issues = 1;
+  } else if (department.id === "productos_comerciales") {
+    tone = "amber";
+    status = "Oportunidades preparadas";
+    issues = snapshot.preparedOpportunities;
+  } else if (department.id === "control_seguridad") {
+    tone = snapshot.activeRisks ? "red" : "green";
+    status = snapshot.activeRisks ? "Riesgo activo" : "Protegido";
+    issues = snapshot.activeRisks;
+  } else if (department.id === "almacen_estrategico") {
+    tone = "amber";
+    status = "Planned / pending integration";
+    issues = 1;
+  } else if (department.id === "operacion") {
+    tone = "amber";
+    status = "Documentado";
+    issues = 1;
+  }
+
+  return { tone, status, issues };
+}
+
 function renderStatus() {
   const runtime = state.data.runtime || {};
   const readiness = state.data.readiness || {};
@@ -285,18 +943,24 @@ function renderStatus() {
   const hasErrors = Object.keys(state.errors).length > 0;
   const status = hasErrors ? "error" : normalizeStatus(runtime.status || readiness.status);
   const db = runtime.database || readiness.dependencies?.database || {};
+  const snapshot = companySnapshot();
 
   $("#state-banner").className = `state-banner ${status === "healthy" ? "ready" : status}`;
   $("#state-banner").innerHTML = `
     <span class="pulse"></span>
-    <strong>${hasErrors ? "Cabina con endpoints degradados" : "Backbone conectado"}</strong>
-    <small>${escapeHtml(runtime.environment || "local")} / ${escapeHtml(runtime.commit || state.data.version?.commit || "commit pendiente")} / DB ${escapeHtml(db.backend || "desconocida")}</small>
+    <strong>${hasErrors ? "Cabina local con areas en revision" : "Local / revision CEO"}</strong>
+    <small>${hasErrors ? "Revision local" : "Sin conexion real"}</small>
   `;
 
-  $("#global-status").textContent = label(control.status || runtime.status || "operational");
-  $("#global-summary").textContent = control.overview?.executive_summary?.summary || "Cabina conectada a datos reales del backbone, con gobierno humano activo.";
+  $("#global-status").textContent = "Reunion con CEREBRO";
+  $("#global-summary").textContent = "Buenos dias, CEO. Tengo tu resumen.";
+  $("#next-decision").innerHTML = `
+    <span>Proxima decision CEO</span>
+    <strong>En revision CEO</strong>
+    <small>Validar cabina local antes de produccion. DCFT protegido. Sin SUNAT real.</small>
+  `;
   $("#sidebar-readiness").textContent = label(readiness.status || control.readiness?.status || "ready");
-  $("#sidebar-db").textContent = `${label(db.backend)} / persistente: ${number(db.persistent)}`;
+  $("#sidebar-db").textContent = `${snapshot.connected} reales · ${snapshot.prepared} preparados`;
 }
 
 function renderRoleBoundary() {
@@ -318,15 +982,329 @@ function renderRoleBoundary() {
   }
 }
 
+function renderExecutiveHome() {
+  renderTrafficLights();
+  renderCerebroDailyMeeting();
+  renderQuickActions();
+  renderPriorityApps();
+  renderStatusLanes();
+  renderDecisionRail();
+}
+
+function renderCerebroDailyMeeting() {
+  const container = $("#daily-meeting-content");
+  if (!container) return;
+  const meeting = dailyMeetingModels[state.meeting] || dailyMeetingModels.morning;
+  const boundaries = [
+    {
+      title: "Datos reales",
+      items: dailyMeetingDataBoundaries.real
+    },
+    {
+      title: "Datos preparados",
+      items: dailyMeetingDataBoundaries.prepared
+    }
+  ];
+
+  $$(".meeting-switch button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.meeting === state.meeting);
+  });
+
+  container.innerHTML = `
+    <article class="meeting-summary-card">
+      <span>${escapeHtml(meeting.label)}</span>
+      <strong>${escapeHtml(meeting.headline)}</strong>
+      <p>${escapeHtml(meeting.summary)}</p>
+      <div class="meeting-focus-grid">
+        <small><b>Prioridad</b>${escapeHtml(meeting.priority)}</small>
+        <small><b>Decision</b>${escapeHtml(meeting.decision)}</small>
+        <small><b>Oportunidad</b>${escapeHtml(meeting.opportunity)}</small>
+        <small><b>Riesgo</b>${escapeHtml(meeting.risk)}</small>
+      </div>
+      <em>${escapeHtml(meeting.approval)}</em>
+    </article>
+    <details class="meeting-detail-block">
+      <summary>Tareas por departamento</summary>
+      <div class="meeting-task-grid" aria-label="Tareas por departamento">
+        ${meeting.tasks.map(([department, task]) => `
+          <article>
+            <span>${escapeHtml(department)}</span>
+            <p>${escapeHtml(task)}</p>
+          </article>
+        `).join("")}
+      </div>
+    </details>
+    <details class="meeting-detail-block">
+      <summary>Datos reales vs preparados</summary>
+      <div class="meeting-boundaries" aria-label="Datos reales y preparados">
+        ${boundaries.map((boundary) => `
+          <article>
+            <strong>${escapeHtml(boundary.title)}</strong>
+            <p>${boundary.items.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</p>
+          </article>
+        `).join("")}
+      </div>
+    </details>
+  `;
+}
+
+function renderTrafficLights() {
+  const hasErrors = Object.keys(state.errors).length > 0;
+  const snapshot = companySnapshot();
+
+  const lights = [
+    {
+      title: "Direccion",
+      tone: snapshot.pendingDecisions ? "amber" : "green",
+      status: snapshot.pendingDecisions ? "Pendiente" : "Activa",
+      body: snapshot.pendingDecisions ? "Revisar hoy." : "Local activo."
+    },
+    {
+      title: "Construccion",
+      tone: "amber",
+      status: "Preparada",
+      body: "Apps preparadas."
+    },
+    {
+      title: "Seguridad",
+      tone: hasErrors || snapshot.activeRisks ? "red" : "green",
+      status: snapshot.activeRisks ? "Riesgo" : "Protegida",
+      body: snapshot.activeRisks ? "Revisar riesgos." : "Protegido."
+    },
+    {
+      title: "Ingresos",
+      tone: "amber",
+      status: "Pendiente",
+      body: "Sin ventas reales."
+    }
+  ];
+
+  $("#traffic-grid").innerHTML = lights.map((light) => `
+    <article class="traffic-card ${escapeHtml(light.tone)}">
+      <span class="traffic-dot" aria-hidden="true"></span>
+      <div>
+        <strong>${escapeHtml(light.title)}</strong>
+        <small>${escapeHtml(light.status)}</small>
+      </div>
+      <p>${escapeHtml(light.body)}</p>
+    </article>
+  `).join("");
+}
+
+function renderQuickActions() {
+  const commands = [
+    { label: "Hablar con CEREBRO", detail: "Reunion diaria", target: "cerebro", appId: "cerebro" },
+    { label: "Pedir trabajo a FORJA", detail: "Construccion controlada", target: "construccion", appId: "forja" },
+    { label: "Ver AUDITORIA", detail: "Calidad y gates", target: "control_seguridad", appId: "auditor" },
+    { label: "Ver NUBE", detail: "Operacion local", target: "operacion", appId: "nube" },
+    { label: "Ver riesgos", detail: "Riesgos CEO", target: "alerts" },
+    { label: "Ver SENTINELA", detail: "Seguridad pendiente", target: "control_seguridad", appId: "centinela" },
+    { label: "Ver DCFT protegido", detail: "Proteccion activa", target: "doctor_contable_financiero_tributario", appId: "doctor_contable_financiero_tributario" },
+    { label: "Ver Arsenal", detail: "Almacen pendiente", target: "arsenal", appId: "arsenal" },
+    { label: "Ver oportunidades", detail: "Productos e ingresos", target: "productos_comerciales" }
+  ];
+
+  const renderCommand = (command) => {
+    const human = command.appId ? humanStateFor(command.appId) : { status: "ready", source: "Cabina", tone: "green" };
+    const connected = human.real === true;
+    const copy = command.appId
+      ? (connected ? "Conexion real" : "Sin conexion real")
+      : "Local activo";
+    return `
+      <button class="quick-command ${escapeHtml(human.tone)}" data-quick-target="${escapeHtml(command.target)}" type="button">
+        ${command.appId ? appIcon(command.appId) : ""}
+        <span>${escapeHtml(command.detail || copy)}</span>
+        <strong>${escapeHtml(command.label)}</strong>
+        <small>${escapeHtml(copy)}</small>
+      </button>
+    `;
+  };
+  const primaryCommands = commands.slice(0, 5);
+  const secondaryCommands = commands.slice(5);
+  $("#quick-actions").innerHTML = `
+    ${primaryCommands.map(renderCommand).join("")}
+    <details class="more-actions">
+      <summary>Mas acciones</summary>
+      <div>${secondaryCommands.map(renderCommand).join("")}</div>
+    </details>
+  `;
+  const map = $("#quick-actions-map");
+  if (map) {
+    map.innerHTML = primaryCommands.map((command) => {
+      const human = command.appId ? humanStateFor(command.appId) : { tone: "green" };
+      return `
+        <button class="quick-command compact ${escapeHtml(human.tone)}" data-quick-target="${escapeHtml(command.target)}" type="button">
+          ${command.appId ? appIcon(command.appId) : ""}
+          <strong>${escapeHtml(command.label)}</strong>
+        </button>
+      `;
+    }).join("");
+  }
+}
+
+function renderPriorityApps() {
+  const firstIds = ["direccion", "construccion", "control_seguridad"];
+  const firstDepartments = firstIds.map((id) => companyDepartments.find((department) => department.id === id)).filter(Boolean);
+  const restDepartments = companyDepartments.filter((department) => !firstIds.includes(department.id));
+  const orderedDepartments = [...firstDepartments, ...restDepartments];
+  $("#priority-apps").innerHTML = orderedDepartments.map((department, index) => {
+    const stateInfo = departmentState(department);
+    const anchorId = department.id === "almacen_estrategico" ? "arsenal" : department.id;
+    const insertMore = index === firstDepartments.length;
+    return `
+      ${insertMore ? `
+        <article class="departments-more-card" aria-label="Ver todos los departamentos">
+          <strong>Ver todos</strong>
+          <small>Mas areas quedan abajo.</small>
+          <button class="mini-action" data-quick-target="${escapeHtml(anchorId)}" type="button">Ver todos</button>
+        </article>
+      ` : ""}
+      <article class="department-card director-app-card ${escapeHtml(stateInfo.tone)} dept-${escapeHtml(department.accent)} ${index >= firstDepartments.length ? "mobile-secondary" : "mobile-primary"}" id="${escapeHtml(anchorId)}">
+        <div class="department-card-head director-card-head">
+          ${appIcon(department.icon)}
+          <div>
+            <span class="eyebrow">${escapeHtml(department.shortName)}</span>
+            <h3>${escapeHtml(department.name)}</h3>
+          </div>
+          ${badge(stateInfo.status)}
+        </div>
+        <p>${escapeHtml(department.function)}</p>
+        <div class="department-meta">
+          <strong>${number(stateInfo.issues)} asuntos</strong>
+          <small>${escapeHtml(stateInfo.status)}</small>
+        </div>
+        <div class="department-apps" aria-label="Apps del departamento ${escapeHtml(department.name)}">
+          ${department.apps.slice(0, 4).map((name) => `<span>${escapeHtml(name)}</span>`).join("")}
+          ${department.apps.length > 4 ? `<span>+${department.apps.length - 4}</span>` : ""}
+        </div>
+        <button class="mini-action premium-mini-action" data-quick-target="${escapeHtml(department.target)}" type="button">${escapeHtml(department.action)}</button>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderStatusLanes() {
+  const snapshot = companySnapshot();
+  const lanes = [
+    {
+      id: "real",
+      title: "Datos reales",
+      copy: "Local activo. Sin rutas externas.",
+      apps: humanAppCatalog.filter((definition) => humanStateFor(definition.id).real)
+    },
+    {
+      id: "prepared",
+      title: "Datos preparados",
+      copy: `${snapshot.prepared} perfiles. Runtimes apagados.`,
+      apps: humanAppCatalog.filter((definition) => definition.lane !== "protected" && humanStateFor(definition.id).real !== true).slice(0, 7)
+    },
+    {
+      id: "protected",
+      title: "Protegido / no-touch",
+      copy: "DCFT protegido. Produccion intacta.",
+      apps: humanAppCatalog.filter((definition) => definition.lane === "protected" || ["forja", "centinela", "nube"].includes(definition.id))
+    },
+    {
+      id: "next",
+      title: "Proximos pasos",
+      copy: "Validar cabina local.",
+      apps: []
+    }
+  ];
+
+  $("#status-lanes").innerHTML = lanes.map((lane) => `
+    <article class="status-lane ${escapeHtml(lane.id)}">
+      <div class="lane-head">
+        <span class="eyebrow">${escapeHtml(lane.title)}</span>
+        <p>${escapeHtml(lane.copy)}</p>
+      </div>
+      <div class="lane-list">
+        ${
+          lane.apps.length
+            ? lane.apps.map((definition) => {
+              const human = humanStateFor(definition.id);
+              return `
+                <button class="lane-chip ${escapeHtml(human.tone)}" data-quick-target="${escapeHtml(definition.id)}" type="button">
+                  <strong>${escapeHtml(definition.name)}</strong>
+                  <small>${escapeHtml(label(definition.displayStatus || human.status))}</small>
+                </button>
+              `;
+            }).join("")
+            : `
+              <div class="lane-note">
+                <strong>Sin conexion nueva</strong>
+                <small>Runtimes apagados.</small>
+              </div>
+            `
+        }
+      </div>
+    </article>
+  `).join("");
+}
+
+function renderDecisionRail() {
+  const governance = state.data.governance || {};
+  const decisions = governance.pending_decisions || [];
+  const risks = governance.critical_risks || [];
+  const decision = nextDecision();
+
+  const railApps = $("#rail-priority-apps");
+  if (railApps) {
+    railApps.innerHTML = companyDepartments.slice(0, 6).map((department) => {
+      const stateInfo = departmentState(department);
+      return `
+        <button class="rail-app ${escapeHtml(stateInfo.tone)} dept-${escapeHtml(department.accent)}" data-quick-target="${escapeHtml(department.id === "almacen_estrategico" ? "arsenal" : department.id)}" type="button">
+          ${appIcon(department.icon)}
+          <span>
+            <strong>${escapeHtml(department.shortName)}</strong>
+            <small>${number(stateInfo.issues)} asuntos / ${escapeHtml(stateInfo.status)}</small>
+          </span>
+        </button>
+      `;
+    }).join("");
+  }
+
+  const railDecisions = $("#rail-decisions");
+  if (railDecisions) {
+    const items = [
+      {
+        title: decision.title,
+        body: decision.body,
+        tone: "amber"
+      },
+      {
+        title: `${connectedProfiles().length} conexiones reales`,
+        body: `${integrationProfiles().length} perfiles preparados. Runtimes externos apagados.`,
+        tone: connectedProfiles().length ? "red" : "green"
+      },
+      {
+        title: risks.length ? `${risks.length} riesgos abiertos` : "Riesgos bajo control",
+        body: risks[0]?.description || "Sin riesgo critico abierto desde governance.",
+        tone: risks.length ? "red" : "green"
+      },
+      {
+        title: decisions.length ? `${decisions.length} decisiones pendientes` : "Sin cola critica",
+        body: decisions[0]?.description || "No hay decision urgente creada desde governance.",
+        tone: decisions.length ? "amber" : "green"
+      }
+    ];
+    railDecisions.innerHTML = items.map((item) => `
+      <article class="rail-note ${escapeHtml(item.tone)}">
+        <span class="traffic-dot" aria-hidden="true"></span>
+        <strong>${escapeHtml(item.title)}</strong>
+        <small>${escapeHtml(item.body)}</small>
+      </article>
+    `).join("");
+  }
+}
+
 function renderMetrics() {
-  const control = state.data.controlCenter || {};
-  const runtime = state.data.runtime || {};
-  const governance = state.data.governanceOverview || {};
+  const snapshot = companySnapshot();
   const cards = [
-    { id: "apps", label: "Aplicaciones", value: (state.data.apps || []).length, status: "healthy" },
-    { id: "pending", label: "Pendientes", value: (governance.pending_decisions || 0) + (governance.pending_approvals || 0), status: governance.pending_approvals ? "degraded" : "healthy" },
-    { id: "blocked", label: "Apps bloqueadas", value: governance.blocked_apps || 0, status: governance.blocked_apps ? "blocked" : "healthy" },
-    { id: "database", label: "Base de datos", value: runtime.database?.backend || "--", status: runtime.database?.postgres ? "healthy" : "degraded" }
+    { id: "decisions", label: "Decisiones CEO", value: snapshot.pendingDecisions, status: snapshot.pendingDecisions ? "degraded" : "healthy" },
+    { id: "opportunities", label: "Oportunidades", value: snapshot.preparedOpportunities, status: "degraded" },
+    { id: "risks", label: "Riesgos", value: snapshot.activeRisks, status: snapshot.activeRisks ? "blocked" : "healthy" },
+    { id: "construction", label: "En construccion", value: snapshot.constructionTasks, status: "degraded" }
   ];
   $("#metric-grid").innerHTML = cards.map((metric) => `
     <article class="metric">
@@ -336,32 +1314,37 @@ function renderMetrics() {
     </article>
   `).join("");
 
-  const serviceCount = control.services?.length || 0;
-  const healthyCount = (control.services || []).filter((item) => normalizeStatus(item.status) === "healthy").length;
-  $("#service-score").textContent = serviceCount ? `${healthyCount}/${serviceCount}` : "--";
-  $("#service-score-copy").textContent = serviceCount ? "servicios saludables" : "sin servicios reportados";
+  $(".score-card span").textContent = "Conexiones reales";
+  $("#service-score").textContent = `${snapshot.connected}`;
+  $("#service-score-copy").textContent = `${snapshot.connected} conexiones reales activas · ${snapshot.prepared} perfiles preparados · runtimes externos apagados.`;
 }
 
 function renderApps() {
-  const apps = state.data.apps || [];
+  const registeredApps = apps();
   const query = state.search.toLowerCase();
-  const filtered = apps.filter((app) => {
+  const filtered = registeredApps.filter((app) => {
     const byStatus = state.statusFilter === "all" || app.status === state.statusFilter;
     const text = `${app.name} ${app.id} ${app.type} ${app.description}`.toLowerCase();
     return byStatus && text.includes(query);
   });
 
-  $("#apps-grid").innerHTML = filtered.length ? filtered.map((app) => `
-    <article class="app-card">
-      <div class="badge-row">${badge(app.status, app.status)}<span class="badge">${label(app.type)}</span></div>
+  $("#apps-grid").innerHTML = filtered.length ? filtered.map((app) => {
+    const definition = humanAppCatalog.find((item) => item.id === app.id);
+    const human = humanStateFor(app.id);
+    const profile = profileById(app.id);
+    return `
+    <article class="app-card ${escapeHtml(human.tone)}">
+      <div class="badge-row">${badge(human.status, app.status)}<span class="badge">${label(app.type)}</span></div>
       <h3>${escapeHtml(app.name)}</h3>
-      <p>${escapeHtml(app.description)}</p>
+      <p>${escapeHtml(definition?.role || app.description)}</p>
+      <small>${escapeHtml(definition?.capability || app.description)}</small>
       <div class="badge-row">
-        <span class="badge">${escapeHtml(label(app.touch_policy))}</span>
-        <span class="badge">Depends: ${number(app.depends_on?.length || 0)}</span>
+        <span class="badge">${escapeHtml(human.source)}</span>
+        <span class="badge">${profile?.contract_id ? escapeHtml(profile.contract_id) : escapeHtml(label(app.touch_policy))}</span>
       </div>
     </article>
-  `).join("") : emptyState("No hay aplicaciones para este filtro.");
+  `;
+  }).join("") : emptyState("No hay aplicaciones para este filtro.");
 }
 
 function renderAlerts() {
@@ -624,8 +1607,8 @@ function buildTimeline() {
   const version = state.data.version || {};
   return [
     {
-      title: "Deploy conectado",
-      body: `Commit ${runtime.commit || version.commit || "desconocido"} ejecutando en ${runtime.environment || "local"}.`,
+      title: "Runtime local verificado",
+      body: `Commit ${runtime.commit || version.commit || "desconocido"} observado en ${runtime.environment || "local"}; sin produccion tocada.`,
       meta: state.lastUpdated ? state.lastUpdated.toLocaleString("es") : "ahora"
     },
     {
@@ -700,6 +1683,28 @@ function bindEvents() {
       state.view = button.dataset.viewJump === "alerts" ? "ceo" : "system";
       renderView();
       document.getElementById(button.dataset.viewJump)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+  document.addEventListener("click", (event) => {
+    const meetingButton = event.target.closest("[data-meeting]");
+    if (meetingButton) {
+      state.meeting = meetingButton.dataset.meeting === "evening" ? "evening" : "morning";
+      renderCerebroDailyMeeting();
+      return;
+    }
+    const quick = event.target.closest("[data-quick-target], [data-quick]");
+    if (!quick) return;
+    const target = quick.dataset.quickTarget || quick.dataset.quick;
+    if (target === "cerebro" || target === "forja" || target === "nube" || target === "auditor") {
+      scrollToSection(target);
+      return;
+    }
+    scrollToSection(target);
+  });
+  $$("#bottom-nav button").forEach((button) => {
+    button.addEventListener("click", () => {
+      $$("#bottom-nav button").forEach((item) => item.classList.toggle("active", item === button));
+      scrollToSection(button.dataset.bottomTarget);
     });
   });
   $("#confirm-action").addEventListener("click", executePendingAction);

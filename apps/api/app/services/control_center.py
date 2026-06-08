@@ -284,7 +284,10 @@ def build_services(storage: StorageStatus) -> list[ControlCenterServiceStatus]:
                 ControlCenterEvidence(
                     source="touch_policy",
                     status=ControlCenterState.degraded,
-                    detail="FORJA and CEREBRO are discovery-prepared; DCFT remains protected by no-touch policy.",
+                    detail=(
+                        "FORJA y CEREBRO estan preparados para revision; "
+                        "DCFT permanece protegido y sin conexion real."
+                    ),
                 )
             ],
         ),
@@ -619,8 +622,8 @@ def build_executive_summary(
         status=status,
         headline="Ecosystem backbone is visible and controlled.",
         summary=(
-            "The platform can present a CEO-level and operational view from local "
-            "registry, runtime and storage signals without contacting protected apps."
+            "La cabina muestra el estado operativo del ecosistema sin conectar apps "
+            "protegidas ni tocar produccion."
         ),
         decision_required=decision_required,
         focus=[

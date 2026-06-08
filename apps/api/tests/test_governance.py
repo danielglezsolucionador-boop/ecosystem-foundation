@@ -268,13 +268,20 @@ def test_integration_gate_approval_requires_evidence() -> None:
     assert response.json()["detail"]["error"] == "evidence_required"
 
 
-def test_protected_apps_cannot_be_connected() -> None:
+def test_protected_apps_cannot_be_discovered_or_connected() -> None:
     for app_id in ["dcft"]:
+        discovery_response = client.post(
+            f"/api/v1/governance/integration-gates/{app_id}/request-discovery",
+            json={"role_id": "ceo", "evidence": "future discovery evidence"},
+            headers=CEO_HEADERS,
+        )
         response = client.post(
             f"/api/v1/governance/integration-gates/{app_id}/approve-connection",
             json={"role_id": "ceo", "evidence": "future connection evidence"},
             headers=CEO_HEADERS,
         )
+        assert discovery_response.status_code == 400
+        assert discovery_response.json()["detail"]["error"] == "protected_app_discovery_blocked"
         assert response.status_code == 400
         assert response.json()["detail"]["error"] == "protected_app_connection_blocked"
 
