@@ -93,10 +93,15 @@ button:disabled {
   align-items: center;
 }
 
+.login-brand > div {
+  min-width: 0;
+}
+
 .login-brand h1 {
   margin: 4px 0 0;
   font-size: clamp(2rem, 7vw, 3.4rem);
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .login-brand p,
@@ -109,6 +114,31 @@ button:disabled {
 .login-form {
   display: grid;
   gap: 14px;
+}
+
+@media (max-width: 480px) {
+  .login-screen {
+    align-items: center;
+    justify-items: stretch;
+    padding: 16px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: calc(100vw - 32px);
+    gap: 18px;
+    padding: 22px;
+  }
+
+  .login-brand {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .login-brand h1 {
+    font-size: 2rem;
+    line-height: 1.05;
+  }
 }
 
 .login-form label {
