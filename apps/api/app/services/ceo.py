@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 import json
 import time
-from typing import Any
+from typing import Any, Callable
 
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.ceo import (
@@ -15,8 +15,15 @@ from app.schemas.ceo import (
 )
 from app.schemas.governance import DecisionTransitionRequest, GovernanceDecision, GovernanceRole
 from app.services.audit import create_audit_event
-from app.services.cerebro import build_brief, get_cerebro_status, list_cerebro_decisions, list_cerebro_tasks
+from app.services.cerebro import (
+    build_brief,
+    get_cerebro_status,
+    get_chief_of_staff_status,
+    list_cerebro_decisions,
+    list_cerebro_tasks,
+)
 from app.services.audit import get_auditoria_status, list_auditoria_reviews
+from app.services.departments import list_department_audits
 from app.services.governance import (
     GovernanceError,
     approve_decision,
@@ -26,7 +33,13 @@ from app.services.governance import (
     reject_decision,
 )
 from app.services.integration_bus import get_bus_overview, get_bus_status, list_bus_audit
+from app.services.missions import get_mission_daily_report
 from app.services.nube import get_nube_status
+from app.services.product_readiness import get_product_readiness_status
+from app.services.publishing import get_publishing_status
+from app.services.revenue import get_revenue_sprint_status, get_revenue_status
+from app.services.upgrades import get_upgrade_status
+from app.services.workday import get_workday_status
 
 PROTECTED_TARGETS = {
     "dcft",
@@ -41,14 +54,13 @@ PROHIBITED_ACTIONS = {
     "activate_sentinela",
     "activate_arsenal",
     "activate_sunat",
-    "activate_local_agent",
     "deploy_direct",
     "connect_external_api",
     "connect_runtime",
     "touch_nube_local",
 }
 INTERNAL_TIMEOUT_SECONDS = 1.2
-_SNAPSHOT_EXECUTOR = ThreadPoolExecutor(max_workers=6, thread_name_prefix="ceo_daily_center")
+_SNAPSHOT_EXECUTOR = ThreadPoolExecutor(max_workers=18, thread_name_prefix="ceo_daily_center")
 
 
 @dataclass
@@ -57,11 +69,20 @@ class CeoSnapshot:
     tasks: list[Any] = field(default_factory=list)
     routes: list[Any] = field(default_factory=list)
     auditoria_reviews: list[Any] = field(default_factory=list)
+    department_audits: list[Any] = field(default_factory=list)
     governance_report: Any | None = None
     cerebro_status: dict[str, Any] = field(default_factory=dict)
+    chief_of_staff_status: dict[str, Any] = field(default_factory=dict)
     bus_status: dict[str, Any] = field(default_factory=dict)
     auditoria_status: dict[str, Any] = field(default_factory=dict)
     nube_status: dict[str, Any] = field(default_factory=dict)
+    revenue_status: dict[str, Any] = field(default_factory=dict)
+    revenue_sprint_status: dict[str, Any] = field(default_factory=dict)
+    publishing_status: dict[str, Any] = field(default_factory=dict)
+    product_readiness_status: dict[str, Any] = field(default_factory=dict)
+    mission_status: dict[str, Any] = field(default_factory=dict)
+    workday_status: dict[str, Any] = field(default_factory=dict)
+    upgrade_status: dict[str, Any] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     elapsed_ms: int = 0
 
@@ -131,38 +152,116 @@ def safe_snapshot_call(
         return default
 
 
+def safe_snapshot_batch(
+    calls: dict[str, tuple[Callable[[], Any], Any]],
+    warnings: list[str],
+    timeout_seconds: float | None = None,
+) -> dict[str, Any]:
+    timeout_seconds = INTERNAL_TIMEOUT_SECONDS if timeout_seconds is None else timeout_seconds
+    deadline = time.perf_counter() + timeout_seconds
+    futures = {
+        label: (_SNAPSHOT_EXECUTOR.submit(callback), default)
+        for label, (callback, default) in calls.items()
+    }
+    results: dict[str, Any] = {}
+    for label, (future, default) in futures.items():
+        remaining = max(0.001, deadline - time.perf_counter())
+        try:
+            results[label] = future.result(timeout=remaining)
+        except FuturesTimeoutError:
+            future.cancel()
+            warnings.append(f"{label}_timeout_fallback")
+            results[label] = default
+        except Exception:
+            warnings.append(f"{label}_fallback")
+            results[label] = default
+    return results
+
+
+def snapshot_call_specs() -> dict[str, tuple[Callable[[], Any], Any]]:
+    return {
+        "governance_report": (get_governance_report, None),
+        "governance_decisions": (pending_governance_decisions, []),
+        "cerebro_tasks": (list_cerebro_tasks, []),
+        "bus_overview": (get_bus_overview, None),
+        "cerebro_status": (get_cerebro_status, {}),
+        "chief_of_staff_status": (get_chief_of_staff_status, {}),
+        "bus_status": (get_bus_status, {}),
+        "auditoria_status": (get_auditoria_status, {}),
+        "auditoria_reviews": (lambda: list_auditoria_reviews(limit=24), []),
+        "department_audits": (list_department_audits, []),
+        "nube_status": (get_nube_status, {}),
+        "revenue_status": (get_revenue_status, {}),
+        "revenue_sprint_status": (get_revenue_sprint_status, {}),
+        "publishing_status": (get_publishing_status, {}),
+        "product_readiness_status": (get_product_readiness_status, {}),
+        "mission_status": (get_mission_daily_report, {}),
+        "workday_status": (get_workday_status, {}),
+        "upgrade_status": (get_upgrade_status, {}),
+    }
+
+
 def build_ceo_snapshot() -> CeoSnapshot:
     started = time.perf_counter()
     warnings: list[str] = []
-    governance_report = safe_snapshot_call("governance_report", get_governance_report, None, warnings)
+    calls = snapshot_call_specs()
+    snapshot_sources = (
+        safe_snapshot_batch(calls, warnings)
+        if INTERNAL_TIMEOUT_SECONDS <= 0.1
+        else {
+            label: safe_snapshot_call(label, callback, default, warnings)
+            for label, (callback, default) in calls.items()
+        }
+    )
+    if snapshot_sources.get("nube_status") == {} and not any(
+        warning.startswith("nube_status_") for warning in warnings
+    ):
+        warning_suffix = "timeout_fallback" if INTERNAL_TIMEOUT_SECONDS <= 0.1 else "fallback"
+        warnings.append(f"nube_status_{warning_suffix}")
+    governance_report = snapshot_sources["governance_report"]
     decisions = (
         list(getattr(governance_report, "pending_decisions", []))[:12]
         if governance_report is not None
-        else safe_snapshot_call("governance_decisions", pending_governance_decisions, [], warnings)[:12]
+        else snapshot_sources["governance_decisions"][:12]
     )
-    tasks = safe_snapshot_call("cerebro_tasks", list_cerebro_tasks, [], warnings)[:16]
-    bus_overview = safe_snapshot_call("bus_overview", get_bus_overview, None, warnings)
+    tasks = snapshot_sources["cerebro_tasks"][:16]
+    bus_overview = snapshot_sources["bus_overview"]
     routes = list(getattr(bus_overview, "routes", []))[:24] if bus_overview is not None else []
-    cerebro_status = safe_model_dump(safe_snapshot_call("cerebro_status", get_cerebro_status, {}, warnings))
-    bus_status = safe_model_dump(safe_snapshot_call("bus_status", get_bus_status, {}, warnings))
-    auditoria_status = safe_model_dump(safe_snapshot_call("auditoria_status", get_auditoria_status, {}, warnings))
-    auditoria_reviews = safe_snapshot_call(
-        "auditoria_reviews",
-        lambda: list_auditoria_reviews(limit=24),
-        [],
-        warnings,
-    )[:24]
-    nube_status = safe_model_dump(safe_snapshot_call("nube_status", get_nube_status, {}, warnings))
+    cerebro_status = safe_model_dump(snapshot_sources["cerebro_status"])
+    chief_of_staff_status = safe_model_dump(
+        snapshot_sources["chief_of_staff_status"]
+    )
+    bus_status = safe_model_dump(snapshot_sources["bus_status"])
+    auditoria_status = safe_model_dump(snapshot_sources["auditoria_status"])
+    auditoria_reviews = snapshot_sources["auditoria_reviews"][:24]
+    department_audits = snapshot_sources["department_audits"][:24]
+    nube_status = safe_model_dump(snapshot_sources["nube_status"])
+    revenue_status = safe_model_dump(snapshot_sources["revenue_status"])
+    revenue_sprint_status = safe_model_dump(snapshot_sources["revenue_sprint_status"])
+    publishing_status = safe_model_dump(snapshot_sources["publishing_status"])
+    product_readiness_status = safe_model_dump(snapshot_sources["product_readiness_status"])
+    mission_status = safe_model_dump(snapshot_sources["mission_status"])
+    workday_status = safe_model_dump(snapshot_sources["workday_status"])
+    upgrade_status = safe_model_dump(snapshot_sources["upgrade_status"])
     return CeoSnapshot(
         decisions=decisions,
         tasks=tasks,
         routes=routes,
         auditoria_reviews=auditoria_reviews,
+        department_audits=department_audits,
         governance_report=governance_report,
         cerebro_status=cerebro_status,
+        chief_of_staff_status=chief_of_staff_status,
         bus_status=bus_status,
         auditoria_status=auditoria_status,
         nube_status=nube_status,
+        revenue_status=revenue_status,
+        revenue_sprint_status=revenue_sprint_status,
+        publishing_status=publishing_status,
+        product_readiness_status=product_readiness_status,
+        mission_status=mission_status,
+        workday_status=workday_status,
+        upgrade_status=upgrade_status,
         warnings=warnings,
         elapsed_ms=int((time.perf_counter() - started) * 1000),
     )
@@ -527,11 +626,39 @@ def get_ceo_daily_center() -> CeoDailyCenter:
     opportunities = opportunity_items(snapshot.routes)
     blockages = blockage_items(snapshot.governance_report, snapshot.routes, snapshot.tasks, allow_fetch=False)
     tasks = task_items(snapshot.tasks)
-    cerebro = snapshot.cerebro_status
+    cerebro = {
+        **snapshot.cerebro_status,
+        "chief_of_staff": snapshot.chief_of_staff_status,
+    }
     bus_status = snapshot.bus_status
     governance_report = snapshot.governance_report
     auditoria = snapshot.auditoria_status
+    department_audits = snapshot.department_audits
+    pending_department_audits = [
+        audit
+        for audit in department_audits
+        if read_value(audit, "status", "") in {"generated", "sent_to_forja", "sent_to_cerebro"}
+    ]
+    audits_needing_forja = [
+        audit
+        for audit in department_audits
+        if read_value(audit, "requires_forja", False) is True
+    ]
     nube = snapshot.nube_status
+    revenue = snapshot.revenue_status
+    revenue_sprint = snapshot.revenue_sprint_status
+    publishing = snapshot.publishing_status
+    product_readiness = snapshot.product_readiness_status
+    missions = snapshot.mission_status
+    workday = snapshot.workday_status
+    upgrades = snapshot.upgrade_status
+    cerebro["revenue_os"] = revenue
+    cerebro["revenue_execution_sprint"] = revenue_sprint
+    cerebro["publishing_growth_engine"] = publishing
+    cerebro["product_readiness"] = product_readiness
+    cerebro["mission_execution_loop"] = missions
+    cerebro["autonomous_workday_os"] = workday
+    cerebro["department_upgrade_pipeline"] = upgrades
     next_action = morning.cerebro_recommendation
     pending_count = (
         len(getattr(governance_report, "pending_decisions", []))
@@ -548,6 +675,23 @@ def get_ceo_daily_center() -> CeoDailyCenter:
         if governance_report is not None
         else 0
     )
+    revenue_opportunities = int(read_value(revenue, "opportunities", 0) or 0)
+    revenue_global_pipeline = float(read_value(revenue, "estimated_global_pipeline_usd", 0) or 0)
+    revenue_ecommerce_pipeline = float(read_value(revenue, "estimated_ecommerce_pipeline_usd", 0) or 0)
+    revenue_sprint_routes = int(read_value(revenue_sprint, "routes", 0) or 0)
+    revenue_sprint_missions = int(read_value(revenue_sprint, "missions", 0) or 0)
+    publishing_content = int(read_value(publishing, "content_items", 0) or 0)
+    publishing_prepared = int(read_value(publishing, "prepared_items", 0) or 0)
+    publishing_approvals = int(read_value(publishing, "approvals_needed", 0) or 0)
+    product_open_gaps = int(read_value(product_readiness, "open_gaps", 0) or 0)
+    product_requires_validation = int(read_value(product_readiness, "requires_validation", 0) or 0)
+    mission_active_count = int(read_value(missions, "active_missions", 0) or 0)
+    mission_waiting_audit = int(read_value(missions, "waiting_audit", 0) or 0)
+    mission_waiting_forge = int(read_value(missions, "waiting_forge", 0) or 0)
+    workday_alerts = int(read_value(workday, "relevant_alerts", 0) or 0)
+    workday_priority_changes = int(read_value(workday, "priority_changes", 0) or 0)
+    upgrade_packages = int(read_value(upgrades, "packages", 0) or 0)
+    upgrade_open_gaps = int(read_value(upgrades, "open_gaps", 0) or 0)
     return CeoDailyCenter(
         status="ceo_daily_center_operational_internal",
         mode="degraded" if snapshot.warnings else "ok",
@@ -557,6 +701,20 @@ def get_ceo_daily_center() -> CeoDailyCenter:
         executive_summary=(
             f"{len(decisions)} decisiones esperando CEO, {len(risks)} riesgos abiertos, "
             f"{len(opportunities)} oportunidades preparadas, {len(blockages)} bloqueos activos. "
+            f"{len(pending_department_audits)} auditorias departamentales pendientes. "
+            f"Revenue OS: {revenue_opportunities} oportunidades, pipeline global USD {revenue_global_pipeline}, "
+            f"e-commerce USD {revenue_ecommerce_pipeline}. "
+            f"Revenue Sprint 30 dias: {revenue_sprint_routes} rutas, {revenue_sprint_missions} misiones; ingresos reales 0. "
+            f"Publishing & Growth: {publishing_content} contenidos, {publishing_prepared} preparados, "
+            f"{publishing_approvals} aprobaciones; publicaciones reales no inventadas. "
+            f"Product Readiness DCFT/SENTINELA: {product_open_gaps} brechas, "
+            f"{product_requires_validation} estados requieren validacion; MARKETING vende. "
+            f"Mission Loop: {mission_active_count} activas, {mission_waiting_audit} en auditoria, "
+            f"{mission_waiting_forge} en FORJA preparada. "
+            f"Workday OS: {workday_alerts} alertas relevantes, "
+            f"{workday_priority_changes} cambios de prioridad. "
+            f"Upgrade Pipeline: {upgrade_packages} paquetes, {upgrade_open_gaps} brechas abiertas. "
+            "CEREBRO opera como Chief of Staff OS preparado. "
             f"Tiempo interno aproximado: {snapshot.elapsed_ms} ms."
         ),
         morning=morning,
@@ -565,7 +723,7 @@ def get_ceo_daily_center() -> CeoDailyCenter:
         decisions_waiting_ceo=len(decisions),
         active_tasks=len([task for task in tasks if not task.blocked]),
         blocked_items=len(blockages),
-        opportunities=len(opportunities),
+        opportunities=len(opportunities) + revenue_opportunities,
         risks=len(risks),
         cerebro=cerebro,
         bus=bus_status,
@@ -576,8 +734,23 @@ def get_ceo_daily_center() -> CeoDailyCenter:
             "critical_risks": critical_risks_count,
             "external_connections_enabled": False,
         },
-        auditoria=auditoria,
+        auditoria={
+            **auditoria,
+            "department_audits_pending": len(pending_department_audits),
+            "department_audits_needing_forja": len(audits_needing_forja),
+            "department_audits": [
+                safe_model_dump(audit)
+                for audit in department_audits[:6]
+            ],
+        },
         nube=nube,
+        revenue=revenue,
+        revenue_sprint=revenue_sprint,
+        publishing=publishing,
+        product_readiness=product_readiness,
+        missions=missions,
+        workday=workday,
+        upgrades=upgrades,
         protected_apps=["DCFT", "SENTINELA", "ARSENAL", "SUNAT", "Local Agent"],
         actions=ceo_actions(),
         next_action=next_action,

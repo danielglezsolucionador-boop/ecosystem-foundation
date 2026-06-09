@@ -1,14 +1,39 @@
 from datetime import UTC, datetime
 import json
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from app.core.database import connect, initialize_database, sql_placeholder
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.cerebro import (
+    CerebroAlert,
+    CerebroAlertCreate,
+    CerebroApprovalActionRequest,
+    CerebroApprovalRequest,
+    CerebroApprovalRequestCreate,
+    CerebroAuthorityLevel,
+    CerebroAuthorityRule,
+    CerebroCheckpoint,
+    CerebroChiefOfStaffStatus,
+    CerebroCompanyGoal,
+    CerebroCompanyGoalCreate,
     CerebroDailyBrief,
+    CerebroDafo,
     CerebroDecision,
     CerebroDecisionCreate,
+    CerebroDepartmentGoal,
+    CerebroDepartmentGoalCreate,
+    CerebroEconomicMatrix,
+    CerebroMission,
+    CerebroMissionCreate,
+    CerebroMissionDispatchRequest,
+    CerebroMissionState,
+    CerebroMissionStep,
+    CerebroMissionUpdate,
+    CerebroMissionUpdateCreate,
+    CerebroRevenueOpportunity,
+    CerebroRevenueOpportunityCreate,
     CerebroState,
     CerebroStatus,
     CerebroTask,
@@ -21,6 +46,44 @@ from app.services.integration_bus import dispatch_message, route_id_for_cerebro_
 
 CEREBRO_DECISIONS_TABLE = "cerebro_decisions"
 CEREBRO_TASKS_TABLE = "cerebro_tasks"
+CEREBRO_COMPANY_GOALS_TABLE = "cerebro_company_goals"
+CEREBRO_DEPARTMENT_GOALS_TABLE = "cerebro_department_goals"
+CEREBRO_MISSIONS_TABLE = "cerebro_missions"
+CEREBRO_MISSION_STEPS_TABLE = "cerebro_mission_steps"
+CEREBRO_MISSION_UPDATES_TABLE = "cerebro_mission_updates"
+CEREBRO_ALERTS_TABLE = "cerebro_alerts"
+CEREBRO_REVENUE_TABLE = "cerebro_revenue_opportunities"
+CEREBRO_APPROVAL_REQUESTS_TABLE = "cerebro_approval_requests"
+CEREBRO_PRIORITY_CHANGES_TABLE = "cerebro_priority_changes"
+CEREBRO_CEO_CHECKPOINTS_TABLE = "cerebro_ceo_checkpoints"
+
+PERU_TZ = ZoneInfo("America/Lima")
+GLOBAL_MONTHLY_GOAL_USD = 6000.0
+ECOMMERCE_MONTHLY_GOAL_USD = 10000.0
+
+NO_APPROVAL_REQUIRED_ACTIONS = {
+    "local_agent_activation": "Permitido por politica del Chief of Staff; en Bloque H queda preparado, sin activar runtime real.",
+    "organic_post_configured_account": "Publicacion organica en cuenta oficial ya configurada; sin gasto ni cuenta nueva.",
+    "send_task_to_forja": "Delegacion interna a FORJA preparada, con auditoria y sin tocar FORJA externa.",
+    "change_strategic_priority": "CEREBRO puede cambiar prioridad diaria si no implica gasto real.",
+    "create_internal_mission": "Mision interna preparada para mover departamentos.",
+    "request_audit_report": "AUDITORIA puede recibir solicitud interna sin conexion externa.",
+    "prepare_product": "Preparacion de producto sin venta real ni pago.",
+    "controlled_production_deploy": "Deploy controlado permitido por politica con backup, tests, auditoria y trazabilidad; no ejecutado por este bloque.",
+    "governed_update_dcft": "DCFT puede recibir actualizacion gobernada/preparada; sin SUNAT real ni runtime externo.",
+    "governed_update_sentinela": "SENTINELA puede recibir actualizacion gobernada/preparada; sin runtime productivo.",
+}
+
+CEO_APPROVAL_REQUIRED_ACTIONS = {
+    "real_money_payment": "Implica dinero real.",
+    "paid_campaign": "Implica pauta pagada.",
+    "contract_service": "Implica contrato o servicio externo.",
+    "paid_api": "Implica API o herramienta pagada.",
+    "new_official_external_account": "Implica crear cuenta oficial externa.",
+    "sensitive_credentials": "Implica credenciales sensibles.",
+    "legal_tax_high_risk": "Implica riesgo legal, tributario o reputacional alto.",
+    "activate_sunat": "SUNAT real requiere aprobacion CEO y frente DCFT separado.",
+}
 
 PROTECTED_DESTINATIONS = {
     "doctor_contable_financiero_tributario": "DCFT",
@@ -118,6 +181,28 @@ def ensure_cerebro_schema() -> None:
             )
             """
         )
+        for table_name in [
+            CEREBRO_COMPANY_GOALS_TABLE,
+            CEREBRO_DEPARTMENT_GOALS_TABLE,
+            CEREBRO_MISSIONS_TABLE,
+            CEREBRO_MISSION_STEPS_TABLE,
+            CEREBRO_MISSION_UPDATES_TABLE,
+            CEREBRO_ALERTS_TABLE,
+            CEREBRO_REVENUE_TABLE,
+            CEREBRO_APPROVAL_REQUESTS_TABLE,
+            CEREBRO_PRIORITY_CHANGES_TABLE,
+            CEREBRO_CEO_CHECKPOINTS_TABLE,
+        ]:
+            connection.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    id TEXT PRIMARY KEY,
+                    payload_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
         connection.commit()
 
 
@@ -224,6 +309,675 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
             (item_id,),
         ).fetchone()
     return json.loads(row["payload_json"]) if row else None
+
+
+def upsert_payload(table_name: str, item_id: str, payload: str) -> None:
+    existing = fetch_payload(table_name, item_id)
+    if existing is None:
+        insert_payload(table_name, item_id, payload)
+    else:
+        update_payload(table_name, item_id, payload)
+
+
+def peru_now() -> str:
+    return datetime.now(PERU_TZ).isoformat()
+
+
+def safe_identifier(value: str, fallback: str) -> str:
+    normalized = normalize_destination(value)
+    return normalized or fallback
+
+
+def authority_rule_for_action(
+    action_type: str,
+    *,
+    requires_money: bool = False,
+    investment_required: float = 0,
+    risk: str | None = None,
+) -> tuple[CerebroAuthorityLevel, str]:
+    action = normalize_destination(action_type)
+    risk_text = normalize_destination(risk or "")
+    if (
+        requires_money
+        or investment_required > 0
+        or action in CEO_APPROVAL_REQUIRED_ACTIONS
+        or risk_text in {"high", "critical", "legal", "tax", "reputational"}
+    ):
+        return (
+            CerebroAuthorityLevel.ceo_approval_required,
+            CEO_APPROVAL_REQUIRED_ACTIONS.get(
+                action,
+                "Requiere CEO porque implica dinero real, proveedor externo, credenciales o riesgo alto.",
+            ),
+        )
+    if action in NO_APPROVAL_REQUIRED_ACTIONS:
+        return CerebroAuthorityLevel.no_approval_required, NO_APPROVAL_REQUIRED_ACTIONS[action]
+    return (
+        CerebroAuthorityLevel.no_approval_required,
+        "Mision interna preparada; CEREBRO puede avanzar sin gasto real ni runtime externo.",
+    )
+
+
+def build_authority_matrix() -> list[CerebroAuthorityRule]:
+    no_approval = [
+        CerebroAuthorityRule(
+            action_type=action,
+            level=CerebroAuthorityLevel.no_approval_required,
+            reason=reason,
+            technical_status="prepared",
+        )
+        for action, reason in sorted(NO_APPROVAL_REQUIRED_ACTIONS.items())
+    ]
+    ceo_required = [
+        CerebroAuthorityRule(
+            action_type=action,
+            level=CerebroAuthorityLevel.ceo_approval_required,
+            reason=reason,
+            technical_status="requires_ceo_decision",
+        )
+        for action, reason in sorted(CEO_APPROVAL_REQUIRED_ACTIONS.items())
+    ]
+    return no_approval + ceo_required
+
+
+def economic_matrix(
+    *,
+    investment_required: float = 0,
+    expected_revenue: float = 0,
+    currency: str = "USD",
+    return_time: str = "not_estimated",
+    recommendation: str = "Preparar sin gasto real.",
+    ecommerce_separate: bool = False,
+) -> CerebroEconomicMatrix:
+    goal = ECOMMERCE_MONTHLY_GOAL_USD if ecommerce_separate else GLOBAL_MONTHLY_GOAL_USD
+    net_profit = expected_revenue - investment_required
+    contribution = (net_profit / goal) * 100 if goal else 0
+    return CerebroEconomicMatrix(
+        currency=currency,
+        investment_required=investment_required,
+        expected_revenue=expected_revenue,
+        expected_net_profit=round(net_profit, 2),
+        monthly_goal=goal,
+        monthly_goal_contribution_percent=round(contribution, 2),
+        return_time=return_time,
+        recommendation=recommendation,
+        ecommerce_separate=ecommerce_separate,
+    )
+
+
+def default_company_goal_payloads() -> list[CerebroCompanyGoal]:
+    now = utc_now()
+    return [
+        CerebroCompanyGoal(
+            id="ecosystem_global_6000_usd",
+            name="Meta global Ecosistema IA",
+            description="Generar USD 6,000 mensuales fuera de e-commerce.",
+            monthly_target_usd=GLOBAL_MONTHLY_GOAL_USD,
+            ecommerce_separate=False,
+            status="active",
+            created_at=now,
+            updated_at=now,
+        ),
+        CerebroCompanyGoal(
+            id="ecommerce_10000_usd",
+            name="Meta e-commerce separada",
+            description="Generar USD 10,000 mensuales desde e-commerce, separado de la meta global.",
+            monthly_target_usd=ECOMMERCE_MONTHLY_GOAL_USD,
+            ecommerce_separate=True,
+            status="active",
+            created_at=now,
+            updated_at=now,
+        ),
+    ]
+
+
+def default_department_goal_payloads() -> list[CerebroDepartmentGoal]:
+    now = utc_now()
+    rows = [
+        ("pluma", "PLUMA", "Crear contenido ejecutivo y comercial.", "Aumenta confianza y ventas organicas."),
+        ("lente", "LENTE", "Preparar visuales y video.", "Mejora conversion y claridad de oferta."),
+        ("marketing", "MARKETING", "Preparar campanas organicas y estrategia.", "Genera demanda sin gasto por defecto."),
+        ("marca_personal", "MARCA PERSONAL", "Convertir autoridad del CEO en oportunidades.", "Atrae leads y alianzas."),
+        ("buscador_de_tendencias", "BUSCADOR DE TENDENCIAS", "Detectar senales utiles.", "Encuentra oportunidades antes que el mercado."),
+        ("auditoria", "AUDITORIA", "Revisar riesgo, evidencia y calidad.", "Evita perdida por errores."),
+        ("nube", "NUBE", "Controlar URLs, costos y deploys preparados.", "Reduce friccion operativa."),
+        ("creador_de_apis_y_skills", "CREADOR DE APIS Y SKILLS", "Preparar APIs y skills vendibles.", "Convierte capacidades en productos."),
+        ("ecommerce", "E-COMMERCE", "Operar meta separada de USD 10,000 mensuales.", "Linea comercial independiente."),
+        ("sniff_amazon", "SNIFF AMAZON", "Detectar productos y senales Amazon.", "Alimenta oportunidades e-commerce."),
+        ("dcft", "DCFT", "Producto contable financiero tributario gobernado.", "Primer producto comercial prioritario; sin SUNAT real en este bloque."),
+        ("sentinela", "SENTINELA", "Producto futuro de seguridad y proteccion.", "Futuro B2B; protegido sin runtime productivo."),
+        ("forja", "FORJA", "Construir entregables cuando la politica lo permite.", "Convierte misiones en software controlado."),
+        ("hermes", "HERMES", "Automatizacion ligera y soporte.", "Acelera trabajo repetible sin runtime externo."),
+        ("web_factory", "WEB FACTORY", "Preparar landings y sitios.", "Canaliza oferta y conversion."),
+        ("arsenal", "ARSENAL", "Registrar APIs, modelos, conectores y capacidades.", "Memoria estrategica de capacidades futuras."),
+    ]
+    return [
+        CerebroDepartmentGoal(
+            id=row_id,
+            department=department,
+            goal=goal,
+            revenue_role=revenue_role,
+            operating_mode="prepared_no_runtime",
+            monthly_target_usd=ECOMMERCE_MONTHLY_GOAL_USD if row_id == "ecommerce" else None,
+            created_at=now,
+            updated_at=now,
+        )
+        for row_id, department, goal, revenue_role in rows
+    ]
+
+
+def seed_chief_of_staff_defaults() -> None:
+    ensure_cerebro_schema()
+    if not fetch_payloads(CEREBRO_COMPANY_GOALS_TABLE):
+        for goal in default_company_goal_payloads():
+            insert_payload(CEREBRO_COMPANY_GOALS_TABLE, goal.id, goal.model_dump_json())
+    if not fetch_payloads(CEREBRO_DEPARTMENT_GOALS_TABLE):
+        for goal in default_department_goal_payloads():
+            insert_payload(CEREBRO_DEPARTMENT_GOALS_TABLE, goal.id, goal.model_dump_json())
+
+
+def list_company_goals() -> list[CerebroCompanyGoal]:
+    seed_chief_of_staff_defaults()
+    return [CerebroCompanyGoal(**payload) for payload in fetch_payloads(CEREBRO_COMPANY_GOALS_TABLE)]
+
+
+def create_company_goal(request: CerebroCompanyGoalCreate, actor: AuthenticatedUser) -> CerebroCompanyGoal:
+    seed_chief_of_staff_defaults()
+    now = utc_now()
+    goal_id = request.id or f"company_goal_{safe_identifier(request.name, str(uuid4()))}"
+    existing = fetch_payload(CEREBRO_COMPANY_GOALS_TABLE, goal_id)
+    goal = CerebroCompanyGoal(
+        id=goal_id,
+        name=request.name,
+        description=request.description,
+        monthly_target_usd=request.monthly_target_usd,
+        ecommerce_separate=request.ecommerce_separate,
+        status=request.status,
+        created_at=existing.get("created_at", now) if existing else now,
+        updated_at=now,
+    )
+    upsert_payload(CEREBRO_COMPANY_GOALS_TABLE, goal.id, goal.model_dump_json())
+    audit_cerebro_action(
+        action="upsert_company_goal",
+        actor=actor,
+        status="active",
+        detail="CEREBRO updated a company goal for Chief of Staff OS.",
+        state=CerebroState.delegated,
+        reason=goal.description,
+    )
+    return goal
+
+
+def list_department_goals() -> list[CerebroDepartmentGoal]:
+    seed_chief_of_staff_defaults()
+    return [CerebroDepartmentGoal(**payload) for payload in fetch_payloads(CEREBRO_DEPARTMENT_GOALS_TABLE)]
+
+
+def create_department_goal(
+    request: CerebroDepartmentGoalCreate,
+    actor: AuthenticatedUser,
+) -> CerebroDepartmentGoal:
+    seed_chief_of_staff_defaults()
+    now = utc_now()
+    goal_id = request.id or f"department_goal_{safe_identifier(request.department, str(uuid4()))}"
+    existing = fetch_payload(CEREBRO_DEPARTMENT_GOALS_TABLE, goal_id)
+    goal = CerebroDepartmentGoal(
+        id=goal_id,
+        department=request.department,
+        goal=request.goal,
+        revenue_role=request.revenue_role,
+        operating_mode=request.operating_mode,
+        monthly_target_usd=request.monthly_target_usd,
+        requires_ceo_approval_for_money=request.requires_ceo_approval_for_money,
+        created_at=existing.get("created_at", now) if existing else now,
+        updated_at=now,
+    )
+    upsert_payload(CEREBRO_DEPARTMENT_GOALS_TABLE, goal.id, goal.model_dump_json())
+    audit_cerebro_action(
+        action="upsert_department_goal",
+        actor=actor,
+        status="prepared",
+        detail="CEREBRO updated a department goal for Chief of Staff OS.",
+        state=CerebroState.delegated,
+        destination=request.department,
+        reason=request.goal,
+    )
+    return goal
+
+
+def default_mission_steps(request: CerebroMissionCreate, now: str) -> list[CerebroMissionStep]:
+    departments = request.involved_departments or [request.leader_department]
+    return [
+        CerebroMissionStep(
+            id=f"mission_step_{uuid4()}",
+            title=f"Preparar accion con {department}",
+            owner_department=department,
+            status="pending",
+            notes="Preparado sin runtime externo.",
+            created_at=now,
+            updated_at=now,
+        )
+        for department in departments[:8]
+    ]
+
+
+def mission_relation_text(request: CerebroMissionCreate, matrix: CerebroEconomicMatrix) -> str:
+    if request.relation_to_monthly_goal:
+        return request.relation_to_monthly_goal
+    if matrix.expected_net_profit:
+        return (
+            f"Aporta {matrix.monthly_goal_contribution_percent}% a la meta mensual "
+            f"de USD {matrix.monthly_goal:g}."
+        )
+    return "Sin impacto economico cuantificado todavia; CEREBRO debe estimarlo antes de pedir gasto."
+
+
+def list_missions() -> list[CerebroMission]:
+    seed_chief_of_staff_defaults()
+    return [CerebroMission(**payload) for payload in fetch_payloads(CEREBRO_MISSIONS_TABLE)]
+
+
+def get_mission(mission_id: str) -> CerebroMission:
+    payload = fetch_payload(CEREBRO_MISSIONS_TABLE, mission_id)
+    if payload is None:
+        raise CerebroError(404, {"error": "cerebro_mission_not_found", "mission_id": mission_id})
+    return CerebroMission(**payload)
+
+
+def create_mission(request: CerebroMissionCreate, actor: AuthenticatedUser) -> CerebroMission:
+    seed_chief_of_staff_defaults()
+    now = utc_now()
+    level, reason = authority_rule_for_action(
+        request.action_type,
+        requires_money=request.requires_money,
+        investment_required=request.investment_required,
+        risk="high" if any("alto" in normalize_destination(risk) for risk in request.risks) else None,
+    )
+    requires_ceo = (
+        request.requires_ceo_approval
+        if request.requires_ceo_approval is not None
+        else level == CerebroAuthorityLevel.ceo_approval_required
+    )
+    state = request.state or (
+        CerebroMissionState.waiting_ceo_approval
+        if requires_ceo
+        else CerebroMissionState.assigned
+    )
+    matrix = economic_matrix(
+        investment_required=request.investment_required,
+        expected_revenue=request.expected_revenue or request.estimated_economic_impact,
+        return_time="to_be_reported",
+        recommendation=(
+            "CEO, esto requiere tu decision antes de gastar."
+            if requires_ceo
+            else "CEREBRO puede avanzar sin pedir permiso porque no hay gasto real ni runtime externo."
+        ),
+        ecommerce_separate=request.ecommerce_separate,
+    )
+    mission_id = f"cerebro_mission_{uuid4()}"
+    audit_event_id = audit_cerebro_action(
+        action="create_chief_of_staff_mission",
+        actor=actor,
+        status=state.value,
+        detail="CEREBRO created a Chief of Staff OS mission.",
+        state=CerebroState.waiting_ceo if requires_ceo else CerebroState.delegated,
+        destination=request.leader_department,
+        reason=request.objective,
+        requires_ceo_approval=requires_ceo,
+    )
+    mission = CerebroMission(
+        id=mission_id,
+        title=request.title,
+        objective=request.objective,
+        origin=request.origin,
+        leader_department=request.leader_department,
+        involved_departments=request.involved_departments,
+        priority=request.priority,
+        action_type=request.action_type,
+        authority_level=level,
+        authority_reason=reason,
+        estimated_economic_impact=request.estimated_economic_impact,
+        relation_to_monthly_goal=mission_relation_text(request, matrix),
+        state=state,
+        steps=default_mission_steps(request, now),
+        updates=[],
+        executed_actions=[],
+        pending_actions=["reportar_a_ceo", "registrar_evidencia"],
+        risks=request.risks,
+        requires_money=request.requires_money,
+        requires_ceo_approval=requires_ceo,
+        expected_report=request.expected_report,
+        economic_matrix=matrix,
+        technical_status="prepared",
+        audit_trail=[audit_event_id],
+        created_at=now,
+        updated_at=now,
+    )
+    insert_payload(CEREBRO_MISSIONS_TABLE, mission.id, mission.model_dump_json())
+    for step in mission.steps:
+        insert_payload(CEREBRO_MISSION_STEPS_TABLE, step.id, step.model_dump_json())
+    return mission
+
+
+def add_mission_update(
+    mission_id: str,
+    request: CerebroMissionUpdateCreate,
+    actor: AuthenticatedUser,
+) -> CerebroMission:
+    mission = get_mission(mission_id)
+    now = utc_now()
+    update = CerebroMissionUpdate(
+        id=f"mission_update_{uuid4()}",
+        mission_id=mission.id,
+        department=request.department,
+        status=request.status,
+        message=request.message,
+        created_at=now,
+    )
+    mission.updates.insert(0, update)
+    if request.state is not None:
+        mission.state = request.state
+    mission.updated_at = now
+    audit_event_id = audit_cerebro_action(
+        action="update_chief_of_staff_mission",
+        actor=actor,
+        status=mission.state.value,
+        detail="CEREBRO updated a Chief of Staff OS mission.",
+        state=CerebroState.delegated,
+        destination=request.department,
+        reason=request.message,
+        requires_ceo_approval=mission.requires_ceo_approval,
+    )
+    mission.audit_trail.insert(0, audit_event_id)
+    insert_payload(CEREBRO_MISSION_UPDATES_TABLE, update.id, update.model_dump_json())
+    update_payload(CEREBRO_MISSIONS_TABLE, mission.id, mission.model_dump_json())
+    return mission
+
+
+def dispatch_mission(
+    mission_id: str,
+    request: CerebroMissionDispatchRequest,
+    actor: AuthenticatedUser,
+) -> CerebroMission:
+    mission = get_mission(mission_id)
+    now = utc_now()
+    instruction = f"{request.department}: {request.instruction}"
+    mission.pending_actions.insert(0, instruction)
+    mission.executed_actions.insert(0, f"dispatch_prepared:{request.department}")
+    if mission.state in {CerebroMissionState.created, CerebroMissionState.assigned}:
+        mission.state = CerebroMissionState.in_progress
+    mission.updated_at = now
+    audit_event_id = audit_cerebro_action(
+        action="dispatch_chief_of_staff_mission",
+        actor=actor,
+        status=mission.state.value,
+        detail="CEREBRO prepared a department dispatch without external runtime.",
+        state=CerebroState.delegated,
+        destination=request.department,
+        reason=request.instruction,
+        requires_ceo_approval=mission.requires_ceo_approval,
+    )
+    mission.audit_trail.insert(0, audit_event_id)
+    update_payload(CEREBRO_MISSIONS_TABLE, mission.id, mission.model_dump_json())
+    return mission
+
+
+def alert_relevance(score: int) -> str:
+    if score >= 85:
+        return "high"
+    if score >= 70:
+        return "medium"
+    return "low"
+
+
+def list_alerts(include_low: bool = False) -> list[CerebroAlert]:
+    seed_chief_of_staff_defaults()
+    alerts = [CerebroAlert(**payload) for payload in fetch_payloads(CEREBRO_ALERTS_TABLE)]
+    if include_low:
+        return alerts
+    return [alert for alert in alerts if alert.interrupt_ceo]
+
+
+def create_alert(request: CerebroAlertCreate, actor: AuthenticatedUser) -> CerebroAlert:
+    seed_chief_of_staff_defaults()
+    now = utc_now()
+    relevance = alert_relevance(request.relevance_score)
+    alert = CerebroAlert(
+        id=f"cerebro_alert_{uuid4()}",
+        title=request.title,
+        summary=request.summary,
+        source=request.source,
+        relevance_score=request.relevance_score,
+        relevance=relevance,
+        interrupt_ceo=request.relevance_score >= 70,
+        risk_level=request.risk_level,
+        economic_impact=request.economic_impact,
+        dafo=request.dafo,
+        created_at=now,
+    )
+    insert_payload(CEREBRO_ALERTS_TABLE, alert.id, alert.model_dump_json())
+    audit_cerebro_action(
+        action="create_chief_of_staff_alert",
+        actor=actor,
+        status=relevance,
+        detail="CEREBRO evaluated an alert relevance filter.",
+        state=CerebroState.proposed,
+        reason=request.summary,
+        requires_ceo_approval=alert.interrupt_ceo and request.risk_level in {"high", "critical"},
+    )
+    return alert
+
+
+def list_revenue_opportunities() -> list[CerebroRevenueOpportunity]:
+    seed_chief_of_staff_defaults()
+    return [CerebroRevenueOpportunity(**payload) for payload in fetch_payloads(CEREBRO_REVENUE_TABLE)]
+
+
+def create_revenue_opportunity(
+    request: CerebroRevenueOpportunityCreate,
+    actor: AuthenticatedUser,
+) -> CerebroRevenueOpportunity:
+    seed_chief_of_staff_defaults()
+    matrix = economic_matrix(
+        investment_required=request.investment_required,
+        expected_revenue=request.expected_revenue,
+        currency=request.currency,
+        return_time=request.return_time,
+        recommendation=request.recommendation,
+        ecommerce_separate=request.ecommerce_separate,
+    )
+    requires_ceo = (
+        request.requires_ceo_approval
+        if request.requires_ceo_approval is not None
+        else request.investment_required > 0
+    )
+    opportunity = CerebroRevenueOpportunity(
+        id=f"cerebro_revenue_{uuid4()}",
+        title=request.title,
+        description=request.description,
+        department=request.department,
+        economic_matrix=matrix,
+        risk=request.risk,
+        requires_ceo_approval=requires_ceo,
+        status="waiting_ceo_approval" if requires_ceo else "prepared",
+        created_at=utc_now(),
+    )
+    insert_payload(CEREBRO_REVENUE_TABLE, opportunity.id, opportunity.model_dump_json())
+    audit_cerebro_action(
+        action="create_revenue_opportunity",
+        actor=actor,
+        status=opportunity.status,
+        detail="CEREBRO registered a revenue opportunity with economic matrix.",
+        state=CerebroState.waiting_ceo if requires_ceo else CerebroState.delegated,
+        destination=request.department,
+        reason=request.description,
+        requires_ceo_approval=requires_ceo,
+    )
+    return opportunity
+
+
+def list_approval_requests() -> list[CerebroApprovalRequest]:
+    seed_chief_of_staff_defaults()
+    return [CerebroApprovalRequest(**payload) for payload in fetch_payloads(CEREBRO_APPROVAL_REQUESTS_TABLE)]
+
+
+def create_approval_request(
+    request: CerebroApprovalRequestCreate,
+    actor: AuthenticatedUser,
+) -> CerebroApprovalRequest:
+    seed_chief_of_staff_defaults()
+    now = utc_now()
+    matrix = economic_matrix(
+        investment_required=request.investment_required,
+        expected_revenue=request.expected_revenue,
+        currency=request.currency,
+        return_time=request.return_time,
+        recommendation=request.recommendation,
+        ecommerce_separate=request.ecommerce_separate,
+    )
+    audit_event_id = audit_cerebro_action(
+        action="create_approval_request",
+        actor=actor,
+        status="pending_ceo",
+        detail="CEREBRO prepared a CEO approval request with money matrix.",
+        state=CerebroState.waiting_ceo,
+        destination=request.requested_by_department,
+        reason=request.description,
+        requires_ceo_approval=True,
+    )
+    approval = CerebroApprovalRequest(
+        id=f"cerebro_approval_{uuid4()}",
+        title=request.title,
+        description=request.description,
+        action_type=request.action_type,
+        requested_by_department=request.requested_by_department,
+        authority_level=CerebroAuthorityLevel.ceo_approval_required,
+        economic_matrix=matrix,
+        risk=request.risk,
+        recommendation=request.recommendation,
+        status="pending_ceo",
+        requires_ceo_approval=True,
+        audit_trail=[audit_event_id],
+        created_at=now,
+        updated_at=now,
+    )
+    insert_payload(CEREBRO_APPROVAL_REQUESTS_TABLE, approval.id, approval.model_dump_json())
+    return approval
+
+
+def update_approval_request_status(
+    request_id: str,
+    action: str,
+    request: CerebroApprovalActionRequest,
+    actor: AuthenticatedUser,
+) -> CerebroApprovalRequest:
+    payload = fetch_payload(CEREBRO_APPROVAL_REQUESTS_TABLE, request_id)
+    if payload is None:
+        raise CerebroError(404, {"error": "cerebro_approval_request_not_found", "request_id": request_id})
+    approval = CerebroApprovalRequest(**payload)
+    now = utc_now()
+    approval.status = "approved" if action == "approve" else "rejected"
+    if action == "approve":
+        approval.approved_by = actor_name(actor)
+    else:
+        approval.rejected_by = actor_name(actor)
+    approval.updated_at = now
+    audit_event_id = audit_cerebro_action(
+        action=f"{action}_approval_request",
+        actor=actor,
+        status=approval.status,
+        detail=f"CEO {action}d a CEREBRO approval request.",
+        state=CerebroState.approved if action == "approve" else CerebroState.rejected,
+        destination=approval.requested_by_department,
+        reason=request.evidence or request.reason or approval.description,
+        requires_ceo_approval=True,
+    )
+    approval.audit_trail.insert(0, audit_event_id)
+    update_payload(CEREBRO_APPROVAL_REQUESTS_TABLE, approval.id, approval.model_dump_json())
+    return approval
+
+
+def build_checkpoint(checkpoint_type: str) -> CerebroCheckpoint:
+    seed_chief_of_staff_defaults()
+    goals = list_company_goals()
+    missions = list_missions()[:6]
+    alerts = list_alerts()[:6]
+    approvals = [
+        approval
+        for approval in list_approval_requests()
+        if approval.status == "pending_ceo"
+    ][:6]
+    title_map = {
+        "morning": "Checkpoint de manana",
+        "midday": "Checkpoint de mediodia",
+        "evening": "Checkpoint de tarde",
+    }
+    summary_map = {
+        "morning": "CEREBRO fija prioridad, misiones, oportunidades y riesgos antes de operar.",
+        "midday": "CEREBRO verifica avances, bloqueos y senales que pueden generar ingresos.",
+        "evening": "CEREBRO cierra avances, aprendizajes y pendientes para el siguiente dia.",
+    }
+    return CerebroCheckpoint(
+        id=f"checkpoint_{checkpoint_type}_{peru_now()}",
+        type=checkpoint_type,
+        title=title_map[checkpoint_type],
+        summary=summary_map[checkpoint_type],
+        generated_at=peru_now(),
+        goals=goals,
+        missions=missions,
+        alerts=alerts,
+        approval_requests=approvals,
+    )
+
+
+def get_chief_of_staff_status() -> CerebroChiefOfStaffStatus:
+    seed_chief_of_staff_defaults()
+    goals = list_company_goals()
+    department_goals = list_department_goals()
+    missions = [
+        mission
+        for mission in list_missions()
+        if mission.state
+        not in {CerebroMissionState.completed, CerebroMissionState.rejected}
+    ][:8]
+    approvals = [
+        approval
+        for approval in list_approval_requests()
+        if approval.status == "pending_ceo"
+    ][:8]
+    return CerebroChiefOfStaffStatus(
+        status="cerebro_chief_of_staff_os_prepared",
+        role="Chief of Staff OS / Jefe de Gabinete IA",
+        motto="El tiempo es dinero",
+        autonomy_summary=(
+            "CEREBRO puede mover prioridades, misiones, auditorias y departamentos sin pedir permiso "
+            "cuando no hay dinero real, credenciales, cuenta externa nueva, SUNAT real ni riesgo alto."
+        ),
+        company_goals=goals,
+        department_goals=department_goals,
+        active_missions=missions,
+        alerts=list_alerts()[:8],
+        approval_requests=approvals,
+        authority_matrix=build_authority_matrix(),
+        checkpoints=[
+            build_checkpoint("morning"),
+            build_checkpoint("midday"),
+            build_checkpoint("evening"),
+        ],
+        memory_policy="Memoria de negocio sin secretos, credenciales ni tokens.",
+        business_memory=[
+            "Meta global: USD 6,000/mes sin e-commerce.",
+            "Meta e-commerce separada: USD 10,000/mes.",
+            "Toda solicitud de dinero debe mostrar inversion, ingreso esperado, utilidad neta, riesgo y retorno.",
+            "DCFT y SENTINELA solo avanzan por flujo gobernado/preparado; sin runtime real en Bloque H.",
+        ],
+        bus_status="prepared_internal_routes",
+        auditoria_status="prepared_review_gate",
+        forja_status="prepared_internal_department",
+        nube_status="prepared_control_tower",
+        centro_ceo_status="integrated_with_daily_center",
+        generated_at=utc_now(),
+    )
 
 
 def list_cerebro_decisions() -> list[CerebroDecision]:

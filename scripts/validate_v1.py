@@ -109,8 +109,22 @@ def secret_scan() -> None:
 
 
 def main() -> None:
+    pytest_temp = REPO_ROOT / "work" / "pytest-validate-v1"
+    pytest_temp.mkdir(parents=True, exist_ok=True)
     run([sys.executable, "-m", "compileall", "apps/api", "api", "-q"])
-    run([sys.executable, "-m", "pytest", "-q"], cwd=API_DIR)
+    run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "--basetemp",
+            str(pytest_temp),
+            "-p",
+            "no:cacheprovider",
+        ],
+        cwd=API_DIR,
+    )
     run([sys.executable, "-c", "from api.index import app; print(app.title)"])
     secret_scan()
     print(":: V1 validation PASS")

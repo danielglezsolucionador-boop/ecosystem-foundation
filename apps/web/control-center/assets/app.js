@@ -31,6 +31,7 @@ const endpoints = {
   risks: "/api/v1/governance/risks",
   governanceAudit: "/api/v1/governance/audit",
   cerebroStatus: "/api/v1/cerebro/status",
+  cerebroChief: "/api/v1/cerebro/chief-of-staff/status",
   cerebroMorning: "/api/v1/cerebro/brief/morning",
   cerebroEvening: "/api/v1/cerebro/brief/evening",
   cerebroDecisions: "/api/v1/cerebro/decisions",
@@ -38,7 +39,46 @@ const endpoints = {
   ceoDailyCenter: "/api/v1/ceo/daily-center",
   ceoMorning: "/api/v1/ceo/morning",
   ceoEvening: "/api/v1/ceo/evening",
-  ceoDecisions: "/api/v1/ceo/decisions"
+  ceoDecisions: "/api/v1/ceo/decisions",
+  departments: "/api/v1/departments",
+  departmentAudits: "/api/v1/departments/audits",
+  revenueStatus: "/api/v1/revenue/status",
+  revenueOpportunities: "/api/v1/revenue/opportunities",
+  revenueApprovals: "/api/v1/revenue/approval-requests",
+  revenueDepartments: "/api/v1/revenue/department-contribution",
+  revenueDailyReport: "/api/v1/revenue/daily-report",
+  revenueSprintStatus: "/api/v1/revenue/sprint/status",
+  revenueSprintRoutes: "/api/v1/revenue/sprint/routes",
+  revenueSprintMissions: "/api/v1/revenue/sprint/missions",
+  revenueSprintDaily: "/api/v1/revenue/sprint/daily",
+  revenueSprintRisks: "/api/v1/revenue/sprint/risks",
+  revenueSprintApprovalNeeded: "/api/v1/revenue/sprint/approval-needed",
+  publishingStatus: "/api/v1/publishing/status",
+  publishingChannels: "/api/v1/publishing/channels",
+  publishingCalendar: "/api/v1/publishing/calendar",
+  publishingContent: "/api/v1/publishing/content",
+  publishingGrowth: "/api/v1/publishing/growth",
+  productReadinessStatus: "/api/v1/product-readiness/status",
+  productReadinessDcft: "/api/v1/product-readiness/dcft",
+  productReadinessSentinela: "/api/v1/product-readiness/sentinela",
+  productReadinessGaps: "/api/v1/product-readiness/gaps",
+  productReadinessMarketingPackage: "/api/v1/product-readiness/marketing-package",
+  arsenalStatus: "/api/v1/arsenal/status",
+  arsenalCatalog: "/api/v1/arsenal/catalog",
+  arsenalCategories: "/api/v1/arsenal/categories",
+  arsenalRisks: "/api/v1/arsenal/risks",
+  arsenalReadiness: "/api/v1/arsenal/readiness",
+  missionsActive: "/api/v1/missions/active",
+  missionDailyReport: "/api/v1/missions/reports/daily",
+  workdayStatus: "/api/v1/workday/status",
+  workdayMorning: "/api/v1/workday/morning",
+  workdayMidday: "/api/v1/workday/midday",
+  workdayEvening: "/api/v1/workday/evening",
+  workdayAlerts: "/api/v1/workday/alerts",
+  workdayPriorityChanges: "/api/v1/workday/priority-changes",
+  workdayReport: "/api/v1/workday/report",
+  upgradesStatus: "/api/v1/upgrades/status",
+  upgradesPackages: "/api/v1/upgrades/packages"
 };
 
 const AUTH_TOKEN_KEY = "ecosystem_control_center_session_v1";
@@ -117,7 +157,7 @@ const humanAppCatalog = [
     id: "centinela",
     name: "SENTINELA",
     role: "Defensa del ecosistema",
-    capability: "Vigila agentes, permisos, datos, prompts, incidentes y riesgos. Futuro producto B2B.",
+    capability: "Vigila agentes, permisos, datos, prompts, incidentes y riesgos. En auditoría queda defensivo y sin meta de venta propia.",
     preparedCopy: "Representado, no conectado. pending_review / protected; sin runtime real.",
     action: "Ver SENTINELA",
     lane: "protected",
@@ -695,6 +735,15 @@ function nextDecision() {
 
 function scrollToSection(targetId) {
   const targetMap = {
+    cerebro: "cerebro-chief-of-staff",
+    workday: "workday-os",
+    upgrades: "department-upgrade-pipeline",
+    mission: "mission-execution-loop",
+    sprint: "revenue-execution-sprint",
+    publishing: "publishing-growth-engine",
+    readiness: "product-readiness-dcft-sentinela",
+    revenue: "revenue-os",
+    arsenal: "arsenal-blueprint",
     forja: "construccion",
     hermes: "construccion",
     api_creator: "construccion",
@@ -987,7 +1036,7 @@ function renderCompanyShell() {
   const bottomItems = [
     ["top", "Inicio"],
     ["cerebro", "CEREBRO"],
-    ["departments", "Deptos"],
+    ["revenue", "Revenue"],
     ["alerts", "Riesgos"],
     ["profile", "Perfil"]
   ];
@@ -1113,6 +1162,16 @@ function renderRoleBoundary() {
 
 function renderExecutiveHome() {
   renderCeoDailyCenter();
+  renderWorkdayOs();
+  renderCerebroChiefOfStaff();
+  renderMissionExecutionLoop();
+  renderDepartmentUpgradePipeline();
+  renderRevenueSprint();
+  renderPublishingGrowth();
+  renderProductReadiness();
+  renderRevenueOs();
+  renderArsenalBlueprint();
+  renderDepartmentAudits();
   renderTrafficLights();
   renderCerebroDailyMeeting();
   renderCerebroOperational();
@@ -1139,6 +1198,14 @@ function renderCeoDailyCenter() {
   const opportunities = Array.isArray(morning.opportunities) ? morning.opportunities : [];
   const nube = center.nube || {};
   const auditoria = center.auditoria || {};
+  const revenue = center.revenue || state.data.revenueStatus || {};
+  const revenueSprint = center.revenue_sprint || state.data.revenueSprintStatus || {};
+  const publishing = center.publishing || state.data.publishingStatus || {};
+  const productReadiness = center.product_readiness || state.data.productReadinessStatus || {};
+  const missionReport = center.missions || state.data.missionDailyReport || {};
+  const activeMissions = Array.isArray(state.data.missionsActive) ? state.data.missionsActive : [];
+  const workday = center.workday || state.data.workdayStatus || {};
+  const upgrades = center.upgrades || state.data.upgradesStatus || {};
   const firstDecision = decisions[0] || morningDecisions[0];
   const firstRisk = risks[0];
   const firstTask = tasks[0];
@@ -1189,12 +1256,51 @@ function renderCeoDailyCenter() {
       title: "Tareas y oportunidades",
       body: firstTask
         ? `${compactTask}: ${label(firstTask.status)}.`
-        : (firstOpportunity ? `${compactOpportunity}: oportunidad preparada.` : "CEREBRO puede preparar tareas internas."),
+        : (firstOpportunity ? `${compactOpportunity}: oportunidad preparada.` : `Revenue OS: pipeline global USD ${number(revenue.estimated_global_pipeline_usd || 0)}.`),
       status: firstTask?.status || firstOpportunity?.status || "prepared",
       meta: `${number(center.active_tasks)} tareas`
     }),
     listItem({
+      title: "Mission Execution Loop",
+      body: activeMissions[0]
+        ? `${activeMissions[0].title}: ${label(activeMissions[0].status)}.`
+        : `${number(missionReport.active_missions || 0)} misiones activas; sin ejecución externa.`,
+      status: activeMissions[0]?.status || "internal",
+      meta: `${number(missionReport.waiting_audit || 0)} auditoría / ${number(missionReport.waiting_forge || 0)} FORJA`
+    }),
+    listItem({
+      title: "Workday OS",
+      body: `Día ${workday.date || "local"}: ${number(workday.relevant_alerts || 0)} alertas relevantes, ${number(workday.priority_changes || 0)} cambios de prioridad.`,
+      status: workday.scheduler_status || "prepared",
+      meta: workday.manual_trigger_available ? "manual" : "scheduler"
+    }),
+    listItem({
+      title: "Upgrade Pipeline",
+      body: `${number(upgrades.packages || 0)} paquetes, ${number(upgrades.open_gaps || 0)} brechas abiertas; FORJA preparada y AUDITORÍA revisa.`,
+      status: upgrades.status || "prepared",
+      meta: `${number(upgrades.waiting_audit || 0)} auditoría`
+    }),
+    listItem({
+      title: "Revenue Sprint 30 días",
+      body: `${number(revenueSprint.routes || 0)} rutas, ${number(revenueSprint.missions || 0)} misiones; ingresos reales 0.`,
+      status: revenueSprint.sprint_status || "prepared",
+      meta: `${number(revenueSprint.approval_needed || 0)} aprobación`
+    }),
+    listItem({
+      title: "Publishing & Growth",
+      body: `${number(publishing.content_items || 0)} contenidos, ${number(publishing.channels || 0)} canales; publicaciones reales no inventadas.`,
+      status: publishing.status || "prepared",
+      meta: `${number(publishing.approvals_needed || 0)} aprobación`
+    }),
+    listItem({
       title: "Siguiente acción",
+      title: "Readiness DCFT/SENTINELA",
+      body: `${number(productReadiness.open_gaps || 0)} brechas; MARKETING vende, productos validan evidencia.`,
+      status: productReadiness.status || "requires_validation",
+      meta: `${number(productReadiness.requires_validation || 0)} validaciones`
+    }),
+    listItem({
+      title: "Siguiente accion",
       body: compactNextAction,
       status: "waiting_ceo",
       meta: "CEREBRO"
@@ -1203,6 +1309,13 @@ function renderCeoDailyCenter() {
 
   actions.innerHTML = [
     { label: "Pedir reporte", target: "cerebro", detail: "CEREBRO" },
+    { label: "Workday", target: "workday", detail: "Día" },
+    { label: "Upgrades", target: "upgrades", detail: "Brechas" },
+    { label: "Misiones", target: "mission", detail: "Loop" },
+    { label: "Sprint 30 días", target: "sprint", detail: "Ingresos" },
+    { label: "Publishing", target: "publishing", detail: "Contenido" },
+    { label: "Readiness", target: "readiness", detail: "DCFT/SENT" },
+    { label: "Revenue OS", target: "revenue", detail: "Ingresos" },
     { label: "Ver decisiones", target: "ceo-daily-center", detail: "CEO" },
     { label: "Ver AUDITORÍA", target: "auditor", detail: "Evidencia" },
     { label: "Ver NUBE", target: "nube", detail: "Cloud" },
@@ -1213,6 +1326,685 @@ function renderCeoDailyCenter() {
       <span>${escapeHtml(action.detail)}</span>
     </button>
   `).join("");
+}
+
+function renderWorkdayOs() {
+  const container = $("#workday-os-grid");
+  if (!container) return;
+
+  const status = state.data.workdayStatus || state.data.ceoDailyCenter?.workday || {};
+  const morning = state.data.workdayMorning || {};
+  const midday = state.data.workdayMidday || {};
+  const evening = state.data.workdayEvening || {};
+  const alerts = Array.isArray(state.data.workdayAlerts) ? state.data.workdayAlerts : [];
+  const priorities = Array.isArray(state.data.workdayPriorityChanges) ? state.data.workdayPriorityChanges : [];
+  const report = state.data.workdayReport || {};
+  const revenue = status.revenue_progress || {};
+  const ecommerce = status.ecommerce_progress || {};
+  const blockers = Array.isArray(status.blockers) ? status.blockers : [];
+  const ceoRequests = Array.isArray(status.CEO_requests) ? status.CEO_requests : [];
+  const topAlert = alerts[0];
+  const topPriority = priorities[0];
+
+  container.innerHTML = `
+    <article class="workday-os-card primary">
+      <span class="eyebrow">Workday OS</span>
+      <strong>${escapeHtml(status.date || "Día local")}</strong>
+      <p>CEREBRO opera mañana, mediodía y tarde/noche. Scheduler preparado; disparo manual disponible.</p>
+      <div class="workday-kpis">
+        <small><b>${number(status.active_missions || 0)}</b>misiones</small>
+        <small><b>${number(status.relevant_alerts || alerts.length)}</b>alertas</small>
+        <small><b>${number(status.priority_changes || priorities.length)}</b>prioridades</small>
+      </div>
+    </article>
+    <article class="workday-os-card">
+      <span class="eyebrow">Mañana 08:00</span>
+      <strong>${escapeHtml(morning.headline || "Plan pendiente")}</strong>
+      <p>${escapeHtml(morning.summary || "Meta USD 6,000 global y USD 10,000 e-commerce; revisar misiones y riesgos.")}</p>
+      <small>${escapeHtml(morning.report || "manual_trigger_available=true")}</small>
+    </article>
+    <article class="workday-os-card">
+      <span class="eyebrow">Mediodía 13:00</span>
+      <strong>${escapeHtml(midday.headline || "Checkpoint preparado")}</strong>
+      <p>${escapeHtml(midday.report || "Avances, cambios de prioridad, bloqueos y alertas relevantes.")}</p>
+      <small>CEREBRO puede cambiar prioridad sin aprobación si no hay gasto real.</small>
+    </article>
+    <article class="workday-os-card">
+      <span class="eyebrow">Tarde/Noche 19:00</span>
+      <strong>${escapeHtml(evening.headline || "Reporte preparado")}</strong>
+      <p>${escapeHtml(evening.report || report.status || "Qué se hizo, qué se bloqueó y plan de mañana.")}</p>
+      <small>Sin publicación externa, pagos, SUNAT ni APIs con costo.</small>
+    </article>
+    <article class="workday-os-card">
+      <span class="eyebrow">Alertas</span>
+      <strong>${escapeHtml(topAlert?.title || "Sin alerta relevante")}</strong>
+      <p>${topAlert ? escapeHtml(topAlert.why_it_matters) : "CEREBRO filtra ruido y no interrumpe señales bajas."}</p>
+      <small>${topAlert ? `${number(topAlert.relevance_score)} score / ${label(topAlert.category)}` : "solo alto impacto"}</small>
+    </article>
+    <article class="workday-os-card">
+      <span class="eyebrow">Prioridad</span>
+      <strong>${escapeHtml(topPriority?.new_priority || "Sin cambio nuevo")}</strong>
+      <p>${topPriority ? escapeHtml(topPriority.reason) : "El tiempo es dinero: CEREBRO puede reordenar el día y reportarlo."}</p>
+      <small>${topPriority ? "audit registrado" : "no requiere CEO si es interno"}</small>
+    </article>
+    <article class="workday-os-card">
+      <span class="eyebrow">Ingresos</span>
+      <strong>USD ${number(revenue.pipeline_usd || 0)} / ${number(revenue.goal_usd || 6000)}</strong>
+      <p>E-commerce separado: USD ${number(ecommerce.pipeline_usd || 0)} / ${number(ecommerce.goal_usd || 10000)}.</p>
+      <small>No se declaran ingresos reales sin evidencia.</small>
+    </article>
+    <article class="workday-os-card wide">
+      <span class="eyebrow">Bloqueos y CEO</span>
+      <p>${
+        (ceoRequests.length ? ceoRequests : blockers).slice(0, 5)
+          .map((item) => `<span>${escapeHtml(item)}</span>`)
+          .join("") || "<span>Sin bloqueo crítico nuevo</span>"
+      }</p>
+      <small>Dinero real, riesgo sensible, SUNAT, cuentas externas y APIs con costo esperan aprobación CEO.</small>
+    </article>
+  `;
+}
+
+function renderCerebroChiefOfStaff() {
+  const container = $("#cerebro-chief-grid");
+  if (!container) return;
+
+  const chiefFromCeo = state.data.ceoDailyCenter?.cerebro?.chief_of_staff || {};
+  const chief = Object.keys(state.data.cerebroChief || {}).length
+    ? state.data.cerebroChief
+    : chiefFromCeo;
+  const goals = Array.isArray(chief.company_goals) ? chief.company_goals : [];
+  const departments = Array.isArray(chief.department_goals) ? chief.department_goals : [];
+  const missions = Array.isArray(chief.active_missions) ? chief.active_missions : [];
+  const alerts = Array.isArray(chief.alerts) ? chief.alerts : [];
+  const approvals = Array.isArray(chief.approval_requests) ? chief.approval_requests : [];
+  const authority = Array.isArray(chief.authority_matrix) ? chief.authority_matrix : [];
+  const noApproval = authority.filter((item) => item.level === "NO_APPROVAL_REQUIRED");
+  const ceoRequired = authority.filter((item) => item.level === "CEO_APPROVAL_REQUIRED");
+  const globalGoal = goals.find((goal) => goal.ecommerce_separate === false) || goals[0] || {};
+  const ecommerceGoal = goals.find((goal) => goal.ecommerce_separate === true) || {};
+  const topMission = missions[0];
+  const topAlert = alerts[0];
+  const topApproval = approvals[0];
+
+  container.innerHTML = `
+    <article class="cerebro-chief-card primary">
+      <span class="eyebrow">Chief of Staff OS</span>
+      <strong>${escapeHtml(chief.motto || "El tiempo es dinero")}</strong>
+      <p>${escapeHtml(chief.autonomy_summary || "CEREBRO puede mover misiones internas sin gasto real ni runtime externo.")}</p>
+      <div class="chief-kpis">
+        <small><b>${number(globalGoal.monthly_target_usd)}</b>USD meta global</small>
+        <small><b>${number(ecommerceGoal.monthly_target_usd)}</b>USD e-commerce</small>
+      </div>
+    </article>
+    <article class="cerebro-chief-card">
+      <span class="eyebrow">Misiones</span>
+      <strong>${number(missions.length)} activas</strong>
+      <p>${topMission ? `${topMission.title}: ${label(topMission.state)}` : "Sin misión activa; CEREBRO puede crear una desde instrucción CEO."}</p>
+      <small>${topMission ? escapeHtml(topMission.relation_to_monthly_goal || "Impacto por estimar.") : "Preparado localmente."}</small>
+    </article>
+    <article class="cerebro-chief-card">
+      <span class="eyebrow">Alertas útiles</span>
+      <strong>${number(alerts.length)} relevantes</strong>
+      <p>${topAlert ? `${topAlert.title}: ${label(topAlert.relevance)}` : "Las señales bajas no interrumpen al CEO."}</p>
+      <small>${topAlert ? `DAFO y matriz económica disponibles.` : "Filtro por relevancia activo."}</small>
+    </article>
+    <article class="cerebro-chief-card">
+      <span class="eyebrow">Aprobación CEO</span>
+      <strong>${number(approvals.length)} sensibles</strong>
+      <p>${topApproval ? `${topApproval.title}: ${label(topApproval.status)}` : "Sin dinero real pendiente."}</p>
+      <small>Pagos, campañas pagadas, credenciales y riesgo alto esperan decisión CEO.</small>
+    </article>
+    <article class="cerebro-chief-card">
+      <span class="eyebrow">Autonomía</span>
+      <strong>${number(noApproval.length)} acciones sin aprobación</strong>
+      <p>Prioridades, misiones, tareas a FORJA, posts orgánicos y deploy controlado quedan preparados.</p>
+      <small>${number(ceoRequired.length)} tipos requieren CEO.</small>
+    </article>
+    <article class="cerebro-chief-card wide">
+      <span class="eyebrow">Departamentos</span>
+      <p>${departments.slice(0, 12).map((item) => `<span>${escapeHtml(item.department)}</span>`).join("")}</p>
+      <small>Todos preparados: sin runtime externo, sin SUNAT real y sin secretos.</small>
+    </article>
+  `;
+}
+
+function renderMissionExecutionLoop() {
+  const container = $("#mission-loop-grid");
+  if (!container) return;
+
+  const report = state.data.missionDailyReport || state.data.ceoDailyCenter?.missions || {};
+  const active = Array.isArray(state.data.missionsActive) ? state.data.missionsActive : [];
+  const missions = active.length ? active : (Array.isArray(report.missions) ? report.missions : []);
+  const topMission = missions[0];
+  const topSteps = Array.isArray(topMission?.steps) ? topMission.steps.slice(0, 3) : [];
+  const topAssignments = Array.isArray(topMission?.assignments) ? topMission.assignments.slice(0, 4) : [];
+  const activeCount = report.active_missions ?? missions.length;
+  const waitingAudit = report.waiting_audit ?? missions.filter((item) => item.status === "waiting_audit").length;
+  const waitingForge = report.waiting_forge ?? missions.filter((item) => item.status === "waiting_forge").length;
+  const waitingCeo = report.waiting_ceo_approval ?? missions.filter((item) => item.status === "waiting_ceo_approval").length;
+  const unknownImpact = report.economic_impact_unknown ?? missions.filter((item) => item.expected_business_impact === "unknown").length;
+
+  container.innerHTML = `
+    <article class="mission-loop-card primary">
+      <span class="eyebrow">Mission Execution Loop</span>
+      <strong>${number(activeCount)} misiones activas</strong>
+      <p>CEO -> CEREBRO -> misión -> departamentos -> AUDITORÍA -> FORJA preparada -> reporte CEO.</p>
+      <div class="mission-loop-kpis">
+        <small><b>${number(waitingAudit)}</b>auditoría</small>
+        <small><b>${number(waitingForge)}</b>FORJA</small>
+        <small><b>${number(waitingCeo)}</b>CEO</small>
+      </div>
+    </article>
+    <article class="mission-loop-card">
+      <span class="eyebrow">Misión prioritaria</span>
+      <strong>${escapeHtml(topMission?.title || "Sin misión activa")}</strong>
+      <p>${topMission ? escapeHtml(topMission.next_action || "CEREBRO reporta siguiente acción.") : "CEREBRO puede crear misiones internas desde una orden del CEO."}</p>
+      <small>${topMission ? `${label(topMission.status)} / ${escapeHtml(topMission.leader_department)}` : "Preparado localmente."}</small>
+    </article>
+    <article class="mission-loop-card">
+      <span class="eyebrow">Departamentos</span>
+      <strong>${number(topMission?.involved_departments?.length || 0)} involucrados</strong>
+      <p>${
+        (topAssignments.length ? topAssignments.map((item) => item.department) : topMission?.involved_departments || [])
+          .slice(0, 6)
+          .map((item) => `<span>${escapeHtml(item)}</span>`)
+          .join("") || "<span>CEREBRO</span><span>AUDITORÍA</span>"
+      }</p>
+      <small>Asignaciones internas; sin runtime externo ni APIs reales.</small>
+    </article>
+    <article class="mission-loop-card">
+      <span class="eyebrow">Pasos</span>
+      <strong>${number(topMission?.steps?.length || 0)} pasos</strong>
+      <p>${topSteps.map((step) => `${escapeHtml(step.owner_department)}: ${escapeHtml(step.title)}`).join("<br>") || "Plan pendiente de CEREBRO."}</p>
+      <small>Estados: planned, assigned, in_progress, waiting_audit, waiting_forge.</small>
+    </article>
+    <article class="mission-loop-card">
+      <span class="eyebrow">Revenue</span>
+      <strong>${number(topMission?.revenue_links?.length || 0)} links</strong>
+      <p>${topMission?.expected_business_impact && topMission.expected_business_impact !== "unknown" ? escapeHtml(topMission.expected_business_impact) : "Impacto económico por estimar; no se inventan ventas."}</p>
+      <small>${number(unknownImpact)} misiones requieren matriz económica.</small>
+    </article>
+    <article class="mission-loop-card wide">
+      <span class="eyebrow">Autonomía y límites</span>
+      <p><span>Local Agent interno preparado</span><span>FORJA interna permitida</span><span>AUDITORÍA interna permitida</span><span>dinero real bloqueado</span><span>SUNAT bloqueado</span><span>APIs externas bloqueadas</span></p>
+      <small>CEREBRO avanza sin pedir permiso solo cuando no hay gasto real, secreto, cuenta externa ni riesgo legal alto.</small>
+    </article>
+  `;
+}
+
+function renderDepartmentUpgradePipeline() {
+  const container = $("#department-upgrade-grid");
+  if (!container) return;
+
+  const status = state.data.upgradesStatus || state.data.ceoDailyCenter?.upgrades || {};
+  const packages = Array.isArray(state.data.upgradesPackages) ? state.data.upgradesPackages : [];
+  const topPackage = packages[0] || (Array.isArray(status.top_packages) ? status.top_packages[0] : null);
+  const topGaps = Array.isArray(topPackage?.gaps) ? topPackage.gaps.slice(0, 3) : [];
+  const changes = Array.isArray(topPackage?.required_changes) ? topPackage.required_changes.slice(0, 3) : [];
+  const supported = Array.isArray(status.supported_departments) ? status.supported_departments : [];
+  const nextAction = topPackage
+    ? (topPackage.status === "sent_to_forja"
+      ? "Esperar evidencia o mantener pending_execution."
+      : topPackage.status === "implemented_pending_audit"
+        ? "AUDITORÍA debe revisar antes de aprobar."
+        : topPackage.status === "waiting_audit"
+          ? "AUDITORÍA revisa el paquete."
+          : "Enviar paquete preparado a FORJA si aplica.")
+    : "AUDITORÍA debe generar brechas para crear paquetes.";
+
+  container.innerHTML = `
+    <article class="upgrade-pipeline-card primary">
+      <span class="eyebrow">Department Upgrade Pipeline</span>
+      <strong>${number(status.packages || packages.length)} paquetes</strong>
+      <p>AUDITORÍA detecta brecha, CEREBRO prioriza, FORJA recibe tarea preparada, AUDITORÍA revisa y CEREBRO reporta CEO.</p>
+      <div class="upgrade-kpis">
+        <small><b>${number(status.open_gaps || 0)}</b>brechas</small>
+        <small><b>${number(status.waiting_forge || 0)}</b>FORJA</small>
+        <small><b>${number(status.waiting_audit || 0)}</b>AUDITORÍA</small>
+      </div>
+    </article>
+    <article class="upgrade-pipeline-card">
+      <span class="eyebrow">Paquete</span>
+      <strong>${escapeHtml(topPackage?.department || "Sin paquete activo")}</strong>
+      <p>${topPackage ? escapeHtml(topPackage.business_impact) : "Crear paquete desde brecha o auditoría automatizada."}</p>
+      <small>${topPackage ? `${label(topPackage.status)} / ${escapeHtml(topPackage.priority)}` : "prepared"}</small>
+    </article>
+    <article class="upgrade-pipeline-card">
+      <span class="eyebrow">Brechas</span>
+      <strong>${number(topPackage?.gaps?.length || status.open_gaps || 0)} abiertas</strong>
+      <p>${topGaps.map((gap) => `<span>${escapeHtml(gap)}</span>`).join("") || "<span>Sin brecha activa</span>"}</p>
+      <small>No se inventan datos si el departamento falta.</small>
+    </article>
+    <article class="upgrade-pipeline-card">
+      <span class="eyebrow">FORJA</span>
+      <strong>${escapeHtml(label(topPackage?.forge_status || "not_sent"))}</strong>
+      <p>${changes.map((change) => `<span>${escapeHtml(change)}</span>`).join("") || "<span>Tarea preparada pendiente</span>"}</p>
+      <small>${escapeHtml(label(topPackage?.technical_status || "pending_execution"))}</small>
+    </article>
+    <article class="upgrade-pipeline-card">
+      <span class="eyebrow">AUDITORÍA</span>
+      <strong>${escapeHtml(label(topPackage?.audit_status || "not_requested"))}</strong>
+      <p>No se declara aprobado sin revisión AUDITORÍA enlazada.</p>
+      <small>${topPackage?.audit_review_id ? escapeHtml(topPackage.audit_review_id) : "review pendiente"}</small>
+    </article>
+    <article class="upgrade-pipeline-card">
+      <span class="eyebrow">Gobernados</span>
+      <strong>${number(status.governed_packages || 0)} paquetes</strong>
+      <p>DCFT, SENTINELA y ARSENAL pueden tener paquete gobernado, no ejecución real.</p>
+      <small>Sin SUNAT, secretos, pagos ni runtimes externos.</small>
+    </article>
+    <article class="upgrade-pipeline-card">
+      <span class="eyebrow">Siguiente acción</span>
+      <strong>${escapeHtml(nextAction)}</strong>
+      <p>${topPackage ? escapeHtml(topPackage.risk || "controlled") : "AUDITORÍA debe detectar brecha primero."}</p>
+      <small>CEREBRO reporta al CEO.</small>
+    </article>
+    <article class="upgrade-pipeline-card wide">
+      <span class="eyebrow">Departamentos soportados</span>
+      <p>${supported.slice(0, 12).map((item) => `<span>${escapeHtml(item)}</span>`).join("") || "<span>PLUMA</span><span>LENTE</span><span>MARKETING</span>"}</p>
+      <small>Si el departamento no existe en datos reales, queda missing/unknown.</small>
+    </article>
+  `;
+}
+
+function renderRevenueOs() {
+  const container = $("#revenue-os-grid");
+  if (!container) return;
+
+  const status = state.data.revenueStatus || state.data.ceoDailyCenter?.revenue || {};
+  const opportunities = Array.isArray(state.data.revenueOpportunities) ? state.data.revenueOpportunities : [];
+  const approvals = Array.isArray(state.data.revenueApprovals) ? state.data.revenueApprovals : [];
+  const departments = Array.isArray(state.data.revenueDepartments) ? state.data.revenueDepartments : [];
+  const globalGoal = status.global_goal || {};
+  const ecommerceGoal = status.ecommerce_goal || {};
+  const topOpportunity = (Array.isArray(status.top_opportunities) ? status.top_opportunities[0] : null)
+    || opportunities.find((item) => item.economic_matrix?.status === "calculated")
+    || opportunities[0];
+  const topApproval = approvals[0];
+  const directDepartments = departments.filter((item) => item.target_scope !== "indirect").slice(0, 6);
+  const moneyRule = "Dinero real, pauta pagada, APIs con costo o inventario esperan CEO.";
+
+  container.innerHTML = `
+    <article class="revenue-os-card primary">
+      <span class="eyebrow">Meta global</span>
+      <strong>USD ${number(globalGoal.monthly_target_usd || 6000)}</strong>
+      <p>Pipeline estimado USD ${number(status.estimated_global_pipeline_usd || 0)}. Ingresos reales no reportados.</p>
+      <div class="revenue-kpis">
+        <small><b>${number(status.global_progress_percent || 0)}%</b>avance estimado</small>
+        <small><b>${number(status.opportunities || opportunities.length)}</b>oportunidades</small>
+      </div>
+    </article>
+    <article class="revenue-os-card">
+      <span class="eyebrow">E-COMMERCE separado</span>
+      <strong>USD ${number(ecommerceGoal.monthly_target_usd || 10000)}</strong>
+      <p>No cuenta dentro de la meta global. Pipeline USD ${number(status.estimated_ecommerce_pipeline_usd || 0)}.</p>
+      <small>${number(status.ecommerce_progress_percent || 0)}% avance estimado e-commerce.</small>
+    </article>
+    <article class="revenue-os-card">
+      <span class="eyebrow">Oportunidad prioritaria</span>
+      <strong>${escapeHtml(topOpportunity?.title || "Sin oportunidad calculada")}</strong>
+      <p>${topOpportunity ? `Utilidad neta USD ${number(topOpportunity.economic_matrix?.expected_net_profit_usd || 0)}.` : "CEREBRO puede registrar oportunidades sin inventar ingresos."}</p>
+      <small>${topOpportunity ? escapeHtml(topOpportunity.economic_matrix?.recommendation || "Matriz pendiente.") : "actual_revenue=0"}</small>
+    </article>
+    <article class="revenue-os-card">
+      <span class="eyebrow">Aprobacion CEO</span>
+      <strong>${number(approvals.length || status.approval_requests || 0)} solicitudes</strong>
+      <p>${topApproval ? `${topApproval.title}: ${label(topApproval.status)}.` : "Sin gasto real pendiente de decision."}</p>
+      <small>${escapeHtml(moneyRule)}</small>
+    </article>
+    <article class="revenue-os-card wide">
+      <span class="eyebrow">Departamentos que monetizan</span>
+      <p>${directDepartments.map((item) => `<span>${escapeHtml(item.department_name)}</span>`).join("") || "<span>CEREBRO</span><span>MARKETING</span>"}</p>
+      <small>PLUMA, LENTE, MARKETING, MARCA PERSONAL, TENDENCIAS, APIs/SKILLS, WEB FACTORY y E-COMMERCE contribuyen sin ejecucion externa.</small>
+    </article>
+    <article class="revenue-os-card">
+      <span class="eyebrow">Riesgo</span>
+      <strong>${number(status.opportunities_needing_data || 0)} sin ROI</strong>
+      <p>Si faltan datos, queda needs_more_data. No se inventa retorno ni venta real.</p>
+      <small>Pagos, pasarelas, cuentas externas y SUNAT siguen fuera.</small>
+    </article>
+  `;
+}
+
+function renderRevenueSprint() {
+  const container = $("#revenue-sprint-grid");
+  if (!container) return;
+
+  const status = state.data.revenueSprintStatus || state.data.ceoDailyCenter?.revenue_sprint || {};
+  const routes = Array.isArray(state.data.revenueSprintRoutes) ? state.data.revenueSprintRoutes : [];
+  const missions = Array.isArray(state.data.revenueSprintMissions) ? state.data.revenueSprintMissions : [];
+  const daily = state.data.revenueSprintDaily || {};
+  const risks = Array.isArray(state.data.revenueSprintRisks) ? state.data.revenueSprintRisks : [];
+  const approvals = Array.isArray(state.data.revenueSprintApprovalNeeded) ? state.data.revenueSprintApprovalNeeded : [];
+  const topRoute = (Array.isArray(status.top_routes) ? status.top_routes[0] : null) || routes[0];
+  const topMission = missions[0];
+  const plan = Array.isArray(status.plan_30_days) ? status.plan_30_days : (Array.isArray(daily.plan_30_days) ? daily.plan_30_days : []);
+  const week = plan[0] || {};
+  const ecommerceRoutes = routes.filter((route) => route.ecommerce_separate);
+  const routeActions = Array.isArray(topRoute?.next_actions) ? topRoute.next_actions.slice(0, 3) : [];
+  const todayFocus = Array.isArray(daily.today_focus) ? daily.today_focus.slice(0, 3) : [];
+
+  container.innerHTML = `
+    <article class="revenue-sprint-card primary">
+      <span class="eyebrow">Revenue Sprint 30 días</span>
+      <strong>USD ${number(status.global_goal_usd || 6000)} / mes</strong>
+      <p>E-commerce USD ${number(status.ecommerce_goal_usd || 10000)} separado. Ingresos reales: ${number(status.actual_revenue_usd || 0)}.</p>
+      <div class="revenue-sprint-kpis">
+        <small><b>${number(status.routes || routes.length)}</b>rutas</small>
+        <small><b>${number(status.missions || missions.length)}</b>misiones</small>
+        <small><b>${number(status.approval_needed || approvals.length)}</b>CEO</small>
+      </div>
+    </article>
+    <article class="revenue-sprint-card">
+      <span class="eyebrow">Ruta prioritaria</span>
+      <strong>${escapeHtml(topRoute?.name || "Sin ruta activa")}</strong>
+      <p>${escapeHtml(topRoute?.hypothesis || "CEREBRO debe priorizar rutas sin inventar ventas.")}</p>
+      <small>${topRoute ? `${label(topRoute.status)} / ${escapeHtml(topRoute.priority || "p1")}` : "prepared"}</small>
+    </article>
+    <article class="revenue-sprint-card">
+      <span class="eyebrow">Siguiente acción</span>
+      <strong>${escapeHtml(routeActions[0] || status.next_action || "Validar demanda orgánica.")}</strong>
+      <p>${routeActions.map((action) => `<span>${escapeHtml(action)}</span>`).join("") || "<span>Preparar evidencia</span>"}</p>
+      <small>${escapeHtml(label(topRoute?.evidence_status || "missing"))}</small>
+    </article>
+    <article class="revenue-sprint-card">
+      <span class="eyebrow">CEREBRO</span>
+      <strong>${escapeHtml(topMission?.title || "Misiones preparadas")}</strong>
+      <p>${topMission ? escapeHtml(topMission.expected_output) : "CEREBRO crea misiones para Marketing, PLUMA, LENTE y Web Factory."}</p>
+      <small>${topMission ? label(topMission.status) : "sin ejecución externa"}</small>
+    </article>
+    <article class="revenue-sprint-card">
+      <span class="eyebrow">Aprobaciones</span>
+      <strong>${number(approvals.length || status.approval_needed || 0)} requieren CEO</strong>
+      <p>Dinero real, pauta pagada, cuentas externas y servicios con costo quedan bloqueados.</p>
+      <small>Orgánico no requiere aprobación de dinero.</small>
+    </article>
+    <article class="revenue-sprint-card">
+      <span class="eyebrow">E-COMMERCE</span>
+      <strong>${number(status.ecommerce_routes || ecommerceRoutes.length)} rutas separadas</strong>
+      <p>No se mezcla con la meta global. SNIFF AMAZON solo prepara señales.</p>
+      <small>Sin compra, cobro ni inventario real.</small>
+    </article>
+    <article class="revenue-sprint-card wide">
+      <span class="eyebrow">Plan 30 días</span>
+      <strong>${escapeHtml(week.title || "Semana 1: auditoría y preparación")}</strong>
+      <p>${todayFocus.map((focus) => `<span>${escapeHtml(focus)}</span>`).join("") || "<span>Auditoría</span><span>Contenido</span><span>Landing</span><span>ROI</span>"}</p>
+      <small>${escapeHtml(week.output || "Lista priorizada de rutas y misiones internas.")}</small>
+    </article>
+    <article class="revenue-sprint-card">
+      <span class="eyebrow">Riesgo</span>
+      <strong>${number(risks.length)} alertas</strong>
+      <p>No inventar ingresos, métricas, ventas ni campañas reales.</p>
+      <small>${number(status.missing_evidence || 0)} rutas con evidencia faltante.</small>
+    </article>
+  `;
+}
+
+function renderPublishingGrowth() {
+  const container = $("#publishing-growth-grid");
+  if (!container) return;
+
+  const status = state.data.publishingStatus || state.data.ceoDailyCenter?.publishing || {};
+  const channels = Array.isArray(state.data.publishingChannels) ? state.data.publishingChannels : (Array.isArray(status.channels_snapshot) ? status.channels_snapshot : []);
+  const content = Array.isArray(state.data.publishingContent) ? state.data.publishingContent : (Array.isArray(status.next_content) ? status.next_content : []);
+  const calendar = Array.isArray(state.data.publishingCalendar) ? state.data.publishingCalendar : [];
+  const growth = Array.isArray(state.data.publishingGrowth) ? state.data.publishingGrowth : [];
+  const connected = channels.filter((channel) => channel.account_status === "connected");
+  const notConnected = channels.filter((channel) => channel.account_status !== "connected");
+  const next = content[0] || {};
+  const pluma = content.find((item) => (item.department_owner || "").toUpperCase().includes("PLUMA"));
+  const lente = content.find((item) => (item.department_owner || "").toUpperCase().includes("LENTE"));
+  const marketing = content.find((item) => (item.department_owner || "").toUpperCase().includes("MARKETING"));
+  const marca = content.find((item) => (item.department_owner || "").toUpperCase().includes("MARCA"));
+  const paidBlocked = content.filter((item) => item.requires_approval);
+  const channelNames = channels.slice(0, 7).map((channel) => channel.name);
+
+  container.innerHTML = `
+    <article class="publishing-growth-card primary">
+      <span class="eyebrow">Publishing & Growth</span>
+      <strong>${number(status.content_items || content.length)} piezas preparadas</strong>
+      <p>${number(status.channels || channels.length)} canales. ${number(status.connected_accounts || connected.length)} cuentas conectadas; ${number(status.not_connected_accounts || notConnected.length)} no conectadas.</p>
+      <div class="publishing-kpis">
+        <small><b>${number(status.prepared_items || 0)}</b>prepared</small>
+        <small><b>${number(status.scheduled_items || 0)}</b>agenda</small>
+        <small><b>${number(status.approvals_needed || paidBlocked.length)}</b>CEO</small>
+      </div>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Canales</span>
+      <strong>${channelNames.slice(0, 3).map(escapeHtml).join(" / ") || "Canales preparados"}</strong>
+      <p>${channelNames.map((name) => `<span>${escapeHtml(name)}</span>`).join("") || "<span>TikTok</span><span>Instagram</span><span>YouTube</span>"}</p>
+      <small>Si la cuenta no esta conectada, publication_status=prepared.</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Proximo contenido</span>
+      <strong>${escapeHtml(next.title || "Sin pieza priorizada")}</strong>
+      <p>${escapeHtml(next.content_brief || "CEREBRO coordina piezas sin publicar real si no hay conexion.")}</p>
+      <small>${escapeHtml(label(next.publication_status || "prepared"))}</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">PLUMA</span>
+      <strong>${escapeHtml(pluma?.format || "posts / guiones / articulos")}</strong>
+      <p>${escapeHtml(pluma?.title || "Posts, newsletters, guiones, libros, autoridad y contenido comercial.")}</p>
+      <small>Español e ingles preparados.</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">LENTE</span>
+      <strong>${escapeHtml(lente?.format || "shorts / reels / miniaturas")}</strong>
+      <p>${escapeHtml(lente?.title || "Videos, shorts, reels, avatares, animaciones y visuales.")}</p>
+      <small>${escapeHtml(label(lente?.niche_status || "needs_ceo_definition"))}</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">MARKETING</span>
+      <strong>${escapeHtml(marketing?.publication_mode || "organico preparado")}</strong>
+      <p>${escapeHtml(marketing?.title || "Campañas organicas, embudos y validacion de demanda.")}</p>
+      <small>Paid campaigns requieren ROI y aprobacion CEO.</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">MARCA PERSONAL</span>
+      <strong>${escapeHtml(marca?.channel || "CEO autoridad")}</strong>
+      <p>${escapeHtml(marca?.title || "Autoridad CEO en TikTok, Instagram, LinkedIn, X y YouTube si existen cuentas.")}</p>
+      <small>Cuenta nueva externa requiere aprobacion.</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Metricas</span>
+      <strong>${number(status.real_metrics_confirmed || 0)} reales confirmadas</strong>
+      <p>${number(growth.length)} metricas registradas. Si falta evidencia, queda missing.</p>
+      <small>No inventar alcance, ventas, views ni conversion.</small>
+    </article>
+    <article class="publishing-growth-card wide">
+      <span class="eyebrow">CEREBRO coordina</span>
+      <strong>${number(calendar.length || content.length)} piezas en calendario preparado</strong>
+      <p><span>PLUMA escribe</span><span>LENTE diseña</span><span>MARKETING valida</span><span>E-COMMERCE separado</span><span>SNIFF AMAZON señala</span></p>
+      <small>Organico conectado no pide CEO; pagado o cuenta externa nueva si pide aprobacion.</small>
+    </article>
+  `;
+}
+
+function renderProductReadiness() {
+  const container = $("#product-readiness-grid");
+  if (!container) return;
+
+  const status = state.data.productReadinessStatus || state.data.ceoDailyCenter?.product_readiness || {};
+  const dcft = state.data.productReadinessDcft || {};
+  const sentinela = state.data.productReadinessSentinela || {};
+  const gaps = Array.isArray(state.data.productReadinessGaps) ? state.data.productReadinessGaps : [];
+  const marketingPackage = state.data.productReadinessMarketingPackage || status.marketing_package || {};
+  const items = Array.isArray(marketingPackage.items) ? marketingPackage.items : [];
+  const dcftGaps = gaps.filter((gap) => gap.product_id === "dcft");
+  const sentinelaGaps = gaps.filter((gap) => gap.product_id === "sentinela");
+  const forjaGaps = gaps.filter((gap) => gap.forge_status === "prepared");
+  const topGap = gaps[0] || {};
+  const dcftPackage = items.find((item) => item.product_id === "dcft") || {};
+  const sentinelaPackage = items.find((item) => item.product_id === "sentinela") || {};
+
+  container.innerHTML = `
+    <article class="product-readiness-card primary">
+      <span class="eyebrow">Readiness</span>
+      <strong>${number(status.products || 2)} productos, ${number(status.open_gaps || gaps.length)} brechas</strong>
+      <p>DCFT y SENTINELA no tienen meta propia. MARKETING vende cuando evidencia y auditoria validen.</p>
+      <div class="product-readiness-kpis">
+        <small><b>${number(status.products_with_own_sales_goal || 0)}</b>meta propia</small>
+        <small><b>${number(status.requires_validation || 0)}</b>validar</small>
+        <small><b>${number(status.unknown_items || 0)}</b>unknown</small>
+      </div>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">DCFT</span>
+      <strong>${escapeHtml(label(dcft.commercial_status || status.dcft_status || "requires_validation"))}</strong>
+      <p>${escapeHtml(dcft.value_proposition || "Producto contable/financiero/tributario; claims legales requieren fuente oficial.")}</p>
+      <small>Sin SUNAT real, sin runtime externo, sin venta automatica.</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">SENTINELA</span>
+      <strong>${escapeHtml(label(sentinela.commercial_status || status.sentinela_status || "requires_validation"))}</strong>
+      <p>${escapeHtml(sentinela.description || "Sistema/producto de seguridad preparado para comercializacion cuando MARKETING lo empuje.")}</p>
+      <small>Sin activacion real ni claims de seguridad sin evidencia.</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">Brechas</span>
+      <strong>${escapeHtml(topGap.title || "Evidencia pendiente")}</strong>
+      <p>${number(dcftGaps.length)} DCFT / ${number(sentinelaGaps.length)} SENTINELA. Faltantes quedan unknown o requires_validation.</p>
+      <small>${escapeHtml(label(topGap.evidence_status || "missing"))}</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">Marketing package</span>
+      <strong>${escapeHtml(label(marketingPackage.status || "prepared_requires_validation"))}</strong>
+      <p>Owner: MARKETING. DCFT/SENTINELA no venden solos ni tienen meta propia.</p>
+      <small>${number(items.length)} paquetes sin claims legales/seguridad no validados.</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">FORJA</span>
+      <strong>${number(forjaGaps.length)} tareas preparadas</strong>
+      <p>Brechas tecnicas pueden pasar a FORJA, pero no se declaran implementadas sin evidencia.</p>
+      <small>technical_status=pending_execution</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">AUDITORIA</span>
+      <strong>${escapeHtml(label(dcft.audit_status || "requires_validation"))}</strong>
+      <p>Legal, seguridad, pricing, onboarding, tiendas y soporte requieren revision antes de avanzar.</p>
+      <small>No hay App Store/Play Store ni campana pagada real.</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">PLUMA / LENTE</span>
+      <strong>${number((dcftPackage.required_pieces || []).length + (sentinelaPackage.required_pieces || []).length)} piezas requeridas</strong>
+      <p>PLUMA prepara guiones/FAQ; LENTE prepara visuales. Todo requiere validacion.</p>
+      <small>Sin publicacion real desde este bloque.</small>
+    </article>
+    <article class="product-readiness-card wide">
+      <span class="eyebrow">Regla comercial</span>
+      <strong>MARKETING vende; producto valida readiness</strong>
+      <p><span>no SUNAT real</span><span>no tiendas reales</span><span>no paid real</span><span>no claims sin fuente</span><span>FORJA preparada</span></p>
+      <small>Si falta informacion: status=unknown o requires_validation.</small>
+    </article>
+  `;
+}
+
+function renderArsenalBlueprint() {
+  const container = $("#arsenal-blueprint-grid");
+  if (!container) return;
+
+  const status = state.data.arsenalStatus || {};
+  const readiness = state.data.arsenalReadiness || status.readiness || {};
+  const categories = Array.isArray(state.data.arsenalCategories) ? state.data.arsenalCategories : [];
+  const catalog = Array.isArray(state.data.arsenalCatalog) ? state.data.arsenalCatalog : [];
+  const risks = Array.isArray(state.data.arsenalRisks) ? state.data.arsenalRisks : [];
+  const sellable = catalog.filter((item) => item.is_sellable);
+  const ceoRequired = catalog.filter((item) => item.requires_ceo_approval);
+  const topItem = catalog[0];
+  const topRisk = risks[0];
+  const activeCategories = categories.filter((item) => item.items > 0);
+  const categorySample = (activeCategories.length ? activeCategories : categories).slice(0, 7);
+
+  container.innerHTML = `
+    <article class="arsenal-blueprint-card primary">
+      <span class="eyebrow">Estado blueprint</span>
+      <strong>${escapeHtml(label(status.status || "arsenal_blueprint_governed_prepared"))}</strong>
+      <p>${escapeHtml(status.purpose || "Almacen estrategico de APIs, skills, modelos, conectores y capacidades.")}</p>
+      <div class="arsenal-kpis">
+        <small><b>${number(readiness.score ?? 0)}</b>readiness</small>
+        <small><b>${number(status.catalog_items || catalog.length)}</b>items</small>
+      </div>
+    </article>
+    <article class="arsenal-blueprint-card">
+      <span class="eyebrow">Categorias</span>
+      <strong>${number(status.categories || categories.length)} preparadas</strong>
+      <p>${categorySample.map((item) => `<span>${escapeHtml(item.name)}</span>`).join("")}</p>
+      <small>Sin datos reales: status empty/prepared. No se inventan recursos.</small>
+    </article>
+    <article class="arsenal-blueprint-card">
+      <span class="eyebrow">Catalogo</span>
+      <strong>${escapeHtml(topItem?.name || "Catalogo metadata")}</strong>
+      <p>${topItem ? `${label(topItem.item_type)} / ${label(topItem.category)}.` : "Preparado para registrar APIs, skills, modelos, conectores y productos tecnicos."}</p>
+      <small>${topItem ? escapeHtml(topItem.technical_status || "blueprint_prepared") : "Solo metadata, sin secretos."}</small>
+    </article>
+    <article class="arsenal-blueprint-card">
+      <span class="eyebrow">Vendibles</span>
+      <strong>${number(sellable.length)} candidatos</strong>
+      <p>APIs y skills vendibles pasan por AUDITORIA y Revenue OS antes de vender.</p>
+      <small>${number(ceoRequired.length)} requieren aprobacion CEO por costo o credenciales.</small>
+    </article>
+    <article class="arsenal-blueprint-card">
+      <span class="eyebrow">Riesgos</span>
+      <strong>${number(risks.length || status.risks_open || 0)} abiertos</strong>
+      <p>${topRisk ? `${topRisk.title}: ${label(topRisk.severity)}.` : "Riesgos preparados: costos, secretos, calidad, seguridad y vendibilidad."}</p>
+      <small>APIs externas, proveedores con costo y secretos siguen bloqueados.</small>
+    </article>
+    <article class="arsenal-blueprint-card wide">
+      <span class="eyebrow">Gobernanza</span>
+      <p><span>CEREBRO consulta</span><span>CREADOR aporta</span><span>FORJA prepara</span><span>AUDITORIA revisa</span><span>NUBE controla costos</span><span>Revenue OS evalua</span></p>
+      <small>Blueprint gobernado: external_connection_enabled=false, runtime_connected=false, secrets_stored=false.</small>
+    </article>
+  `;
+}
+
+function renderDepartmentAudits() {
+  const container = $("#department-audit-grid");
+  if (!container) return;
+
+  const departments = Array.isArray(state.data.departments) ? state.data.departments : [];
+  const audits = Array.isArray(state.data.departmentAudits) ? state.data.departmentAudits : [];
+  const latestByDepartment = new Map();
+  audits.forEach((audit) => {
+    if (!latestByDepartment.has(audit.department_id)) latestByDepartment.set(audit.department_id, audit);
+  });
+  const priorityIds = ["pluma", "lente", "marketing", "dcft", "sentinela", "ecommerce"];
+  const priorityDepartments = priorityIds
+    .map((id) => departments.find((department) => department.id === id))
+    .filter(Boolean);
+  const cards = (priorityDepartments.length ? priorityDepartments : departments.slice(0, 6));
+
+  container.innerHTML = cards.length ? cards.map((department) => {
+    const audit = latestByDepartment.get(department.id);
+    const heart = audit?.heart_cabin || department.heart_cabin || {};
+    const technical = audit?.technical_cabin || department.technical_cabin || {};
+    const human = audit?.human_cabin || department.human_cabin || {};
+    const gaps = Array.isArray(audit?.gaps) ? audit.gaps : (Array.isArray(department.missing_data) ? department.missing_data : []);
+    const requiresForja = Boolean(audit?.requires_forja);
+    const requiresCeo = Boolean(audit?.requires_ceo || ["dcft", "sentinela", "arsenal"].includes(department.id));
+    return `
+      <article class="department-audit-card">
+        <div class="badge-row">
+          ${badge(audit?.status || department.operational_status || "needs_audit")}
+          <span class="badge">${escapeHtml(audit ? "audit" : "inventario")}</span>
+        </div>
+        <strong>${escapeHtml(department.name)}</strong>
+        <p>${escapeHtml(audit?.recommendation || department.revenue_relation || "Pendiente de auditoria.")}</p>
+        <div class="cabin-mini-grid" aria-label="Estado de cabinas">
+          <small><b>Corazón</b>${escapeHtml(label(heart.status || "unknown"))}</small>
+          <small><b>Técnica</b>${escapeHtml(label(technical.status || "unknown"))}</small>
+          <small><b>Humana</b>${escapeHtml(label(human.status || "unknown"))}</small>
+        </div>
+        <div class="department-audit-flags">
+          <span>${number(gaps.length)} brechas</span>
+          <span>${requiresForja ? "FORJA preparada" : "sin FORJA"}</span>
+          <span>${requiresCeo ? "CEO" : "sin CEO"}</span>
+        </div>
+        <small>${escapeHtml(audit?.economic_impact || department.revenue_relation || "Impacto por revisar.")}</small>
+      </article>
+    `;
+  }).join("") : emptyState("Sin inventario de departamentos.", "La API de departamentos no respondio.");
 }
 
 function renderCerebroDailyMeeting() {

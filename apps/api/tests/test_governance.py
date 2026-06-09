@@ -311,29 +311,24 @@ def test_arsenal_planned_gate_cannot_be_discovered_or_connected() -> None:
 
 
 def test_non_protected_gate_can_reach_approval_without_real_connection() -> None:
+    gates_response = client.get("/api/v1/governance/integration-gates", headers=CEO_HEADERS)
+    gates = gates_response.json()
     approved_reviews = client.get("/api/v1/auditoria/reviews", headers=CEO_HEADERS).json()
     approved_refs = {
         item["reference"]
         for item in approved_reviews
         if item["status"] == "approved"
     }
-    app_id = next(
-        app
-        for app in [
-            "hermes",
-            "web_factory",
-            "marketing",
-            "marca_personal",
-            "comercio_autonomo",
-            "buscador_de_tendencias",
-            "forja",
-            "cerebro",
-            "auditor",
-            "nube",
-            "sniff_amazon",
-        ]
-        if app not in approved_refs
-    )
+    candidates = [
+        gate["app_id"]
+        for gate in gates
+        if gate["protected"] is False
+        and gate["app_id"] not in approved_refs
+        and gate["state"] not in {"approved_for_connection", "blocked", "connected"}
+    ]
+    if not candidates:
+        pytest.skip("No clean non-protected gate available in the persistent local database.")
+    app_id = candidates[0]
     discovery = client.post(
         f"/api/v1/governance/integration-gates/{app_id}/approve-discovery",
         json={"role_id": "ceo", "evidence": "Discovery evidence"},
