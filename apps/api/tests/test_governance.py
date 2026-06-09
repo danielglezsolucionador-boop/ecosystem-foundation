@@ -311,19 +311,70 @@ def test_arsenal_planned_gate_cannot_be_discovered_or_connected() -> None:
 
 
 def test_non_protected_gate_can_reach_approval_without_real_connection() -> None:
+    approved_reviews = client.get("/api/v1/auditoria/reviews", headers=CEO_HEADERS).json()
+    approved_refs = {
+        item["reference"]
+        for item in approved_reviews
+        if item["status"] == "approved"
+    }
+    app_id = next(
+        app
+        for app in [
+            "hermes",
+            "web_factory",
+            "marketing",
+            "marca_personal",
+            "comercio_autonomo",
+            "buscador_de_tendencias",
+            "forja",
+            "cerebro",
+            "auditor",
+            "nube",
+            "sniff_amazon",
+        ]
+        if app not in approved_refs
+    )
     discovery = client.post(
-        "/api/v1/governance/integration-gates/pluma/approve-discovery",
+        f"/api/v1/governance/integration-gates/{app_id}/approve-discovery",
         json={"role_id": "ceo", "evidence": "Discovery evidence"},
         headers=CEO_HEADERS,
     )
+    blocked_connection = client.post(
+        f"/api/v1/governance/integration-gates/{app_id}/approve-connection",
+        json={"role_id": "ceo", "evidence": "Connection evidence"},
+        headers=CEO_HEADERS,
+    )
+    review = client.post(
+        "/api/v1/auditoria/reviews",
+        json={
+            "object_type": "department",
+            "reference": app_id,
+            "source": "governance-test",
+            "priority": "p1",
+            "criteria": ["security", "technical_readiness", "ceo_standard"],
+        },
+        headers=CEO_HEADERS,
+    ).json()
+    decision = client.post(
+        f"/api/v1/auditoria/reviews/{review['id']}/decision",
+        json={
+            "decision": "approved",
+            "auditor": "auditoria-test",
+            "observations": ["Connection approval may stay future-only."],
+        },
+        headers=AUDITOR_HEADERS,
+    )
     connection = client.post(
-        "/api/v1/governance/integration-gates/pluma/approve-connection",
+        f"/api/v1/governance/integration-gates/{app_id}/approve-connection",
         json={"role_id": "ceo", "evidence": "Connection evidence"},
         headers=CEO_HEADERS,
     )
 
     assert discovery.status_code == 200
     assert discovery.json()["state"] == "approved_for_discovery"
+    assert blocked_connection.status_code == 400
+    assert blocked_connection.json()["detail"]["error"] == "auditoria_approval_required"
+    assert decision.status_code == 200
     assert connection.status_code == 200
     assert connection.json()["state"] == "approved_for_connection"
     assert connection.json()["state"] != "connected"

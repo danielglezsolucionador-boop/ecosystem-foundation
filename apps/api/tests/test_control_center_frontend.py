@@ -44,6 +44,9 @@ def test_control_center_frontend_is_served() -> None:
     assert "CEREBRO ya coordina internamente" in response.text
     assert "Flujos de Empresa IA" in response.text
     assert "Simulación departamental" in response.text
+    assert "auditoria-operational-list" in response.text
+    assert "nube-control-tower-list" in response.text
+    assert "NUBE / Torre Cloud" in response.text
 
 
 def test_control_center_assets_are_served() -> None:
@@ -78,6 +81,21 @@ def test_control_center_assets_are_served() -> None:
     assert "/api/v1/cerebro/brief/evening" in js_response.text
     assert "/api/v1/cerebro/decisions" in js_response.text
     assert "/api/v1/cerebro/tasks" in js_response.text
+    assert "/api/v1/auditoria/status" in js_response.text
+    assert "/api/v1/auditoria/reviews" in js_response.text
+    assert "/api/v1/auditoria/queue" in js_response.text
+    assert "/api/v1/nube/status" in js_response.text
+    assert "/api/v1/nube/projects" in js_response.text
+    assert "/api/v1/nube/deployments" in js_response.text
+    assert "/api/v1/nube/health-checks" in js_response.text
+    assert "/api/v1/nube/risks" in js_response.text
+    assert "/api/v1/nube/costs" in js_response.text
+    assert "renderNubeControlTower" in js_response.text
+    assert "NUBE / Torre Cloud" in js_response.text
+    assert "sin Vercel API" in js_response.text
+    assert "sin valores" in js_response.text
+    assert "auditoria_operational_internal" in js_response.text
+    assert "AUDITOR" in js_response.text
     assert "cerebro-operational-grid" in js_response.text
     assert "Bus interno" in js_response.text
     assert "rutas internas activas" in js_response.text

@@ -299,6 +299,30 @@ def insert_bus_audit(
     return audit
 
 
+def record_bus_audit_event(
+    *,
+    action: str,
+    status: str,
+    detail: str,
+    route_id: str | None = None,
+    event_id: str | None = None,
+) -> IntegrationBusAuditEvent:
+    ensure_integration_bus_schema()
+    placeholder = sql_placeholder()
+    with connect() as connection:
+        audit = insert_bus_audit(
+            connection,
+            action=action,
+            status=status,
+            detail=detail,
+            route_id=route_id,
+            event_id=event_id,
+            placeholder=placeholder,
+        )
+        connection.commit()
+    return audit
+
+
 def normalize_service_id(value: str) -> str:
     normalized = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
     aliases = {
@@ -423,9 +447,36 @@ def list_internal_routes() -> list[IntegrationBusRoute]:
     ]
 
 
-def internal_handler_result(target: str, request: IntegrationDispatchRequest) -> dict[str, Any]:
+def internal_handler_result(
+    target: str,
+    request: IntegrationDispatchRequest,
+    route_id: str | None = None,
+) -> dict[str, Any]:
     normalized_target = normalize_service_id(target)
     handler = INTERNAL_HANDLERS[normalized_target]
+    review_payload: dict[str, Any] = {}
+    if normalized_target == "auditor":
+        from app.services.audit import create_auditoria_review_from_bus
+
+        review = create_auditoria_review_from_bus(
+            route_id=route_id or request.route_id,
+            subject=request.subject,
+            payload=request.payload,
+            source="cerebro",
+        )
+        review_payload = {
+            "review_id": review.id,
+            "review_status": review.status.value,
+            "object_type": review.object_type.value,
+            "reference": review.reference,
+        }
+    if normalized_target == "nube":
+        from app.services.nube import get_nube_brief_for_cerebro
+
+        review_payload = {
+            "nube_brief": get_nube_brief_for_cerebro(),
+            "nube_status_result": "cloud_status_prepared",
+        }
     return {
         "handler": normalized_target,
         "result": handler["result"],
@@ -436,6 +487,7 @@ def internal_handler_result(target: str, request: IntegrationDispatchRequest) ->
         "local_agent_enabled": False,
         "sunat_enabled": False,
         "payload_received": bool(request.payload),
+        **review_payload,
     }
 
 
@@ -688,7 +740,7 @@ def dispatch_internal_message(
             status_code=403,
         )
 
-    handler_result = internal_handler_result(target, request)
+    handler_result = internal_handler_result(target, request, prepared_route.id)
     event = publish_event(
         EventCreate(
             type=internal_route_event_type(target),

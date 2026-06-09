@@ -1224,6 +1224,20 @@ button:focus-visible {
   gap: 16px;
 }
 
+.ceo-daily-center-band {
+  display: grid;
+  gap: 12px;
+  scroll-margin-top: 14px;
+}
+
+.ceo-daily-center-band .section-title {
+  margin-bottom: 0;
+}
+
+.ceo-daily-center-band .list-item {
+  min-height: 0;
+}
+
 .governance-sections {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2706,6 +2720,60 @@ body::before {
   .quick-actions.compact-map,
   .priority-apps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ceo-daily-center-band {
+    gap: 8px;
+  }
+
+  .ceo-daily-center-band .section-title h2 {
+    font-size: 1.38rem;
+    line-height: 1.08;
+  }
+
+  .ceo-daily-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ceo-daily-grid .list-item {
+    gap: 6px;
+    min-height: 104px;
+    padding: 9px;
+  }
+
+  .ceo-daily-grid .list-item:first-child,
+  .ceo-daily-grid .list-item:nth-child(6) {
+    grid-column: 1 / -1;
+    min-height: 88px;
+  }
+
+  .ceo-daily-grid .badge-row {
+    gap: 5px;
+  }
+
+  .ceo-daily-grid .badge {
+    min-height: 20px;
+    padding: 0 7px;
+    font-size: 0.64rem;
+  }
+
+  .ceo-daily-grid .list-item strong {
+    font-size: 0.86rem;
+    line-height: 1.18;
+  }
+
+  .ceo-daily-grid .list-item p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.78rem;
+    line-height: 1.32;
+  }
+
+  .ceo-daily-center-band .quick-actions.compact-map .mini-action:nth-child(n+3) {
+    display: none;
   }
 
   .hero-card,

@@ -33,7 +33,11 @@ from app.schemas.governance import (
     RiskStatus,
 )
 from app.services.app_registry import get_registered_app, list_registered_apps
-from app.services.audit import create_audit_event, list_audit_events
+from app.services.audit import (
+    create_audit_event,
+    has_approved_auditoria_review_for,
+    list_audit_events,
+)
 
 DECISIONS_TABLE = "governance_decisions"
 APPROVALS_TABLE = "governance_approvals"
@@ -1057,6 +1061,31 @@ def approve_gate_connection(
         )
 
     require_not_planned_blocked(gate, "approve_connection", "planned_app_connection_blocked")
+
+    if not has_approved_auditoria_review_for(gate.app_id):
+        event = audit_governance(
+            source="governance.integration_gates",
+            action="approve_connection",
+            status="blocked",
+            detail=f"AUDITORIA approved review is required before connection approval for {gate.app_name}.",
+            metadata={
+                "app_id": gate.app_id,
+                "role_id": request.role_id.value,
+                "auditoria_required": True,
+            },
+            severity=AuditSeverity.high,
+        )
+        append_audit_id(gate, event)
+        save_gate(gate)
+        raise GovernanceError(
+            status_code=400,
+            detail={
+                "error": "auditoria_approval_required",
+                "app_id": gate.app_id,
+                "state": gate.state.value,
+                "audit_event_id": event.id,
+            },
+        )
 
     gate.state = IntegrationGateState.approved_for_connection
     gate.approved_by = request.role_id

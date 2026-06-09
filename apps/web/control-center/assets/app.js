@@ -12,6 +12,15 @@ const endpoints = {
   integrationBus: "/api/v1/integration-bus",
   contracts: "/api/v1/contracts",
   audit: "/api/v1/audit",
+  auditoriaStatus: "/api/v1/auditoria/status",
+  auditoriaReviews: "/api/v1/auditoria/reviews",
+  auditoriaQueue: "/api/v1/auditoria/queue",
+  nubeStatus: "/api/v1/nube/status",
+  nubeProjects: "/api/v1/nube/projects",
+  nubeDeployments: "/api/v1/nube/deployments",
+  nubeHealthChecks: "/api/v1/nube/health-checks",
+  nubeRisks: "/api/v1/nube/risks",
+  nubeCosts: "/api/v1/nube/costs",
   observability: "/api/v1/observability",
   governanceOverview: "/api/v1/governance",
   governance: "/api/v1/governance/reports",
@@ -25,7 +34,11 @@ const endpoints = {
   cerebroMorning: "/api/v1/cerebro/brief/morning",
   cerebroEvening: "/api/v1/cerebro/brief/evening",
   cerebroDecisions: "/api/v1/cerebro/decisions",
-  cerebroTasks: "/api/v1/cerebro/tasks"
+  cerebroTasks: "/api/v1/cerebro/tasks",
+  ceoDailyCenter: "/api/v1/ceo/daily-center",
+  ceoMorning: "/api/v1/ceo/morning",
+  ceoEvening: "/api/v1/ceo/evening",
+  ceoDecisions: "/api/v1/ceo/decisions"
 };
 
 const AUTH_TOKEN_KEY = "ecosystem_control_center_session_v1";
@@ -83,12 +96,12 @@ const humanAppCatalog = [
   {
     id: "nube",
     name: "NUBE",
-    role: "Operación local y cloud",
+    role: "Torre de control cloud interna",
     capability: "URLs, deploys, costos, variables y backups.",
-    preparedCopy: "Documentado para revisión; runtime apagado.",
+    preparedCopy: "Registra estado cloud; no despliega, no edita variables y no toca NUBE local.",
     action: "Revisar NUBE",
-    lane: "pending",
-    displayStatus: "documented_only"
+    lane: "prepared",
+    displayStatus: "nube_internal_control_tower"
   },
   {
     id: "auditor",
@@ -890,6 +903,7 @@ function render() {
   renderOperator();
   renderAuditor();
   renderSystem();
+  renderNubeControlTower();
   renderView();
   bindActionButtons();
 }
@@ -1098,6 +1112,7 @@ function renderRoleBoundary() {
 }
 
 function renderExecutiveHome() {
+  renderCeoDailyCenter();
   renderTrafficLights();
   renderCerebroDailyMeeting();
   renderCerebroOperational();
@@ -1106,6 +1121,98 @@ function renderExecutiveHome() {
   renderDepartmentalSimulationFlows();
   renderStatusLanes();
   renderDecisionRail();
+}
+
+function renderCeoDailyCenter() {
+  const summary = $("#ceo-daily-center-summary");
+  const actions = $("#ceo-daily-center-actions");
+  if (!summary || !actions) return;
+
+  const center = state.data.ceoDailyCenter || {};
+  const morning = center.morning || state.data.ceoMorning || {};
+  const evening = center.evening || state.data.ceoEvening || {};
+  const decisions = Array.isArray(center.decisions) ? center.decisions : [];
+  const morningDecisions = Array.isArray(morning.decisions) ? morning.decisions : [];
+  const risks = Array.isArray(morning.risks) ? morning.risks : [];
+  const tasks = Array.isArray(morning.tasks) ? morning.tasks : [];
+  const blockages = Array.isArray(morning.blockages) ? morning.blockages : [];
+  const opportunities = Array.isArray(morning.opportunities) ? morning.opportunities : [];
+  const nube = center.nube || {};
+  const auditoria = center.auditoria || {};
+  const firstDecision = decisions[0] || morningDecisions[0];
+  const firstRisk = risks[0];
+  const firstTask = tasks[0];
+  const firstBlockage = blockages[0];
+  const firstOpportunity = opportunities[0];
+  const compactTask = firstTask
+    ? (String(firstTask.title || "").includes("CREADOR_DE_APIS_Y_SKILLS") ? "APIs y Skills" : firstTask.title)
+    : "";
+  const compactOpportunity = firstOpportunity
+    ? (String(firstOpportunity.title || "").includes("CREADOR_DE_APIS_Y_SKILLS") ? "APIs y Skills" : firstOpportunity.title)
+    : "";
+  const compactBlockage = firstBlockage
+    ? (String(firstBlockage.title || "").includes("Doctor Contable") ? "DCFT" : firstBlockage.title)
+    : "";
+  const compactNextAction = (center.next_action || morning.cerebro_recommendation || evening.cerebro_recommendation || "CEO, pide reporte a CEREBRO.")
+    .replace("CEO, esto requiere tu decisión: revisar decisiones pendientes y mantener bloqueadas apps protegidas.", "CEO, revisa decisiones y mantiene apps protegidas.");
+
+  summary.innerHTML = [
+    listItem({
+      title: "Centro Diario del CEO",
+      body: `${number(center.decisions_waiting_ceo)} decisiones | ${number(center.risks)} riesgos | ${number(center.opportunities)} oportunidades | ${number(center.blocked_items)} bloqueos.`,
+      status: "internal",
+      meta: "10 segundos"
+    }),
+    listItem({
+      title: "Decisión pendiente",
+      body: firstDecision
+        ? `${firstDecision.title || firstDecision.reference}: requiere CEO.`
+        : "Sin decisiones pendientes.",
+      status: firstDecision?.status || "ready",
+      meta: `${number(center.decisions_waiting_ceo)} esperando`
+    }),
+    listItem({
+      title: "Riesgos y bloqueos",
+      body: firstBlockage
+        ? `${compactBlockage}: bloqueado.`
+        : (firstRisk ? `${firstRisk.title}: ${label(firstRisk.status)}` : "Sin riesgo crítico nuevo."),
+      status: firstBlockage?.status || firstRisk?.status || "healthy",
+      meta: `${number(center.blocked_items)} bloqueos`
+    }),
+    listItem({
+      title: "AUDITORÍA y NUBE",
+      body: `AUDITORÍA: ${number(auditoria.queue)} cola / ${number(auditoria.blocked_reviews)} bloqueadas. NUBE: ${nube.production_public_status || "unknown"}.`,
+      status: auditoria.blocked_reviews ? "warning" : "healthy",
+      meta: "evidencia"
+    }),
+    listItem({
+      title: "Tareas y oportunidades",
+      body: firstTask
+        ? `${compactTask}: ${label(firstTask.status)}.`
+        : (firstOpportunity ? `${compactOpportunity}: oportunidad preparada.` : "CEREBRO puede preparar tareas internas."),
+      status: firstTask?.status || firstOpportunity?.status || "prepared",
+      meta: `${number(center.active_tasks)} tareas`
+    }),
+    listItem({
+      title: "Siguiente acción",
+      body: compactNextAction,
+      status: "waiting_ceo",
+      meta: "CEREBRO"
+    })
+  ].join("");
+
+  actions.innerHTML = [
+    { label: "Pedir reporte", target: "cerebro", detail: "CEREBRO" },
+    { label: "Ver decisiones", target: "ceo-daily-center", detail: "CEO" },
+    { label: "Ver AUDITORÍA", target: "auditor", detail: "Evidencia" },
+    { label: "Ver NUBE", target: "nube", detail: "Cloud" },
+    { label: "Ver riesgos", target: "alerts", detail: "Bloqueos" }
+  ].map((action) => `
+    <button class="mini-action" data-quick-target="${escapeHtml(action.target)}" type="button">
+      <strong>${escapeHtml(action.label)}</strong>
+      <span>${escapeHtml(action.detail)}</span>
+    </button>
+  `).join("");
 }
 
 function renderCerebroDailyMeeting() {
@@ -1311,7 +1418,7 @@ function renderQuickActions() {
   $("#quick-actions").innerHTML = `
     ${primaryCommands.map(renderCommand).join("")}
     <details class="more-actions">
-      <summary>Mas acciones</summary>
+      <summary>Más acciones</summary>
       <div>${secondaryCommands.map(renderCommand).join("")}</div>
     </details>
   `;
@@ -1749,6 +1856,9 @@ function renderOperator() {
 function renderAuditor() {
   const contracts = state.data.contracts || [];
   const audit = state.data.audit || {};
+  const auditoriaStatus = state.data.auditoriaStatus || {};
+  const auditoriaReviews = Array.isArray(state.data.auditoriaReviews) ? state.data.auditoriaReviews : [];
+  const auditoriaQueue = Array.isArray(state.data.auditoriaQueue) ? state.data.auditoriaQueue : [];
   const roles = state.data.roles || [];
 
   $("#contracts-list").innerHTML = contracts.length ? contracts.map((contract) => listItem({
@@ -1760,12 +1870,35 @@ function renderAuditor() {
 
   $("#audit-list").innerHTML = [
     listItem({
+      title: label(auditoriaStatus.status || "auditoria_operational_internal"),
+      body: `${number(auditoriaStatus.queue)} en cola, ${number(auditoriaStatus.approved_reviews)} aprobadas, ${number(auditoriaStatus.blocked_reviews)} bloqueadas.`,
+      status: auditoriaStatus.blocked_reviews ? "warning" : "healthy",
+      meta: "AUDITORÍA operativa"
+    }),
+    listItem({
       title: label(audit.status || "central_audit_operational"),
       body: `${number(audit.events)} eventos, ${number(audit.reports)} reportes, categorías: ${(audit.categories || []).length}`,
       status: "healthy",
-      meta: "Auditoría"
+      meta: "Auditoría central"
     })
   ].join("");
+
+  $("#auditoria-operational-list").innerHTML = auditoriaReviews.length ? [
+    ...auditoriaQueue.slice(0, 2).map((review) => listItem({
+      title: `${label(review.object_type)}: ${review.reference}`,
+      body: `CEO, esto requiere revisión de AUDITORÍA antes de avanzar. Fuente: ${label(review.source)}.`,
+      status: review.status,
+      meta: review.priority
+    })),
+    ...auditoriaReviews.filter((review) => !auditoriaQueue.some((item) => item.id === review.id)).slice(0, 3).map((review) => listItem({
+      title: `${label(review.object_type)}: ${review.reference}`,
+      body: review.blockages?.length
+        ? review.blockages.join(" ")
+        : (review.observations || []).join(" ") || "Sin observaciones críticas registradas.",
+      status: review.status,
+      meta: review.auditor || "AUDITORÍA"
+    }))
+  ].join("") : emptyState("AUDITORÍA operativa lista; no hay revisiones en cola.");
 
   $("#roles-list").innerHTML = roles.length ? roles.map((role) => listItem({
     title: role.label,
@@ -1832,6 +1965,57 @@ function renderSystem() {
       meta: item.required ? "required" : "optional"
     }))
   ].join("") || emptyState("Integration Bus sin datos disponibles.");
+}
+
+function renderNubeControlTower() {
+  const container = $("#nube-control-tower-list");
+  if (!container) return;
+
+  const status = state.data.nubeStatus || {};
+  const projects = Array.isArray(state.data.nubeProjects) ? state.data.nubeProjects : [];
+  const deployments = Array.isArray(state.data.nubeDeployments) ? state.data.nubeDeployments : [];
+  const healthChecks = Array.isArray(state.data.nubeHealthChecks) ? state.data.nubeHealthChecks : [];
+  const risks = Array.isArray(state.data.nubeRisks) ? state.data.nubeRisks : [];
+  const costs = Array.isArray(state.data.nubeCosts) ? state.data.nubeCosts : [];
+  const variables = Array.isArray(status.variables) ? status.variables : [];
+  const latestDeployment = deployments[0] || {};
+  const latestHealth = healthChecks[0] || {};
+  const cost = costs[0] || {};
+
+  container.innerHTML = [
+    listItem({
+      title: "NUBE / Torre Cloud",
+      body: `${status.production_url || "URL no registrada"} · Control Center: ${status.control_center_url || "sin URL"}`,
+      status: status.status || "nube_internal_control_tower",
+      meta: status.provider || "proveedor"
+    }),
+    listItem({
+      title: "Producción registrada",
+      body: `DB ${status.database || "unknown"} persistent=${number(status.persistent)} temporal=${number(status.temporal)}. Commit: ${status.last_commit || "unknown"}.`,
+      status: status.production_public_status || "unknown",
+      meta: "sin deploy automático"
+    }),
+    listItem({
+      title: "Variables",
+      body: variables.length
+        ? variables.slice(0, 4).map((item) => `${item.name}: ${item.status} / ${item.value}`).join(" · ")
+        : "Sin variables registradas.",
+      status: "masked",
+      meta: "sin valores"
+    }),
+    listItem({
+      title: "Costos y riesgos",
+      body: `Costos: ${cost.cost_status || status.cost_status || "unknown"}. Riesgos abiertos: ${number(risks.length || status.risks)}. Revisión manual: ${number(status.requires_manual_review)}.`,
+      status: cost.cost_status || status.cost_status || "unknown",
+      meta: "NUBE informa"
+    }),
+    listItem({
+      title: "Evidencia cloud",
+      body: `Proyectos: ${number(projects.length || status.projects)}. Deployments: ${number(deployments.length || status.deployments)}. Health: ${latestHealth.status || "unknown"}. Último deploy: ${latestDeployment.status || "registered"}.`,
+      status: latestHealth.status || "registered",
+      meta: "sin Vercel API"
+    })
+  ].join("");
 }
 
 function buildTimeline() {

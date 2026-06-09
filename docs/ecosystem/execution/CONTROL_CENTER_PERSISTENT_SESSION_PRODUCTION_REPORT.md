@@ -4,7 +4,9 @@ Fecha local: 2026-06-08
 
 ## Estado
 
-Mejora `Recordar sesion en este dispositivo` preparada para cierre productivo del Control Center.
+Mejora `Recordar sesion en este dispositivo` desplegada en produccion publica.
+
+Estado de cierre final: BLOCKED para validacion productiva autenticada y tag, porque esta sesion de Codex no tiene presentes las variables seguras `CONTROL_CENTER_ADMIN_EMAIL` y `CONTROL_CENTER_ADMIN_PASSWORD`.
 
 ## Implementado
 
@@ -57,10 +59,50 @@ Sesion normal:
   - no password en storage: PASS.
   - logout limpia ambos storages: PASS.
 
+## Commit, push y deploy
+
+- Commit: `d51963a feat: add persistent CEO session option`.
+- Push: `origin/main` actualizado.
+- Deploy: alias productivo `https://ecosystem-foundation.vercel.app`.
+- `/version`: HTTP 200, commit `d51963a`.
+- `/runtime/status`: HTTP 200, commit `d51963a`.
+
+## Produccion publica
+
+- `/`: HTTP 200.
+- `/health`: HTTP 200.
+- `/readiness`: HTTP 200.
+- `/runtime/status`: HTTP 200, PostgreSQL observado.
+- `/version`: HTTP 200, commit `d51963a`.
+- `/control-center`: HTTP 200.
+
+## Produccion autenticada
+
+- `CONTROL_CENTER_ADMIN_EMAIL` presente en esta sesion: false.
+- `CONTROL_CENTER_ADMIN_PASSWORD` presente en esta sesion: false.
+- No se pidieron credenciales por chat.
+- No se imprimieron credenciales.
+- No se imprimio token.
+- Validacion autenticada productiva: BLOCKED por variables ausentes en esta sesion.
+- Sin sesion en endpoints protegidos: HTTP 401 esperado.
+- Token invalido en endpoints protegidos: HTTP 401 esperado.
+
 ## Capturas locales base
 
 - `outputs/control-center-remember-session-mobile-390x844.png`.
 - `outputs/control-center-remember-session-desktop-1280x720.png`.
+
+## Capturas productivas
+
+- `outputs/control-center-persistent-session-production-mobile-390x844.png`: viewport 390x844, checkbox visible, sin overflow horizontal observado.
+- `outputs/control-center-persistent-session-production-desktop-1280x720.png`: viewport 1280x720, checkbox visible, sin overflow horizontal observado.
+- Console errors de aplicacion durante captura CDP: 0.
+
+## Tag
+
+- `v1-control-center-persistent-session`: no creado.
+- Motivo: no corresponde crear tag mientras la validacion productiva autenticada siga bloqueada por variables ausentes en esta sesion.
+
 
 ## Riesgos
 

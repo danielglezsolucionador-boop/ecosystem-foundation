@@ -5,9 +5,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.audit import router as audit_router
+from app.api.auditoria import router as auditoria_router
 from app.api.auth import router as auth_router
 from app.api.apps import router as apps_router
 from app.api.cerebro import router as cerebro_router
+from app.api.ceo import router as ceo_router
 from app.api.control_center import router as control_center_router
 from app.api.contracts import router as contracts_router
 from app.api.events import router as events_router
@@ -16,6 +18,7 @@ from app.api.health import router as health_router
 from app.api.integration_bus import router as integration_bus_router
 from app.api.integrations import router as integrations_router
 from app.api.memory import router as memory_router
+from app.api.nube import router as nube_router
 from app.api.observability import router as observability_router
 from app.api.permissions import router as permissions_router
 from app.api.platform import router as platform_router
@@ -34,8 +37,10 @@ app = FastAPI(
 
 app.include_router(apps_router)
 app.include_router(audit_router)
+app.include_router(auditoria_router)
 app.include_router(auth_router)
 app.include_router(cerebro_router)
+app.include_router(ceo_router)
 app.include_router(control_center_router)
 app.include_router(contracts_router)
 app.include_router(events_router)
@@ -44,6 +49,7 @@ app.include_router(health_router)
 app.include_router(integration_bus_router)
 app.include_router(integrations_router)
 app.include_router(memory_router)
+app.include_router(nube_router)
 app.include_router(observability_router)
 app.include_router(permissions_router)
 app.include_router(platform_router)
