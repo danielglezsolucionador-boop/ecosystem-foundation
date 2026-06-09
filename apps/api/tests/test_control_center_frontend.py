@@ -15,6 +15,10 @@ def test_control_center_frontend_is_served() -> None:
     assert "/control-center/assets/favicon.svg" in response.text
     assert "/control-center/assets/app.js" in response.text
     assert "login-form" in response.text
+    assert "login-remember" in response.text
+    assert "Recordar" in response.text
+    assert "este dispositivo" in response.text
+    assert "sin guardar tu" in response.text
     assert "active-user-role" in response.text
     assert "logout" in response.text
     assert "ECOSISTEMA IA" in response.text
@@ -56,6 +60,14 @@ def test_control_center_assets_are_served() -> None:
     assert "/api/v1/control-center" in js_response.text
     assert "/api/v1/governance/auth-boundary" in js_response.text
     assert "/api/v1/auth/login" in js_response.text
+    assert "remember_me" in js_response.text
+    assert "readStoredSession" in js_response.text
+    assert "sessionStorage.setItem(AUTH_TOKEN_KEY" in js_response.text
+    assert "localStorage.setItem(AUTH_TOKEN_KEY" in js_response.text
+    assert "localStorage.setItem(\"password" not in js_response.text
+    assert "sessionStorage.setItem(\"password" not in js_response.text
+    assert "localStorage.setItem('password" not in js_response.text
+    assert "sessionStorage.setItem('password" not in js_response.text
     assert "Authorization" in js_response.text
     assert "executePendingAction" in js_response.text
     assert "escalate_approval" in js_response.text

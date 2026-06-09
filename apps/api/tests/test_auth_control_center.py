@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi.testclient import TestClient
 from uuid import uuid4
 
@@ -7,6 +8,10 @@ from app.services.auth import bootstrap_initial_admin, create_user_for_tests, li
 
 
 client = TestClient(app)
+
+
+def parse_zulu(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
 def auth_headers(role: ControlCenterRole = ControlCenterRole.ceo) -> dict[str, str]:
@@ -36,6 +41,54 @@ def test_login_me_sessions_logout_and_revoke_flow() -> None:
 
     expired = client.get("/api/v1/auth/me", headers=headers)
     assert expired.status_code == 401
+
+
+def test_login_remember_me_extends_session_and_allows_auth_me() -> None:
+    email = "remember-auth-test@example.com"
+    password = "ControlCenter-Remember-Test-123"
+    create_user_for_tests(email=email, password=password, name="Remember Auth Test", role=ControlCenterRole.ceo)
+
+    normal_login = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    remember_login = client.post("/api/v1/auth/login", json={"email": email, "password": password, "remember_me": True})
+
+    assert normal_login.status_code == 200
+    assert remember_login.status_code == 200
+
+    normal_payload = normal_login.json()
+    remember_payload = remember_login.json()
+    normal_expiry = parse_zulu(normal_payload["expires_at"])
+    remember_expiry = parse_zulu(remember_payload["expires_at"])
+
+    assert remember_expiry > normal_expiry
+    assert (remember_expiry - normal_expiry).days >= 20
+
+    me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {remember_payload['token']}"})
+    assert me.status_code == 200
+    assert me.json()["email"] == email
+
+    audit = [
+        event
+        for event in list_auth_audit_events()
+        if event.session_id == remember_payload["session"]["id"] and event.action == "auth.login"
+    ]
+    assert audit
+    assert audit[0].metadata["remember_me"] is True
+    assert audit[0].metadata["session_ttl_hours"] == 720
+
+
+def test_logout_revokes_remembered_session() -> None:
+    email = "remember-logout-test@example.com"
+    password = "remember-logout-test-password"
+    create_user_for_tests(email=email, password=password, name="Remember Logout Test", role=ControlCenterRole.ceo)
+    login_response = client.post("/api/v1/auth/login", json={"email": email, "password": password, "remember_me": True})
+    token = login_response.json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    logout_response = client.post("/api/v1/auth/logout", headers=headers)
+    me_after_logout = client.get("/api/v1/auth/me", headers=headers)
+
+    assert logout_response.status_code == 200
+    assert me_after_logout.status_code == 401
 
 
 def test_invalid_login_and_missing_session_are_denied_and_audited() -> None:

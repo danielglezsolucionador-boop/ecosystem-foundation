@@ -31,6 +31,7 @@ SESSION_AUDIT_TABLE = "control_center_session_audit"
 PASSWORD_ALGORITHM = "pbkdf2_sha256"
 PASSWORD_ITERATIONS = 260000
 SESSION_TTL_HOURS = 12
+REMEMBER_SESSION_TTL_DAYS = 30
 TOKEN_PREFIX = "ccs_"
 ADMIN_BOOTSTRAP_FINGERPRINT_KEY = "control_center_admin_bootstrap_fingerprint"
 
@@ -441,7 +442,9 @@ def login(request_data: LoginRequest, request: Request | None = None) -> LoginRe
 
         token = new_session_token()
         now = utc_now()
-        expires_at = (utc_now_datetime() + timedelta(hours=SESSION_TTL_HOURS)).isoformat().replace("+00:00", "Z")
+        remember_me = bool(request_data.remember_me)
+        session_ttl = timedelta(days=REMEMBER_SESSION_TTL_DAYS) if remember_me else timedelta(hours=SESSION_TTL_HOURS)
+        expires_at = (utc_now_datetime() + session_ttl).isoformat().replace("+00:00", "Z")
         session_id = f"session-{uuid4()}"
         connection.execute(
             f"""
@@ -479,6 +482,10 @@ def login(request_data: LoginRequest, request: Request | None = None) -> LoginRe
         result="success",
         ip_address=ip_address,
         user_agent=ua,
+        metadata={
+            "remember_me": remember_me,
+            "session_ttl_hours": REMEMBER_SESSION_TTL_DAYS * 24 if remember_me else SESSION_TTL_HOURS,
+        },
     )
     return LoginResponse(token=token, expires_at=expires_at, user=user, session=session)
 

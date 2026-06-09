@@ -25,9 +25,17 @@
             <input id="login-email" type="email" autocomplete="username" required />
           </label>
           <label>
-            <span>Password</span>
+            <span>Contraseña</span>
             <input id="login-password" type="password" autocomplete="current-password" required />
           </label>
+          <label class="remember-session">
+            <input id="login-remember" type="checkbox" />
+            <span>
+              <strong>Recordar sesión en este dispositivo</strong>
+              <small>Activa una sesión extendida sin guardar tu contraseña.</small>
+            </span>
+          </label>
+          <p id="login-session-status" class="login-session-status hidden"></p>
           <p id="login-error" class="login-error hidden"></p>
           <button id="login-submit" class="primary-action" type="submit">Entrar al Control Center</button>
         </form>

@@ -164,6 +164,47 @@ button:disabled {
   box-shadow: 0 0 0 4px rgba(216, 167, 70, 0.12);
 }
 
+.remember-session {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(216, 167, 70, 0.18);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(216, 167, 70, 0.08);
+}
+
+.remember-session input {
+  width: 18px;
+  min-height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--gold);
+}
+
+.remember-session span {
+  display: grid;
+  gap: 4px;
+}
+
+.remember-session strong {
+  font-size: 0.92rem;
+}
+
+.remember-session small,
+.login-session-status {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.login-session-status {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
 .login-error {
   margin: 0;
   padding: 10px 12px;

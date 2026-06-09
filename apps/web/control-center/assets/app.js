@@ -30,10 +30,20 @@ const endpoints = {
 
 const AUTH_TOKEN_KEY = "ecosystem_control_center_session_v1";
 
+function readStoredSession() {
+  const persistentToken = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (persistentToken) return { token: persistentToken, remembered: true };
+  const tabToken = sessionStorage.getItem(AUTH_TOKEN_KEY);
+  if (tabToken) return { token: tabToken, remembered: false };
+  return { token: "", remembered: false };
+}
+
+const initialSession = readStoredSession();
+
 const state = {
   data: {},
   errors: {},
-  token: localStorage.getItem(AUTH_TOKEN_KEY) || "",
+  token: initialSession.token,
   user: null,
   role: "ceo",
   boundary: null,
@@ -42,7 +52,10 @@ const state = {
   search: "",
   statusFilter: "all",
   lastUpdated: null,
-  pendingAction: null
+  pendingAction: null,
+  restoreAttempted: Boolean(initialSession.token),
+  restoredNoticePending: false,
+  sessionRemembered: initialSession.remembered
 };
 
 const humanAppCatalog = [
@@ -750,27 +763,54 @@ async function loadCurrentUser() {
     showLogin();
     return false;
   }
+  if (state.restoreAttempted) {
+    setLoginStatus("Validando sesión guardada en este dispositivo.");
+  }
   const response = await fetch("/api/v1/auth/me", {
     headers: authHeaders({ Accept: "application/json" }),
     cache: "no-store"
   });
   if (!response.ok) {
     clearSession();
-    showLogin("No hay sesión activa.");
+    showLogin(state.restoreAttempted ? "La sesión guardada expiró. Entra nuevamente." : "No hay sesión activa.");
+    state.restoreAttempted = false;
     return false;
   }
   state.user = await response.json();
   state.role = roleFromUser(state.user);
+  state.restoredNoticePending = state.restoreAttempted;
+  state.restoreAttempted = false;
   showApp();
   renderUserShell();
   return true;
+}
+
+function persistSession(token, rememberSession) {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  if (rememberSession) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } else {
+    sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+  }
+  state.sessionRemembered = rememberSession;
 }
 
 function clearSession() {
   state.token = "";
   state.user = null;
   state.boundary = null;
+  state.restoreAttempted = false;
+  state.restoredNoticePending = false;
+  state.sessionRemembered = false;
   localStorage.removeItem(AUTH_TOKEN_KEY);
+  sessionStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+function setLoginStatus(message = "") {
+  const status = $("#login-session-status");
+  status.textContent = message;
+  status.classList.toggle("hidden", !message);
 }
 
 function showLogin(message = "") {
@@ -778,12 +818,14 @@ function showLogin(message = "") {
   $("#app").classList.add("hidden");
   $("#login-error").textContent = message;
   $("#login-error").classList.toggle("hidden", !message);
+  if (!message) setLoginStatus("");
 }
 
 function showApp() {
   renderCompanyShell();
   $("#login-screen").classList.add("hidden");
   $("#app").classList.remove("hidden");
+  setLoginStatus("");
 }
 
 function renderUserShell() {
@@ -819,6 +861,10 @@ async function loadData() {
 
   state.lastUpdated = new Date();
   render();
+  if (state.restoredNoticePending) {
+    state.restoredNoticePending = false;
+    showFeedback("Sesión restaurada en este dispositivo.", "success");
+  }
 }
 
 function setLoading() {
@@ -1901,15 +1947,17 @@ async function loginFromForm(event) {
   event.preventDefault();
   const email = $("#login-email").value.trim();
   const password = $("#login-password").value;
+  const rememberSession = $("#login-remember").checked;
   const button = $("#login-submit");
   button.disabled = true;
   $("#login-error").classList.add("hidden");
   $("#login-error").textContent = "";
+  setLoginStatus(rememberSession ? "Se activará sesión extendida en este navegador." : "");
   try {
     const response = await fetch("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, remember_me: rememberSession })
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -1918,9 +1966,11 @@ async function loginFromForm(event) {
     state.token = result.token;
     state.user = result.user;
     state.role = roleFromUser(result.user);
-    localStorage.setItem(AUTH_TOKEN_KEY, state.token);
+    persistSession(state.token, rememberSession);
+    $("#login-password").value = "";
     showApp();
     renderUserShell();
+    showFeedback(rememberSession ? "Sesión recordada en este dispositivo." : "Sesión iniciada para esta pestaña.", "success");
     await loadData();
   } catch (error) {
     showLogin(error.message === "invalid_credentials" ? "Credenciales incorrectas." : "No se pudo iniciar sesión.");
