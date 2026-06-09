@@ -48,6 +48,9 @@ class CeoDailyView(BaseModel):
 
 class CeoDailyCenter(BaseModel):
     status: str = Field(min_length=1)
+    mode: str = Field(default="ok", min_length=1)
+    degraded: bool = False
+    warnings: list[str] = Field(default_factory=list)
     generated_at: str = Field(min_length=1)
     executive_summary: str = Field(min_length=1)
     morning: CeoDailyView

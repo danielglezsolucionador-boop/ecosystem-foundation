@@ -150,15 +150,23 @@ def row_to_auditoria_review(row) -> AuditoriaReview:
     return AuditoriaReview(**json.loads(row["payload_json"]))
 
 
-def list_auditoria_reviews() -> list[AuditoriaReview]:
+def list_auditoria_reviews(limit: int | None = None) -> list[AuditoriaReview]:
     ensure_audit_schema()
+    placeholder = sql_placeholder()
+    limit_clause = ""
+    params: tuple[int, ...] = ()
+    if limit is not None:
+        limit_clause = f"LIMIT {placeholder}"
+        params = (max(1, min(int(limit), 200)),)
     with connect() as connection:
         rows = connection.execute(
             f"""
             SELECT payload_json
             FROM {AUDITORIA_REVIEWS_TABLE}
             ORDER BY updated_at DESC
-            """
+            {limit_clause}
+            """,
+            params,
         ).fetchall()
     return [row_to_auditoria_review(row) for row in rows]
 

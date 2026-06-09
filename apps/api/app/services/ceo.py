@@ -1,5 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 import json
+import time
 from typing import Any
 
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
@@ -44,6 +47,23 @@ PROHIBITED_ACTIONS = {
     "connect_runtime",
     "touch_nube_local",
 }
+INTERNAL_TIMEOUT_SECONDS = 1.2
+_SNAPSHOT_EXECUTOR = ThreadPoolExecutor(max_workers=6, thread_name_prefix="ceo_daily_center")
+
+
+@dataclass
+class CeoSnapshot:
+    decisions: list[GovernanceDecision] = field(default_factory=list)
+    tasks: list[Any] = field(default_factory=list)
+    routes: list[Any] = field(default_factory=list)
+    auditoria_reviews: list[Any] = field(default_factory=list)
+    governance_report: Any | None = None
+    cerebro_status: dict[str, Any] = field(default_factory=dict)
+    bus_status: dict[str, Any] = field(default_factory=dict)
+    auditoria_status: dict[str, Any] = field(default_factory=dict)
+    nube_status: dict[str, Any] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
+    elapsed_ms: int = 0
 
 
 def utc_now() -> str:
@@ -83,6 +103,69 @@ def safe_model_dump(model: Any) -> dict[str, Any]:
     if isinstance(model, dict):
         return model
     return {}
+
+
+def read_value(source: Any, name: str, default: Any = "unknown") -> Any:
+    if isinstance(source, dict):
+        return source.get(name, default)
+    return getattr(source, name, default)
+
+
+def safe_snapshot_call(
+    label: str,
+    callback,
+    default: Any,
+    warnings: list[str],
+    timeout_seconds: float | None = None,
+) -> Any:
+    timeout_seconds = INTERNAL_TIMEOUT_SECONDS if timeout_seconds is None else timeout_seconds
+    future = _SNAPSHOT_EXECUTOR.submit(callback)
+    try:
+        return future.result(timeout=timeout_seconds)
+    except FuturesTimeoutError:
+        future.cancel()
+        warnings.append(f"{label}_timeout_fallback")
+        return default
+    except Exception:
+        warnings.append(f"{label}_fallback")
+        return default
+
+
+def build_ceo_snapshot() -> CeoSnapshot:
+    started = time.perf_counter()
+    warnings: list[str] = []
+    governance_report = safe_snapshot_call("governance_report", get_governance_report, None, warnings)
+    decisions = (
+        list(getattr(governance_report, "pending_decisions", []))[:12]
+        if governance_report is not None
+        else safe_snapshot_call("governance_decisions", pending_governance_decisions, [], warnings)[:12]
+    )
+    tasks = safe_snapshot_call("cerebro_tasks", list_cerebro_tasks, [], warnings)[:16]
+    bus_overview = safe_snapshot_call("bus_overview", get_bus_overview, None, warnings)
+    routes = list(getattr(bus_overview, "routes", []))[:24] if bus_overview is not None else []
+    cerebro_status = safe_model_dump(safe_snapshot_call("cerebro_status", get_cerebro_status, {}, warnings))
+    bus_status = safe_model_dump(safe_snapshot_call("bus_status", get_bus_status, {}, warnings))
+    auditoria_status = safe_model_dump(safe_snapshot_call("auditoria_status", get_auditoria_status, {}, warnings))
+    auditoria_reviews = safe_snapshot_call(
+        "auditoria_reviews",
+        lambda: list_auditoria_reviews(limit=24),
+        [],
+        warnings,
+    )[:24]
+    nube_status = safe_model_dump(safe_snapshot_call("nube_status", get_nube_status, {}, warnings))
+    return CeoSnapshot(
+        decisions=decisions,
+        tasks=tasks,
+        routes=routes,
+        auditoria_reviews=auditoria_reviews,
+        governance_report=governance_report,
+        cerebro_status=cerebro_status,
+        bus_status=bus_status,
+        auditoria_status=auditoria_status,
+        nube_status=nube_status,
+        warnings=warnings,
+        elapsed_ms=int((time.perf_counter() - started) * 1000),
+    )
 
 
 def record_ceo_event(
@@ -136,8 +219,8 @@ def decision_items(decisions: list[GovernanceDecision]) -> list[CeoDailyItem]:
     ]
 
 
-def task_items() -> list[CeoDailyItem]:
-    tasks = list_cerebro_tasks()
+def task_items(tasks: list[Any] | None = None) -> list[CeoDailyItem]:
+    tasks = list_cerebro_tasks() if tasks is None else tasks
     return [
         item(
             item_id=task.id,
@@ -153,8 +236,11 @@ def task_items() -> list[CeoDailyItem]:
     ]
 
 
-def risk_items() -> list[CeoDailyItem]:
-    report = get_governance_report()
+def risk_items(report: Any | None = None, allow_fetch: bool = True) -> list[CeoDailyItem]:
+    if report is None:
+        if not allow_fetch:
+            return []
+        report = get_governance_report()
     return [
         item(
             item_id=risk.id,
@@ -169,11 +255,11 @@ def risk_items() -> list[CeoDailyItem]:
     ]
 
 
-def opportunity_items() -> list[CeoDailyItem]:
-    bus = get_bus_overview()
+def opportunity_items(routes: list[Any] | None = None) -> list[CeoDailyItem]:
+    routes = get_bus_overview().routes if routes is None else routes
     targets = {"creador_de_apis_y_skills", "web_factory", "marketing", "sniff_amazon", "comercio_autonomo"}
     opportunities: list[CeoDailyItem] = []
-    for route in bus.routes:
+    for route in routes:
         if route.target in targets and route.allowed:
             opportunities.append(
                 item(
@@ -188,8 +274,8 @@ def opportunity_items() -> list[CeoDailyItem]:
     return opportunities[:8]
 
 
-def route_items() -> list[CeoDailyItem]:
-    routes = get_bus_overview().routes
+def route_items(routes: list[Any] | None = None) -> list[CeoDailyItem]:
+    routes = get_bus_overview().routes if routes is None else routes
     return [
         item(
             item_id=route.id,
@@ -209,24 +295,46 @@ def route_items() -> list[CeoDailyItem]:
     ]
 
 
-def blockage_items() -> list[CeoDailyItem]:
-    report = get_governance_report()
-    routes = [route for route in get_bus_overview().routes if not route.allowed]
-    task_blocks = [task for task in list_cerebro_tasks() if task.blocked]
+def blockage_items(
+    report: Any | None = None,
+    routes: list[Any] | None = None,
+    tasks: list[Any] | None = None,
+    allow_fetch: bool = True,
+) -> list[CeoDailyItem]:
+    report = get_governance_report() if report is None and allow_fetch else report
+    routes = get_bus_overview().routes if routes is None and allow_fetch else (routes or [])
+    tasks = list_cerebro_tasks() if tasks is None and allow_fetch else (tasks or [])
+    route_blocks = [route for route in routes if not route.allowed]
+    task_blocks = [task for task in tasks if task.blocked]
     blocked: list[CeoDailyItem] = []
-    blocked.extend(
-        item(
-            item_id=f"gate:{gate.app_id}",
-            title=gate.app_name,
-            body=gate.reason or "App protegida o pendiente; no se ejecuta.",
-            status=gate.state.value,
-            source="governance",
-            meta="app protegida",
-            blocked=True,
-            requires_ceo_decision=True,
+    if report is None:
+        for protected in ["DCFT", "SENTINELA", "ARSENAL"]:
+            blocked.append(
+                item(
+                    item_id=f"gate:{protected.lower()}",
+                    title=protected,
+                    body="Producto protegido; no se ejecuta y requiere aprobación CEO.",
+                    status="blocked",
+                    source="governance",
+                    meta="protected_fallback",
+                    blocked=True,
+                    requires_ceo_decision=True,
+                )
+            )
+    else:
+        blocked.extend(
+            item(
+                item_id=f"gate:{gate.app_id}",
+                title=gate.app_name,
+                body=gate.reason or "App protegida o pendiente; no se ejecuta.",
+                status=gate.state.value,
+                source="governance",
+                meta="app protegida",
+                blocked=True,
+                requires_ceo_decision=True,
+            )
+            for gate in report.blocked_apps[:6]
         )
-        for gate in report.blocked_apps[:6]
-    )
     blocked.extend(
         item(
             item_id=f"route:{route.id}",
@@ -238,7 +346,7 @@ def blockage_items() -> list[CeoDailyItem]:
             blocked=True,
             requires_ceo_decision=route.requires_ceo_approval,
         )
-        for route in routes[:6]
+        for route in route_blocks[:6]
     )
     blocked.extend(
         item(
@@ -256,10 +364,11 @@ def blockage_items() -> list[CeoDailyItem]:
     return blocked[:10]
 
 
-def auditoria_items(status_filter: set[str]) -> list[CeoDailyItem]:
+def auditoria_items(status_filter: set[str], reviews: list[Any] | None = None) -> list[CeoDailyItem]:
+    reviews = list_auditoria_reviews(limit=24) if reviews is None else reviews
     reviews = [
         review
-        for review in list_auditoria_reviews()
+        for review in reviews
         if review.status.value in status_filter
     ]
     return [
@@ -277,23 +386,34 @@ def auditoria_items(status_filter: set[str]) -> list[CeoDailyItem]:
     ]
 
 
-def state_general() -> str:
-    governance = get_governance_report()
-    nube = get_nube_status()
-    cerebro = get_cerebro_status()
+def state_general(snapshot: CeoSnapshot | None = None) -> str:
+    if snapshot is None:
+        governance = get_governance_report()
+        nube = get_nube_status()
+        cerebro = get_cerebro_status()
+        governance_status = governance.status
+        nube_public = nube.production_public_status
+        nube_cost = nube.cost_status
+        cerebro_status = cerebro.status
+    else:
+        governance_status = read_value(snapshot.governance_report, "status", "governance_degraded")
+        nube_public = read_value(snapshot.nube_status, "production_public_status", "unknown")
+        nube_cost = read_value(snapshot.nube_status, "cost_status", "unknown")
+        cerebro_status = read_value(snapshot.cerebro_status, "status", "unknown")
     return (
-        f"Empresa IA local: {governance.status}; CEREBRO {cerebro.status}; "
-        f"NUBE {nube.production_public_status}; costos {nube.cost_status}."
+        f"Empresa IA local: {governance_status}; CEREBRO {cerebro_status}; "
+        f"NUBE {nube_public}; costos {nube_cost}."
     )
 
 
-def build_morning_view() -> CeoDailyView:
-    decisions = pending_governance_decisions()
-    opportunities = opportunity_items()
-    risks = risk_items()
-    tasks = task_items()
-    routes = route_items()
-    blockages = blockage_items()
+def build_morning_view(snapshot: CeoSnapshot | None = None) -> CeoDailyView:
+    snapshot = build_ceo_snapshot() if snapshot is None else snapshot
+    decisions = snapshot.decisions
+    opportunities = opportunity_items(snapshot.routes)
+    risks = risk_items(snapshot.governance_report, allow_fetch=False)
+    tasks = task_items(snapshot.tasks)
+    routes = route_items(snapshot.routes)
+    blockages = blockage_items(snapshot.governance_report, snapshot.routes, snapshot.tasks, allow_fetch=False)
     recommendation = (
         "CEO, esto requiere tu decisión: revisar decisiones pendientes y mantener bloqueadas apps protegidas."
         if decisions or blockages
@@ -303,7 +423,7 @@ def build_morning_view() -> CeoDailyView:
         type="morning",
         headline="Centro Diario del CEO - Mañana",
         summary="Lectura rápida de decisiones, riesgos, oportunidades, tareas y bloqueos antes de operar.",
-        state_general=state_general(),
+        state_general=state_general(snapshot),
         decisions=decision_items(decisions),
         opportunities=opportunities,
         risks=risks,
@@ -315,20 +435,21 @@ def build_morning_view() -> CeoDailyView:
     )
 
 
-def build_evening_view() -> CeoDailyView:
-    tasks = task_items()
+def build_evening_view(snapshot: CeoSnapshot | None = None) -> CeoDailyView:
+    snapshot = build_ceo_snapshot() if snapshot is None else snapshot
+    tasks = task_items(snapshot.tasks)
     done = [
         task
         for task in tasks
         if task.status in {"delegated", "completed"}
     ]
-    blockages = blockage_items()
-    decisions = pending_governance_decisions()
-    auditoria_done = auditoria_items({"approved", "observed"})
-    nube = get_nube_status()
+    blockages = blockage_items(snapshot.governance_report, snapshot.routes, snapshot.tasks, allow_fetch=False)
+    decisions = snapshot.decisions
+    auditoria_done = auditoria_items({"approved", "observed"}, snapshot.auditoria_reviews)
+    nube = snapshot.nube_status
     summary = (
-        f"Qué reportó NUBE: producción {nube.production_public_status}, "
-        f"DB {nube.database}, costos {nube.cost_status}."
+        f"Qué reportó NUBE: producción {read_value(nube, 'production_public_status')}, "
+        f"DB {read_value(nube, 'database')}, costos {read_value(nube, 'cost_status')}."
     )
     recommendation = (
         "CEO, prepara mañana con CEREBRO: cerrar decisiones pendientes y revisar bloqueos."
@@ -339,12 +460,12 @@ def build_evening_view() -> CeoDailyView:
         type="evening",
         headline="Centro Diario del CEO - Tarde",
         summary=summary,
-        state_general=state_general(),
+        state_general=state_general(snapshot),
         decisions=decision_items(decisions),
         opportunities=auditoria_done,
-        risks=risk_items(),
+        risks=risk_items(snapshot.governance_report, allow_fetch=False),
         tasks=done or tasks,
-        internal_routes=route_items(),
+        internal_routes=route_items(snapshot.routes),
         blockages=blockages,
         cerebro_recommendation=recommendation,
         generated_at=utc_now(),
@@ -398,25 +519,45 @@ def ceo_actions() -> list[CeoDailyAction]:
 
 
 def get_ceo_daily_center() -> CeoDailyCenter:
-    morning = build_morning_view()
-    evening = build_evening_view()
-    decisions = pending_governance_decisions()
-    risks = risk_items()
-    opportunities = opportunity_items()
-    blockages = blockage_items()
-    tasks = task_items()
-    cerebro = safe_model_dump(get_cerebro_status())
-    bus_status = safe_model_dump(get_bus_status())
-    governance_report = get_governance_report()
-    auditoria = safe_model_dump(get_auditoria_status())
-    nube = safe_model_dump(get_nube_status())
+    snapshot = build_ceo_snapshot()
+    morning = build_morning_view(snapshot)
+    evening = build_evening_view(snapshot)
+    decisions = snapshot.decisions
+    risks = risk_items(snapshot.governance_report, allow_fetch=False)
+    opportunities = opportunity_items(snapshot.routes)
+    blockages = blockage_items(snapshot.governance_report, snapshot.routes, snapshot.tasks, allow_fetch=False)
+    tasks = task_items(snapshot.tasks)
+    cerebro = snapshot.cerebro_status
+    bus_status = snapshot.bus_status
+    governance_report = snapshot.governance_report
+    auditoria = snapshot.auditoria_status
+    nube = snapshot.nube_status
     next_action = morning.cerebro_recommendation
+    pending_count = (
+        len(getattr(governance_report, "pending_decisions", []))
+        if governance_report is not None
+        else len(decisions)
+    )
+    blocked_apps_count = (
+        len(getattr(governance_report, "blocked_apps", []))
+        if governance_report is not None
+        else 3
+    )
+    critical_risks_count = (
+        len(getattr(governance_report, "critical_risks", []))
+        if governance_report is not None
+        else 0
+    )
     return CeoDailyCenter(
         status="ceo_daily_center_operational_internal",
+        mode="degraded" if snapshot.warnings else "ok",
+        degraded=bool(snapshot.warnings),
+        warnings=snapshot.warnings,
         generated_at=utc_now(),
         executive_summary=(
             f"{len(decisions)} decisiones esperando CEO, {len(risks)} riesgos abiertos, "
-            f"{len(opportunities)} oportunidades preparadas, {len(blockages)} bloqueos activos."
+            f"{len(opportunities)} oportunidades preparadas, {len(blockages)} bloqueos activos. "
+            f"Tiempo interno aproximado: {snapshot.elapsed_ms} ms."
         ),
         morning=morning,
         evening=evening,
@@ -429,10 +570,10 @@ def get_ceo_daily_center() -> CeoDailyCenter:
         cerebro=cerebro,
         bus=bus_status,
         governance={
-            "status": governance_report.status,
-            "pending_decisions": len(governance_report.pending_decisions),
-            "blocked_apps": len(governance_report.blocked_apps),
-            "critical_risks": len(governance_report.critical_risks),
+            "status": read_value(governance_report, "status", "governance_degraded"),
+            "pending_decisions": pending_count,
+            "blocked_apps": blocked_apps_count,
+            "critical_risks": critical_risks_count,
             "external_connections_enabled": False,
         },
         auditoria=auditoria,

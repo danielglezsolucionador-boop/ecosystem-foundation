@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 import pytest
 from uuid import uuid4
+import time
 
 from app.main import app
 from app.schemas.auth import ControlCenterRole
@@ -38,6 +39,8 @@ def test_ceo_daily_center_consolidates_internal_sources() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ceo_daily_center_operational_internal"
+    assert payload["mode"] in {"ok", "degraded"}
+    assert isinstance(payload["warnings"], list)
     assert payload["external_connection_enabled"] is False
     assert payload["runtime_connected"] is False
     assert payload["sunat_enabled"] is False
@@ -51,6 +54,52 @@ def test_ceo_daily_center_consolidates_internal_sources() -> None:
     assert payload["nube"]["vercel_api_connected"] is False
     assert payload["protected_apps"] == ["DCFT", "SENTINELA", "ARSENAL", "SUNAT", "Local Agent"]
     assert any(action["allowed"] is False for action in payload["actions"])
+
+
+def test_ceo_daily_center_uses_safe_fallback_when_internal_source_fails(monkeypatch) -> None:
+    from app.services import ceo as ceo_service
+
+    def broken_nube_status():
+        raise RuntimeError("nube source unavailable")
+
+    def broken_auditoria_status():
+        raise RuntimeError("auditoria source unavailable")
+
+    monkeypatch.setattr(ceo_service, "get_nube_status", broken_nube_status)
+    monkeypatch.setattr(ceo_service, "get_auditoria_status", broken_auditoria_status)
+
+    response = client.get("/api/v1/ceo/daily-center", headers=CEO_HEADERS)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["degraded"] is True
+    assert payload["mode"] == "degraded"
+    assert "nube_status_fallback" in payload["warnings"]
+    assert "auditoria_status_fallback" in payload["warnings"]
+    assert payload["external_connection_enabled"] is False
+    assert payload["runtime_connected"] is False
+    assert payload["protected_apps"] == ["DCFT", "SENTINELA", "ARSENAL", "SUNAT", "Local Agent"]
+
+
+def test_ceo_daily_center_timeout_fallback_does_not_hang(monkeypatch) -> None:
+    from app.services import ceo as ceo_service
+
+    def slow_nube_status():
+        time.sleep(0.25)
+        raise RuntimeError("late nube failure")
+
+    monkeypatch.setattr(ceo_service, "INTERNAL_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(ceo_service, "get_nube_status", slow_nube_status)
+
+    started = time.perf_counter()
+    response = client.get("/api/v1/ceo/daily-center", headers=CEO_HEADERS)
+    elapsed = time.perf_counter() - started
+
+    assert response.status_code == 200
+    assert elapsed < 1.0
+    payload = response.json()
+    assert payload["degraded"] is True
+    assert "nube_status_timeout_fallback" in payload["warnings"]
 
 
 def test_ceo_morning_and_evening_views_respond() -> None:
