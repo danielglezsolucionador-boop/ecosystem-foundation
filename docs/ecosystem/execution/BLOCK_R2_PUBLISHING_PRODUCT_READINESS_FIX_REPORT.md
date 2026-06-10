@@ -3,6 +3,7 @@
 Fecha/hora: 2026-06-09 20:00 -05:00
 Rama: main
 HEAD base: 4a83141 feat: consolidate AI company operating system
+Commit fix: 55e1974 fix: stabilize publishing and product readiness production endpoints
 
 ## Estado
 
@@ -75,15 +76,24 @@ Ejecución focalizada:
 
 ## Producción Pública
 
-Pendiente después de commit/push/deploy:
+Resultado después de commit/push/deploy:
 
-- `/version`
-- `/runtime/status`
-- `/control-center`
+- `/version`: PASS, commit `55e1974`.
+- `/runtime/status`: PASS.
+- `/control-center`: PASS.
 
 ## Producción Autenticada
 
-Pendiente de reejecución segura:
+Estado: `BLOCKED_AUTH`.
+
+La sesión actual de Codex no tiene variables seguras:
+
+- `CONTROL_CENTER_ADMIN_EMAIL`: ausente.
+- `CONTROL_CENTER_ADMIN_PASSWORD`: ausente.
+
+No se pidieron credenciales por chat, no se imprimieron credenciales, no se imprimieron tokens y no se imprimió Authorization.
+
+Comando seguro pendiente para CEO desde PowerShell con variables cargadas:
 
 - `.\work\run_total_ecosystem_authenticated_audit.ps1`
 

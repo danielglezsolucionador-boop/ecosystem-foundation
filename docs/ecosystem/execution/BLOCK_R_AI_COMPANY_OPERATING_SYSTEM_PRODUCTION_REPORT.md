@@ -164,7 +164,7 @@ El script valida:
 
 ## R.2 - Fix Publishing + Product Readiness
 
-Estado local: `FIX_LOCAL_PASS`.
+Estado: `FIX_DEPLOYED_PUBLIC_PASS_BLOCKED_AUTH`.
 
 Durante el cierre R.1 ejecutado por CEO con variables seguras, producción autenticada pasó casi todo, pero estas rutas devolvieron 500:
 
@@ -193,6 +193,19 @@ Resultado local R.2:
 Reporte dedicado:
 
 - `docs/ecosystem/execution/BLOCK_R2_PUBLISHING_PRODUCT_READINESS_FIX_REPORT.md`
+
+Producción pública R.2:
+
+- commit `55e1974` desplegado.
+- `/version`: PASS.
+- `/runtime/status`: PASS.
+- `/control-center`: PASS.
+
+Producción autenticada R.2:
+
+- Estado: `BLOCKED_AUTH`.
+- La sesión actual de Codex no tiene `CONTROL_CENTER_ADMIN_EMAIL` ni `CONTROL_CENTER_ADMIN_PASSWORD`.
+- Debe reejecutarse `.\work\run_total_ecosystem_authenticated_audit.ps1` desde PowerShell segura.
 
 ## Capturas Productivas Autenticadas
 
