@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 import json
 from uuid import uuid4
 
-from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.product_readiness import (
@@ -114,7 +114,7 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
         ).fetchone()
     if row is None:
         return None
-    return json.loads(row[0])
+    return parse_payload_json(get_row_value(row, "payload_json"))
 
 
 def fetch_payloads(table_name: str) -> list[dict]:
@@ -128,7 +128,26 @@ def fetch_payloads(table_name: str) -> list[dict]:
             ORDER BY created_at DESC
             """
         ).fetchall()
-    return [json.loads(row[0]) for row in rows]
+    payloads: list[dict] = []
+    for row in rows:
+        payload = parse_payload_json(get_row_value(row, "payload_json"))
+        if payload is not None:
+            payloads.append(payload)
+    return payloads
+
+
+def parse_payload_json(raw_payload: object) -> dict | None:
+    if not raw_payload:
+        return None
+    try:
+        payload = json.loads(str(raw_payload))
+    except (TypeError, ValueError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def payload_json_from_row(row: object) -> dict | None:
+    return parse_payload_json(get_row_value(row, "payload_json"))
 
 
 def audit_product_readiness_action(
@@ -278,7 +297,12 @@ def seed_product_readiness() -> None:
 
 def list_gaps(product_id: str | None = None) -> list[ProductReadinessGap]:
     seed_product_readiness()
-    gaps = [ProductReadinessGap(**payload) for payload in fetch_payloads(PRODUCT_READINESS_GAPS_TABLE)]
+    gaps: list[ProductReadinessGap] = []
+    for payload in fetch_payloads(PRODUCT_READINESS_GAPS_TABLE):
+        try:
+            gaps.append(ProductReadinessGap(**payload))
+        except Exception:
+            continue
     if product_id:
         product_id = normalize_product_id(product_id)
         gaps = [gap for gap in gaps if gap.product_id == product_id]
@@ -301,8 +325,14 @@ def get_product(product_id: str) -> ProductReadinessProduct:
     normalized = normalize_product_id(product_id)
     payload = fetch_payload(PRODUCT_READINESS_PRODUCTS_TABLE, normalized)
     if payload is None:
-        raise ProductReadinessError(404, {"error": "product_readiness_product_not_found", "product_id": normalized})
-    product = ProductReadinessProduct(**payload)
+        product = initial_product(normalized)
+        upsert_payload(PRODUCT_READINESS_PRODUCTS_TABLE, product.id, product.model_dump(mode="json"))
+    else:
+        try:
+            product = ProductReadinessProduct(**payload)
+        except Exception:
+            product = initial_product(normalized)
+            upsert_payload(PRODUCT_READINESS_PRODUCTS_TABLE, product.id, product.model_dump(mode="json"))
     product.gaps = list_gaps(normalized)
     return product
 
@@ -329,7 +359,10 @@ def get_gap(gap_id: str) -> ProductReadinessGap:
     payload = fetch_payload(PRODUCT_READINESS_GAPS_TABLE, gap_id)
     if payload is None:
         raise ProductReadinessError(404, {"error": "product_readiness_gap_not_found", "gap_id": gap_id})
-    return ProductReadinessGap(**payload)
+    try:
+        return ProductReadinessGap(**payload)
+    except Exception as exc:
+        raise ProductReadinessError(404, {"error": "product_readiness_gap_payload_invalid", "gap_id": gap_id}) from exc
 
 
 def audit_product_readiness(
@@ -462,7 +495,10 @@ def get_marketing_package() -> ProductReadinessMarketingPackage:
     payload = fetch_payload(PRODUCT_READINESS_MARKETING_PACKAGES_TABLE, "product_readiness_marketing_package_current")
     if payload is None:
         return build_marketing_package()
-    return ProductReadinessMarketingPackage(**payload)
+    try:
+        return ProductReadinessMarketingPackage(**payload)
+    except Exception:
+        return build_marketing_package()
 
 
 def generate_marketing_package(actor: AuthenticatedUser) -> ProductReadinessMarketingPackage:

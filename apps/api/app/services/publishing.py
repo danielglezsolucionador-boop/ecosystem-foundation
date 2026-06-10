@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 import json
 from uuid import uuid4
 
-from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.publishing import (
@@ -119,14 +119,33 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
         ).fetchone()
     if row is None:
         return None
-    return json.loads(row[0])
+    return parse_payload_json(get_row_value(row, "payload_json"))
 
 
 def fetch_payloads(table_name: str) -> list[dict]:
     ensure_publishing_schema()
     with connect() as connection:
         rows = connection.execute(f"SELECT payload_json FROM {table_name}").fetchall()
-    return [json.loads(row[0]) for row in rows]
+    payloads: list[dict] = []
+    for row in rows:
+        payload = parse_payload_json(get_row_value(row, "payload_json"))
+        if payload is not None:
+            payloads.append(payload)
+    return payloads
+
+
+def parse_payload_json(raw_payload: object) -> dict | None:
+    if not raw_payload:
+        return None
+    try:
+        payload = json.loads(str(raw_payload))
+    except (TypeError, ValueError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def payload_json_from_row(row: object) -> dict | None:
+    return parse_payload_json(get_row_value(row, "payload_json"))
 
 
 def audit_publishing_action(
@@ -273,7 +292,17 @@ def save_channel(channel: PublishingChannel) -> PublishingChannel:
 
 def list_channels() -> list[PublishingChannel]:
     ensure_publishing_defaults()
-    channels = [PublishingChannel(**payload) for payload in fetch_payloads(PUBLISHING_CHANNELS_TABLE)]
+    channels: list[PublishingChannel] = []
+    for payload in fetch_payloads(PUBLISHING_CHANNELS_TABLE):
+        try:
+            channels.append(PublishingChannel(**payload))
+        except Exception:
+            continue
+    if not channels:
+        for request in initial_channel_requests():
+            channel = build_channel(request)
+            save_channel(channel)
+            channels.append(channel)
     return sorted(channels, key=lambda item: item.name)
 
 
@@ -281,7 +310,10 @@ def get_channel_by_name(name: str) -> PublishingChannel | None:
     normalized = normalize(name)
     ensure_publishing_schema()
     for payload in fetch_payloads(PUBLISHING_CHANNELS_TABLE):
-        channel = PublishingChannel(**payload)
+        try:
+            channel = PublishingChannel(**payload)
+        except Exception:
+            continue
         if normalize(channel.name) == normalized or normalize(channel.platform) == normalized:
             return channel
     return None
@@ -379,7 +411,17 @@ def save_content_item(item: PublishingContentItem) -> PublishingContentItem:
 
 def list_content_items() -> list[PublishingContentItem]:
     ensure_publishing_defaults()
-    items = [PublishingContentItem(**payload) for payload in fetch_payloads(CONTENT_ITEMS_TABLE)]
+    items: list[PublishingContentItem] = []
+    for payload in fetch_payloads(CONTENT_ITEMS_TABLE):
+        try:
+            items.append(PublishingContentItem(**payload))
+        except Exception:
+            continue
+    if not items:
+        for request in initial_content_requests():
+            item = build_content_item(request)
+            save_content_item(item)
+            items.append(item)
     return sorted(items, key=lambda item: (item.scheduled_at or "9999", item.title))
 
 
@@ -388,7 +430,10 @@ def get_content_item(item_id: str) -> PublishingContentItem:
     payload = fetch_payload(CONTENT_ITEMS_TABLE, item_id)
     if payload is None:
         raise PublishingError(404, {"error": "publishing_content_not_found", "content_id": item_id})
-    return PublishingContentItem(**payload)
+    try:
+        return PublishingContentItem(**payload)
+    except Exception as exc:
+        raise PublishingError(404, {"error": "publishing_content_payload_invalid", "content_id": item_id}) from exc
 
 
 def create_channel(request: PublishingChannelCreate, actor: AuthenticatedUser) -> PublishingChannel:
@@ -606,7 +651,13 @@ def create_growth_metric(
 
 def list_growth_metrics() -> list[PublishingGrowthMetric]:
     ensure_publishing_defaults()
-    return [PublishingGrowthMetric(**payload) for payload in fetch_payloads(GROWTH_METRICS_TABLE)]
+    metrics: list[PublishingGrowthMetric] = []
+    for payload in fetch_payloads(GROWTH_METRICS_TABLE):
+        try:
+            metrics.append(PublishingGrowthMetric(**payload))
+        except Exception:
+            continue
+    return metrics
 
 
 def ensure_publishing_defaults(actor: AuthenticatedUser | None = None) -> None:
