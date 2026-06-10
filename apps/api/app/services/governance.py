@@ -3,6 +3,7 @@ import json
 from uuid import uuid4
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload
 from app.schemas.audit import AuditCategory, AuditEvent, AuditEventCreate, AuditSeverity
 from app.schemas.governance import (
     ApprovalStatus,
@@ -343,7 +344,7 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
             (item_id,),
         ).fetchone()
 
-    return json.loads(row["payload_json"]) if row else None
+    return safe_payload(row) if row else None
 
 
 def fetch_payloads(table_name: str) -> list[dict]:
@@ -354,7 +355,22 @@ def fetch_payloads(table_name: str) -> list[dict]:
             f"SELECT payload_json FROM {table_name} ORDER BY updated_at DESC"
         ).fetchall()
 
-    return [json.loads(row["payload_json"]) for row in rows]
+    payloads: list[dict] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is not None:
+            payloads.append(payload)
+    return payloads
+
+
+def safe_models(model_class, payloads: list[dict]) -> list:
+    rows: list = []
+    for payload in payloads:
+        try:
+            rows.append(model_class(**payload))
+        except Exception:
+            continue
+    return rows
 
 
 def audit_governance(
@@ -560,7 +576,25 @@ def seed_integration_gates() -> None:
             ).fetchone()
 
             if row:
-                gate = IntegrationGate(**json.loads(row["payload_json"]))
+                payload = safe_payload(row)
+                try:
+                    gate = IntegrationGate(**payload) if payload else None
+                except Exception:
+                    gate = None
+                if gate is None:
+                    gate = IntegrationGate(
+                        app_id=app.id,
+                        app_name=app.name,
+                        category=app.category,
+                        state=state,
+                        protected=protected,
+                        reason=default_reason,
+                        requires_ceo_approval=True,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    save_gate(gate)
+                    continue
                 changed = False
                 if gate.protected != protected:
                     gate.protected = protected
@@ -641,12 +675,15 @@ def create_decision(request: GovernanceDecisionCreate) -> GovernanceDecision:
 
 
 def list_decisions() -> list[GovernanceDecision]:
-    return [GovernanceDecision(**payload) for payload in fetch_payloads(DECISIONS_TABLE)]
+    return safe_models(GovernanceDecision, fetch_payloads(DECISIONS_TABLE))
 
 
 def get_decision(decision_id: str) -> GovernanceDecision | None:
     payload = fetch_payload(DECISIONS_TABLE, decision_id)
-    return GovernanceDecision(**payload) if payload else None
+    try:
+        return GovernanceDecision(**payload) if payload else None
+    except Exception:
+        return None
 
 
 def require_decision(decision_id: str) -> GovernanceDecision:
@@ -786,10 +823,13 @@ def maybe_expire_approval(approval: GovernanceApproval) -> GovernanceApproval:
 
 
 def list_approvals() -> list[GovernanceApproval]:
-    return [
-        maybe_expire_approval(GovernanceApproval(**payload))
-        for payload in fetch_payloads(APPROVALS_TABLE)
-    ]
+    approvals: list[GovernanceApproval] = []
+    for payload in fetch_payloads(APPROVALS_TABLE):
+        try:
+            approvals.append(maybe_expire_approval(GovernanceApproval(**payload)))
+        except Exception:
+            continue
+    return approvals
 
 
 def list_pending_approvals() -> list[GovernanceApproval]:
@@ -802,7 +842,10 @@ def list_pending_approvals() -> list[GovernanceApproval]:
 
 def get_approval(approval_id: str) -> GovernanceApproval | None:
     payload = fetch_payload(APPROVALS_TABLE, approval_id)
-    return maybe_expire_approval(GovernanceApproval(**payload)) if payload else None
+    try:
+        return maybe_expire_approval(GovernanceApproval(**payload)) if payload else None
+    except Exception:
+        return None
 
 
 def require_approval(approval_id: str) -> GovernanceApproval:
@@ -906,7 +949,7 @@ def save_gate(gate: IntegrationGate) -> IntegrationGate:
 
 
 def list_integration_gates() -> list[IntegrationGate]:
-    gates = [IntegrationGate(**payload) for payload in fetch_payloads(GATES_TABLE)]
+    gates = safe_models(IntegrationGate, fetch_payloads(GATES_TABLE))
     return sorted(gates, key=lambda gate: (gate.protected is False, gate.app_name.lower()))
 
 
@@ -915,7 +958,10 @@ def get_integration_gate(app_id: str) -> IntegrationGate | None:
     if get_registered_app(normalized_id) is None:
         return None
     payload = fetch_payload(GATES_TABLE, normalized_id)
-    return IntegrationGate(**payload) if payload else None
+    try:
+        return IntegrationGate(**payload) if payload else None
+    except Exception:
+        return None
 
 
 def require_gate(app_id: str) -> IntegrationGate:
@@ -1291,12 +1337,15 @@ def create_risk(request: GovernanceRiskCreate) -> GovernanceRisk:
 
 
 def list_risks() -> list[GovernanceRisk]:
-    return [GovernanceRisk(**payload) for payload in fetch_payloads(RISKS_TABLE)]
+    return safe_models(GovernanceRisk, fetch_payloads(RISKS_TABLE))
 
 
 def get_risk(risk_id: str) -> GovernanceRisk | None:
     payload = fetch_payload(RISKS_TABLE, risk_id)
-    return GovernanceRisk(**payload) if payload else None
+    try:
+        return GovernanceRisk(**payload) if payload else None
+    except Exception:
+        return None
 
 
 def require_risk(risk_id: str) -> GovernanceRisk:

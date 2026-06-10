@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload_json
 from app.schemas.events import (
     EventAuditEvent,
     EventCatalogItem,
@@ -35,7 +36,7 @@ def utc_now() -> str:
 
 
 def row_value(row: Any, key: str) -> Any:
-    return row[key]
+    return get_row_value(row, key)
 
 
 def read_json(path: Path) -> object:
@@ -105,8 +106,8 @@ def row_to_event(row: Any) -> EventRecord:
         source=row_value(row, "source"),
         subject=row_value(row, "subject"),
         status=row_value(row, "status"),
-        payload=json.loads(row_value(row, "payload_json")),
-        metadata=json.loads(row_value(row, "metadata_json")),
+        payload=safe_payload_json(row_value(row, "payload_json")) or {},
+        metadata=safe_payload_json(row_value(row, "metadata_json")) or {},
         replay_count=row_value(row, "replay_count"),
         external_queue_connected=bool(row_value(row, "external_queue_connected")),
         created_at=row_value(row, "created_at"),

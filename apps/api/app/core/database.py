@@ -81,10 +81,21 @@ def connect(database_url: str | None = None) -> Any:
     return connect_postgres(url)
 
 
-def get_row_value(row: Any, key: str) -> Any:
+def get_row_value(row: Any, key: str, index: int | None = None, default: Any = None) -> Any:
+    if row is None:
+        return default
     if isinstance(row, dict):
+        return row.get(key, default)
+    try:
         return row[key]
-    return row[key]
+    except (KeyError, IndexError, TypeError):
+        pass
+    if index is not None:
+        try:
+            return row[index]
+        except (KeyError, IndexError, TypeError):
+            return default
+    return default
 
 
 def initialize_database(database_url: str | None = None) -> DatabaseStatus:

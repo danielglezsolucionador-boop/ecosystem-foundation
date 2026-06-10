@@ -3,7 +3,8 @@ import json
 from typing import Any
 from uuid import uuid4
 
-from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload_json
 from app.schemas.contracts import (
     ContractAuditEvent,
     ContractCompatibilityRequest,
@@ -344,7 +345,7 @@ def utc_now() -> str:
 
 
 def row_value(row: Any, key: str) -> Any:
-    return row[key]
+    return get_row_value(row, key)
 
 
 def ensure_contract_schema() -> None:
@@ -466,7 +467,7 @@ def row_to_contract(row: Any) -> ContractRecord:
         name=row_value(row, "name"),
         version=row_value(row, "version"),
         status=row_value(row, "status"),
-        contract_schema=json.loads(row_value(row, "schema_json")),
+        contract_schema=safe_payload_json(row_value(row, "schema_json")) or {},
         description=row_value(row, "description"),
         breaking_change_detected=bool(row_value(row, "breaking_change_detected")),
         external_connection_enabled=bool(row_value(row, "external_connection_enabled")),
@@ -728,7 +729,13 @@ def list_contracts(app_id: str | None = None) -> list[ContractRecord]:
             params,
         ).fetchall()
 
-    return [row_to_contract(row) for row in rows]
+    contracts: list[ContractRecord] = []
+    for row in rows:
+        try:
+            contracts.append(row_to_contract(row))
+        except Exception:
+            continue
+    return contracts
 
 
 def get_contract(contract_id: str) -> ContractRecord | None:
@@ -747,7 +754,12 @@ def get_contract(contract_id: str) -> ContractRecord | None:
             (contract_id,),
         ).fetchone()
 
-    return row_to_contract(row) if row else None
+    if not row:
+        return None
+    try:
+        return row_to_contract(row)
+    except Exception:
+        return None
 
 
 def update_contract(
@@ -904,7 +916,16 @@ def list_contract_versions(contract_id: str) -> list[ContractVersion] | None:
             (contract_id,),
         ).fetchall()
 
-    return [ContractVersion(**json.loads(row_value(row, "payload_json"))) for row in rows]
+    versions: list[ContractVersion] = []
+    for row in rows:
+        payload = safe_payload_json(row_value(row, "payload_json"))
+        if payload is None:
+            continue
+        try:
+            versions.append(ContractVersion(**payload))
+        except Exception:
+            continue
+    return versions
 
 
 def list_contract_audit() -> list[ContractAuditEvent]:

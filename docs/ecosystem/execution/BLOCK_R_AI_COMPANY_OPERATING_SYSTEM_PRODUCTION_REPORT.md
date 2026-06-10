@@ -270,6 +270,49 @@ Pendiente R.7:
 - reejecutar capturas auth desde PowerShell segura;
 - tag solo si `R4_AUTH_CAPTURES_PASS`.
 
+## R.8 - Blindaje global endpoints Control Center
+
+Fecha/hora: 2026-06-09 23:32 -05:00
+
+Estado R.8: `LOCAL_VALIDATED / DEPLOY_PENDING`.
+
+Endpoint fallido actual:
+
+- `GET /api/v1/cerebro/chief-of-staff/status`
+- Produccion devolvio status `500` durante captura autenticada posterior a R.7.
+
+Decision tecnica:
+
+- No seguir corrigiendo endpoint por endpoint.
+- Blindar lectura de payloads y modelos usados por la cabina.
+- Mantener 401/403/404 reales para auth, permisos y recursos inexistentes.
+- Devolver 200 degradado/preparado para datos internos faltantes, legacy o incompletos.
+
+Fix R.8:
+
+- Nuevo helper `app.core.safe_data`.
+- `get_row_value` tolera PostgreSQL dict_row, SQLite Row e indice legacy.
+- `cerebro/chief-of-staff/status` ahora incluye `mode`, `fallback`, `count`, `requires_ceo_action`, `message`.
+- Servicios blindados: CEREBRO, Revenue, Publishing, Product Readiness, Missions, Workday, Upgrades, Departments, Arsenal, Governance, NUBE interna, Audit, Contracts, Observability, Integration Bus, Events, Memory, Security y Auth audit metadata.
+- Auditoria auth local ampliada en `work/run_total_ecosystem_authenticated_audit.ps1`.
+
+Tests R.8:
+
+- `apps/api/tests/test_control_center_endpoint_stability.py`: PASS, `5 passed`.
+- Suite completa: PASS, `479 passed, 1 skipped`.
+
+Reporte dedicado:
+
+- `docs/ecosystem/execution/BLOCK_R8_CONTROL_CENTER_ENDPOINT_HARDENING_REPORT.md`
+
+Pendiente R.8:
+
+- validaciones finales;
+- commit/push/deploy;
+- CEO debe ejecutar auditoria auth ampliada;
+- CEO debe ejecutar capturas R4;
+- tag solo si `R4_AUTH_CAPTURES_PASS`.
+
 ## Estado
 
 Estado R.1: `BLOCKED_AUTH_ENV_MISSING`.

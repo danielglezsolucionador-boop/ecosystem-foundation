@@ -3,6 +3,7 @@ import json
 from uuid import uuid4
 
 from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload_json
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.publishing import (
@@ -135,13 +136,7 @@ def fetch_payloads(table_name: str) -> list[dict]:
 
 
 def parse_payload_json(raw_payload: object) -> dict | None:
-    if not raw_payload:
-        return None
-    try:
-        payload = json.loads(str(raw_payload))
-    except (TypeError, ValueError):
-        return None
-    return payload if isinstance(payload, dict) else None
+    return safe_payload_json(raw_payload)
 
 
 def payload_json_from_row(row: object) -> dict | None:
@@ -601,7 +596,12 @@ def mark_content_published(
 
 def list_calendar_entries() -> list[PublishingCalendarEntry]:
     ensure_publishing_defaults()
-    entries = [PublishingCalendarEntry(**payload) for payload in fetch_payloads(PUBLISHING_SCHEDULE_TABLE)]
+    entries: list[PublishingCalendarEntry] = []
+    for payload in fetch_payloads(PUBLISHING_SCHEDULE_TABLE):
+        try:
+            entries.append(PublishingCalendarEntry(**payload))
+        except Exception:
+            continue
     if entries:
         return sorted(entries, key=lambda item: item.scheduled_at or "9999")
     return [

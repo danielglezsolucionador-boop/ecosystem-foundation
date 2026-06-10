@@ -6,6 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload_json
 from app.schemas.events import EventCreate
 from app.schemas.integration_bus import (
     IntegrationBusAuditEvent,
@@ -403,12 +404,12 @@ def prepared_route_to_route(
     created_at = INTERNAL_ROUTE_CREATED_AT
     updated_at = INTERNAL_ROUTE_CREATED_AT
     if latest:
-        status = latest["status"]
+        status = latest.get("status") or status
         audit_event_id = latest.get("audit_event_id")
-        payload = json.loads(latest["payload_json"])
-        handler_result = json.loads(latest["handler_result_json"])
-        created_at = latest["created_at"]
-        updated_at = latest["updated_at"]
+        payload = safe_payload_json(latest.get("payload_json")) or {}
+        handler_result = safe_payload_json(latest.get("handler_result_json")) or {}
+        created_at = latest.get("created_at") or created_at
+        updated_at = latest.get("updated_at") or updated_at
 
     return IntegrationBusRoute(
         id=prepared_route.id,

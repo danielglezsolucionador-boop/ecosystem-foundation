@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 from uuid import uuid4
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload
 from app.schemas.audit import AuditCategory, AuditEvent, AuditEventCreate, AuditSeverity
 from app.schemas.nube import (
     MASKED_VALUE,
@@ -167,7 +168,16 @@ def list_payloads(table_name: str, model: type[ModelT]) -> list[ModelT]:
             ORDER BY updated_at DESC
             """
         ).fetchall()
-    return [model(**json.loads(row["payload_json"])) for row in rows]
+    items: list[ModelT] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is None:
+            continue
+        try:
+            items.append(model(**payload))
+        except Exception:
+            continue
+    return items
 
 
 def get_payload(table_name: str, item_id: str, model: type[ModelT]) -> ModelT | None:
@@ -182,7 +192,15 @@ def get_payload(table_name: str, item_id: str, model: type[ModelT]) -> ModelT | 
             """,
             (item_id,),
         ).fetchone()
-    return model(**json.loads(row["payload_json"])) if row else None
+    if not row:
+        return None
+    payload = safe_payload(row)
+    if payload is None:
+        return None
+    try:
+        return model(**payload)
+    except Exception:
+        return None
 
 
 def record_nube_audit_event(

@@ -3,7 +3,8 @@ import json
 from typing import Any
 from uuid import uuid4
 
-from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
+from app.core.safe_data import safe_dict, safe_json_value, safe_list, safe_payload_json
 from app.schemas.memory import (
     MemoryAuditEvent,
     MemoryEntry,
@@ -78,7 +79,7 @@ def ensure_memory_schema() -> None:
 
 
 def row_value(row: Any, key: str) -> Any:
-    return row[key]
+    return get_row_value(row, key)
 
 
 def row_to_memory_entry(row: Any) -> MemoryEntry:
@@ -91,9 +92,9 @@ def row_to_memory_entry(row: Any) -> MemoryEntry:
         source=row_value(row, "source"),
         app_id=row_value(row, "app_id"),
         service_id=row_value(row, "service_id"),
-        tags=json.loads(row_value(row, "tags_json")),
+        tags=safe_list(safe_json_value(row_value(row, "tags_json"), [])),
         retention_policy=row_value(row, "retention_policy"),
-        metadata=json.loads(row_value(row, "metadata_json")),
+        metadata=safe_dict(safe_json_value(row_value(row, "metadata_json"), {})),
         version=row_value(row, "version"),
         external_source_connected=bool(row_value(row, "external_source_connected")),
         created_at=row_value(row, "created_at"),
@@ -379,7 +380,16 @@ def list_memory_versions(memory_id: str) -> list[MemoryVersion]:
             (memory_id,),
         ).fetchall()
 
-    return [MemoryVersion(**json.loads(row_value(row, "payload_json"))) for row in rows]
+    versions: list[MemoryVersion] = []
+    for row in rows:
+        payload = safe_payload_json(row_value(row, "payload_json"))
+        if payload is None:
+            continue
+        try:
+            versions.append(MemoryVersion(**payload))
+        except Exception:
+            continue
+    return versions
 
 
 def list_memory_by_app(app_id: str) -> list[MemoryEntry]:

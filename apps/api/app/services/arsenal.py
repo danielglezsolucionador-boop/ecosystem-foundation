@@ -4,6 +4,7 @@ import re
 from uuid import uuid4
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload
 from app.schemas.arsenal import (
     ArsenalAuditStatus,
     ArsenalCatalogItem,
@@ -140,7 +141,12 @@ def fetch_payloads(table_name: str) -> list[dict]:
             ORDER BY created_at DESC
             """
         ).fetchall()
-    return [json.loads(row["payload_json"]) for row in rows]
+    payloads: list[dict] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is not None:
+            payloads.append(payload)
+    return payloads
 
 
 def fetch_payload(table_name: str, item_id: str) -> dict | None:
@@ -151,7 +157,7 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
             f"SELECT payload_json FROM {table_name} WHERE id = {placeholder}",
             (item_id,),
         ).fetchone()
-    return json.loads(row["payload_json"]) if row else None
+    return safe_payload(row) if row else None
 
 
 def audit_arsenal_action(
@@ -255,10 +261,13 @@ def permission_rules() -> list[ArsenalPermissionRule]:
 
 def list_catalog_items() -> list[ArsenalCatalogItem]:
     ensure_arsenal_schema()
-    return [
-        ArsenalCatalogItem(**payload)
-        for payload in fetch_payloads(ARSENAL_CATALOG_TABLE)
-    ]
+    items: list[ArsenalCatalogItem] = []
+    for payload in fetch_payloads(ARSENAL_CATALOG_TABLE):
+        try:
+            items.append(ArsenalCatalogItem(**payload))
+        except Exception:
+            continue
+    return items
 
 
 def get_catalog_item(item_id: str) -> ArsenalCatalogItem:

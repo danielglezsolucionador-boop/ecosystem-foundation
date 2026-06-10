@@ -5,6 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload
 from app.schemas.security import (
     AccessValidationRequest,
     AccessValidationResult,
@@ -186,7 +187,16 @@ def list_security_audit_events() -> list[SecurityAuditEvent]:
             """
         ).fetchall()
 
-    return [SecurityAuditEvent(**json.loads(row["payload_json"])) for row in rows]
+    events: list[SecurityAuditEvent] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is None:
+            continue
+        try:
+            events.append(SecurityAuditEvent(**payload))
+        except Exception:
+            continue
+    return events
 
 
 def is_external_resource(resource: str) -> bool:

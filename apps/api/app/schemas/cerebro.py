@@ -405,9 +405,16 @@ class CerebroAuthorityRule(BaseModel):
 
 class CerebroChiefOfStaffStatus(BaseModel):
     status: str = Field(min_length=1)
+    mode: str = Field(default="prepared", min_length=1)
+    fallback: bool = False
+    count: int = Field(default=0, ge=0)
+    requires_ceo_action: bool = False
+    message: str = Field(default="CEREBRO Chief of Staff status prepared.", min_length=1)
     role: str = Field(min_length=1)
     motto: str = Field(min_length=1)
+    autonomy_policy: str = Field(default="prepared_no_external_runtime", min_length=1)
     autonomy_summary: str = Field(min_length=1)
+    pending_definitions_status: str = Field(default="tracked_or_unknown", min_length=1)
     company_goals: list[CerebroCompanyGoal] = Field(default_factory=list)
     department_goals: list[CerebroDepartmentGoal] = Field(default_factory=list)
     active_missions: list[CerebroMission] = Field(default_factory=list)

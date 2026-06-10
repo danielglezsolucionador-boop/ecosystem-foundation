@@ -4,6 +4,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import safe_dict, safe_json_value
 from app.core.metadata import APP_ENVIRONMENT, APP_NAME
 from app.schemas.observability import (
     ObservabilityHealthService,
@@ -163,19 +164,23 @@ def list_metrics() -> list[ObservabilityMetric]:
             """
         ).fetchall()
 
-    stored_metrics = [
-        ObservabilityMetric(
-            id=row_value(row, "id"),
-            value=json.loads(row_value(row, "value_json")),
-            status=row_value(row, "status"),
-            source=row_value(row, "source"),
-            unit=row_value(row, "unit"),
-            request_id=row_value(row, "request_id"),
-            trace_id=row_value(row, "trace_id"),
-            created_at=row_value(row, "created_at"),
-        )
-        for row in rows
-    ]
+    stored_metrics: list[ObservabilityMetric] = []
+    for row in rows:
+        try:
+            stored_metrics.append(
+                ObservabilityMetric(
+                    id=row_value(row, "id"),
+                    value=safe_json_value(row_value(row, "value_json"), {}),
+                    status=row_value(row, "status"),
+                    source=row_value(row, "source"),
+                    unit=row_value(row, "unit"),
+                    request_id=row_value(row, "request_id"),
+                    trace_id=row_value(row, "trace_id"),
+                    created_at=row_value(row, "created_at"),
+                )
+            )
+        except Exception:
+            continue
     return [*dynamic_metrics, *stored_metrics]
 
 
@@ -249,7 +254,7 @@ def list_logs(level: str | None = None) -> list[ObservabilityLog]:
             source=row_value(row, "source"),
             request_id=row_value(row, "request_id"),
             trace_id=row_value(row, "trace_id"),
-            metadata=json.loads(row_value(row, "metadata_json")),
+            metadata=safe_dict(safe_json_value(row_value(row, "metadata_json"), {})),
             created_at=row_value(row, "created_at"),
         )
         for row in rows
@@ -332,7 +337,7 @@ def list_traces(trace_id: str | None = None) -> list[ObservabilityTrace]:
             operation=row_value(row, "operation"),
             status=row_value(row, "status"),
             duration_ms=row_value(row, "duration_ms"),
-            metadata=json.loads(row_value(row, "metadata_json")),
+            metadata=safe_dict(safe_json_value(row_value(row, "metadata_json"), {})),
             created_at=row_value(row, "created_at"),
         )
         for row in rows

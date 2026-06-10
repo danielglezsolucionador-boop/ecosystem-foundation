@@ -4,6 +4,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import SAFE_FALLBACK_MESSAGE, safe_payload
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.cerebro import (
@@ -297,7 +298,12 @@ def fetch_payloads(table_name: str) -> list[dict]:
             ORDER BY created_at DESC
             """
         ).fetchall()
-    return [json.loads(row["payload_json"]) for row in rows]
+    payloads: list[dict] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is not None:
+            payloads.append(payload)
+    return payloads
 
 
 def fetch_payload(table_name: str, item_id: str) -> dict | None:
@@ -308,7 +314,17 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
             f"SELECT payload_json FROM {table_name} WHERE id = {placeholder}",
             (item_id,),
         ).fetchone()
-    return json.loads(row["payload_json"]) if row else None
+    return safe_payload(row) if row else None
+
+
+def safe_models(model_class, payloads: list[dict]) -> list:
+    rows: list = []
+    for payload in payloads:
+        try:
+            rows.append(model_class(**payload))
+        except Exception:
+            continue
+    return rows
 
 
 def upsert_payload(table_name: str, item_id: str, payload: str) -> None:
@@ -478,7 +494,7 @@ def seed_chief_of_staff_defaults() -> None:
 
 def list_company_goals() -> list[CerebroCompanyGoal]:
     seed_chief_of_staff_defaults()
-    return [CerebroCompanyGoal(**payload) for payload in fetch_payloads(CEREBRO_COMPANY_GOALS_TABLE)]
+    return safe_models(CerebroCompanyGoal, fetch_payloads(CEREBRO_COMPANY_GOALS_TABLE))
 
 
 def create_company_goal(request: CerebroCompanyGoalCreate, actor: AuthenticatedUser) -> CerebroCompanyGoal:
@@ -510,7 +526,7 @@ def create_company_goal(request: CerebroCompanyGoalCreate, actor: AuthenticatedU
 
 def list_department_goals() -> list[CerebroDepartmentGoal]:
     seed_chief_of_staff_defaults()
-    return [CerebroDepartmentGoal(**payload) for payload in fetch_payloads(CEREBRO_DEPARTMENT_GOALS_TABLE)]
+    return safe_models(CerebroDepartmentGoal, fetch_payloads(CEREBRO_DEPARTMENT_GOALS_TABLE))
 
 
 def create_department_goal(
@@ -574,7 +590,7 @@ def mission_relation_text(request: CerebroMissionCreate, matrix: CerebroEconomic
 
 def list_missions() -> list[CerebroMission]:
     seed_chief_of_staff_defaults()
-    return [CerebroMission(**payload) for payload in fetch_payloads(CEREBRO_MISSIONS_TABLE)]
+    return safe_models(CerebroMission, fetch_payloads(CEREBRO_MISSIONS_TABLE))
 
 
 def get_mission(mission_id: str) -> CerebroMission:
@@ -732,7 +748,7 @@ def alert_relevance(score: int) -> str:
 
 def list_alerts(include_low: bool = False) -> list[CerebroAlert]:
     seed_chief_of_staff_defaults()
-    alerts = [CerebroAlert(**payload) for payload in fetch_payloads(CEREBRO_ALERTS_TABLE)]
+    alerts = safe_models(CerebroAlert, fetch_payloads(CEREBRO_ALERTS_TABLE))
     if include_low:
         return alerts
     return [alert for alert in alerts if alert.interrupt_ceo]
@@ -770,7 +786,7 @@ def create_alert(request: CerebroAlertCreate, actor: AuthenticatedUser) -> Cereb
 
 def list_revenue_opportunities() -> list[CerebroRevenueOpportunity]:
     seed_chief_of_staff_defaults()
-    return [CerebroRevenueOpportunity(**payload) for payload in fetch_payloads(CEREBRO_REVENUE_TABLE)]
+    return safe_models(CerebroRevenueOpportunity, fetch_payloads(CEREBRO_REVENUE_TABLE))
 
 
 def create_revenue_opportunity(
@@ -818,7 +834,7 @@ def create_revenue_opportunity(
 
 def list_approval_requests() -> list[CerebroApprovalRequest]:
     seed_chief_of_staff_defaults()
-    return [CerebroApprovalRequest(**payload) for payload in fetch_payloads(CEREBRO_APPROVAL_REQUESTS_TABLE)]
+    return safe_models(CerebroApprovalRequest, fetch_payloads(CEREBRO_APPROVAL_REQUESTS_TABLE))
 
 
 def create_approval_request(
@@ -898,13 +914,16 @@ def update_approval_request_status(
 
 
 def build_checkpoint(checkpoint_type: str) -> CerebroCheckpoint:
-    seed_chief_of_staff_defaults()
-    goals = list_company_goals()
-    missions = list_missions()[:6]
-    alerts = list_alerts()[:6]
+    try:
+        seed_chief_of_staff_defaults()
+    except Exception:
+        pass
+    goals = safe_call(list_company_goals, [])
+    missions = safe_call(list_missions, [])[:6]
+    alerts = safe_call(list_alerts, [])[:6]
     approvals = [
         approval
-        for approval in list_approval_requests()
+        for approval in safe_call(list_approval_requests, [])
         if approval.status == "pending_ceo"
     ][:6]
     title_map = {
@@ -931,39 +950,53 @@ def build_checkpoint(checkpoint_type: str) -> CerebroCheckpoint:
 
 
 def get_chief_of_staff_status() -> CerebroChiefOfStaffStatus:
-    seed_chief_of_staff_defaults()
-    goals = list_company_goals()
-    department_goals = list_department_goals()
+    fallback = False
+    try:
+        seed_chief_of_staff_defaults()
+    except Exception:
+        fallback = True
+    goals = safe_call(list_company_goals, [])
+    department_goals = safe_call(list_department_goals, [])
     missions = [
         mission
-        for mission in list_missions()
+        for mission in safe_call(list_missions, [])
         if mission.state
         not in {CerebroMissionState.completed, CerebroMissionState.rejected}
     ][:8]
     approvals = [
         approval
-        for approval in list_approval_requests()
+        for approval in safe_call(list_approval_requests, [])
         if approval.status == "pending_ceo"
     ][:8]
+    alerts = safe_call(list_alerts, [])[:8]
+    checkpoints = [
+        safe_checkpoint("morning"),
+        safe_checkpoint("midday"),
+        safe_checkpoint("evening"),
+    ]
+    fallback = fallback or not goals or any(checkpoint.summary == SAFE_FALLBACK_MESSAGE for checkpoint in checkpoints)
     return CerebroChiefOfStaffStatus(
-        status="cerebro_chief_of_staff_os_prepared",
+        status="ok" if fallback else "cerebro_chief_of_staff_os_prepared",
+        mode="degraded" if fallback else "prepared",
+        fallback=fallback,
+        count=len(missions),
+        requires_ceo_action=bool(approvals),
+        message=SAFE_FALLBACK_MESSAGE if fallback else "CEREBRO Chief of Staff status prepared.",
         role="Chief of Staff OS / Jefe de Gabinete IA",
         motto="El tiempo es dinero",
+        autonomy_policy="prepared_no_external_runtime",
         autonomy_summary=(
             "CEREBRO puede mover prioridades, misiones, auditorias y departamentos sin pedir permiso "
             "cuando no hay dinero real, credenciales, cuenta externa nueva, SUNAT real ni riesgo alto."
         ),
+        pending_definitions_status="tracked_or_unknown",
         company_goals=goals,
         department_goals=department_goals,
         active_missions=missions,
-        alerts=list_alerts()[:8],
+        alerts=alerts,
         approval_requests=approvals,
         authority_matrix=build_authority_matrix(),
-        checkpoints=[
-            build_checkpoint("morning"),
-            build_checkpoint("midday"),
-            build_checkpoint("evening"),
-        ],
+        checkpoints=checkpoints,
         memory_policy="Memoria de negocio sin secretos, credenciales ni tokens.",
         business_memory=[
             "Meta global: USD 6,000/mes sin e-commerce.",
@@ -980,12 +1013,41 @@ def get_chief_of_staff_status() -> CerebroChiefOfStaffStatus:
     )
 
 
+def safe_call(factory, fallback):
+    try:
+        return factory()
+    except Exception:
+        return fallback
+
+
+def safe_checkpoint(checkpoint_type: str) -> CerebroCheckpoint:
+    try:
+        return build_checkpoint(checkpoint_type)
+    except Exception:
+        title_map = {
+            "morning": "Checkpoint de manana",
+            "midday": "Checkpoint de mediodia",
+            "evening": "Checkpoint de tarde",
+        }
+        return CerebroCheckpoint(
+            id=f"checkpoint_{checkpoint_type}_{peru_now()}",
+            type=checkpoint_type,
+            title=title_map.get(checkpoint_type, "Checkpoint"),
+            summary=SAFE_FALLBACK_MESSAGE,
+            generated_at=peru_now(),
+            goals=[],
+            missions=[],
+            alerts=[],
+            approval_requests=[],
+        )
+
+
 def list_cerebro_decisions() -> list[CerebroDecision]:
-    return [CerebroDecision(**payload) for payload in fetch_payloads(CEREBRO_DECISIONS_TABLE)]
+    return safe_models(CerebroDecision, fetch_payloads(CEREBRO_DECISIONS_TABLE))
 
 
 def list_cerebro_tasks() -> list[CerebroTask]:
-    return [CerebroTask(**payload) for payload in fetch_payloads(CEREBRO_TASKS_TABLE)]
+    return safe_models(CerebroTask, fetch_payloads(CEREBRO_TASKS_TABLE))
 
 
 def create_cerebro_decision(

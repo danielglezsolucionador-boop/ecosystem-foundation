@@ -5,6 +5,7 @@ import json
 from uuid import uuid4
 
 from app.core.database import connect, sql_placeholder
+from app.core.safe_data import safe_payload
 from app.schemas.audit import AuditoriaCriterion, AuditoriaObjectType, AuditoriaReviewCreate
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.cerebro import CerebroTaskCreate
@@ -130,7 +131,7 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
             f"SELECT payload_json FROM {table_name} WHERE id = {ph}",
             (item_id,),
         ).fetchone()
-    return json.loads(row["payload_json"]) if row else None
+    return safe_payload(row) if row else None
 
 
 def fetch_payloads(table_name: str) -> list[dict]:
@@ -144,7 +145,12 @@ def fetch_payloads(table_name: str) -> list[dict]:
             ORDER BY created_at DESC
             """
         ).fetchall()
-    return [json.loads(row["payload_json"]) for row in rows]
+    payloads: list[dict] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is not None:
+            payloads.append(payload)
+    return payloads
 
 
 def actor_name(actor: AuthenticatedUser) -> str:
@@ -226,7 +232,13 @@ def get_package(package_id: str) -> UpgradePackage:
 
 
 def list_packages() -> list[UpgradePackage]:
-    return [UpgradePackage(**payload) for payload in fetch_payloads("upgrade_packages")]
+    packages: list[UpgradePackage] = []
+    for payload in fetch_payloads("upgrade_packages"):
+        try:
+            packages.append(UpgradePackage(**payload))
+        except Exception:
+            continue
+    return packages
 
 
 def source_audit_payload(source_audit_id: str | None):

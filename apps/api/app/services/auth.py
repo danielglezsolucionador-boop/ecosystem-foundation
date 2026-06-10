@@ -12,6 +12,7 @@ from fastapi import Depends, Header, HTTPException, Request, status
 
 from app.core.database import connect, get_database_backend, initialize_database, sql_placeholder
 from app.core.config import get_settings
+from app.core.safe_data import safe_dict, safe_json_value
 from app.schemas.auth import (
     AuthAuditEvent,
     AuthSessionPublic,
@@ -712,7 +713,7 @@ def list_auth_audit_events() -> list[AuthAuditEvent]:
             ip_address=row["ip_address"],
             user_agent=row["user_agent"],
             timestamp=row["timestamp"],
-            metadata=json.loads(row["metadata_json"] or "{}"),
+            metadata=safe_dict(safe_json_value(row["metadata_json"], {})),
         )
         for row in rows
     ]

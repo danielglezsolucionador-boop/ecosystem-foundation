@@ -3,6 +3,7 @@ import json
 from uuid import uuid4
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import safe_dict, safe_json_value, safe_payload
 from app.schemas.audit import (
     AuditCategory,
     AuditCheck,
@@ -147,7 +148,10 @@ def save_auditoria_review(review: AuditoriaReview) -> AuditoriaReview:
 
 
 def row_to_auditoria_review(row) -> AuditoriaReview:
-    return AuditoriaReview(**json.loads(row["payload_json"]))
+    payload = safe_payload(row)
+    if payload is None:
+        raise ValueError("invalid auditoria review payload")
+    return AuditoriaReview(**payload)
 
 
 def list_auditoria_reviews(limit: int | None = None) -> list[AuditoriaReview]:
@@ -168,7 +172,13 @@ def list_auditoria_reviews(limit: int | None = None) -> list[AuditoriaReview]:
             """,
             params,
         ).fetchall()
-    return [row_to_auditoria_review(row) for row in rows]
+    reviews: list[AuditoriaReview] = []
+    for row in rows:
+        try:
+            reviews.append(row_to_auditoria_review(row))
+        except Exception:
+            continue
+    return reviews
 
 
 def get_auditoria_review(review_id: str) -> AuditoriaReview | None:
@@ -183,7 +193,12 @@ def get_auditoria_review(review_id: str) -> AuditoriaReview | None:
             """,
             (review_id,),
         ).fetchone()
-    return row_to_auditoria_review(row) if row else None
+    if not row:
+        return None
+    try:
+        return row_to_auditoria_review(row)
+    except Exception:
+        return None
 
 
 def record_operational_audit_event(
@@ -493,7 +508,7 @@ def row_to_audit_event(row) -> AuditEvent:
         action=row["action"],
         status=row["status"],
         detail=row["detail"],
-        metadata=json.loads(row["metadata_json"]),
+        metadata=safe_dict(safe_json_value(row["metadata_json"], {})),
         created_at=row["created_at"],
     )
 
@@ -660,7 +675,16 @@ def list_audit_reports() -> list[AuditReport]:
             """
         ).fetchall()
 
-    return [AuditReport(**json.loads(row["payload_json"])) for row in rows]
+    reports: list[AuditReport] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is None:
+            continue
+        try:
+            reports.append(AuditReport(**payload))
+        except Exception:
+            continue
+    return reports
 
 
 def get_audit_overview() -> AuditOverview:

@@ -224,6 +224,35 @@ Pendiente:
 - reejecutar capturas auth;
 - tag final solo con capturas PASS.
 
+## Actualización R.8 - Blindaje global endpoints cabina
+
+Fecha/hora: 2026-06-09 23:32 -05:00
+
+Estado R.8: `LOCAL_VALIDATED / DEPLOY_PENDING`.
+
+Nuevo fallo productivo reportado:
+
+- `GET /api/v1/cerebro/chief-of-staff/status`
+- status `500`
+
+Resultado:
+
+- Se agrego helper global `app.core.safe_data`.
+- Se amplio `get_row_value` para PostgreSQL/SQLite/indice legacy/campo ausente.
+- Se blindaron servicios de cabina contra payloads nulos, dict/string, JSON corrupto, modelos incompletos y datos faltantes.
+- Chief of Staff conserva motto `El tiempo es dinero` y flags sin runtime externo.
+- Auditoria auth local ampliada para cubrir lo que la cabina realmente llama.
+- Nuevo test `test_control_center_endpoint_stability.py`: PASS, `5 passed`.
+- Suite local completa: PASS, `479 passed, 1 skipped`.
+
+Pendiente:
+
+- validaciones finales;
+- commit/push/deploy;
+- reejecutar auditoria auth ampliada;
+- reejecutar capturas auth;
+- tag final solo con capturas PASS.
+
 ## Resumen Ejecutivo CEO
 
 Auditoría total ejecutada sobre el ecosistema desde `v1-ecosystem-command-core` hasta los bloques H, I, J, K, L, M, N, O, P, Q y R.

@@ -4,6 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.cerebro import CerebroMissionCreate, CerebroTaskCreate
@@ -452,7 +453,7 @@ def fetch_audit_payload(audit_id: str) -> dict | None:
             f"SELECT payload_json FROM {DEPARTMENT_AUDITS_TABLE} WHERE id = {placeholder}",
             (audit_id,),
         ).fetchone()
-    return json.loads(row["payload_json"]) if row else None
+    return safe_payload(row) if row else None
 
 
 def list_departments() -> list[DepartmentRecord]:
@@ -477,7 +478,16 @@ def list_department_audits() -> list[DepartmentAudit]:
             ORDER BY created_at DESC
             """
         ).fetchall()
-    return [DepartmentAudit(**json.loads(row["payload_json"])) for row in rows]
+    audits: list[DepartmentAudit] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is None:
+            continue
+        try:
+            audits.append(DepartmentAudit(**payload))
+        except Exception:
+            continue
+    return audits
 
 
 def get_department_audit(audit_id: str) -> DepartmentAudit:

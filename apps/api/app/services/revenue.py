@@ -3,6 +3,7 @@ import json
 from uuid import uuid4
 
 from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
+from app.core.safe_data import safe_payload_json
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.cerebro import CerebroApprovalRequestCreate
@@ -211,15 +212,7 @@ def safe_id(value: str, fallback: str) -> str:
 
 
 def parse_payload_json(raw_payload: object) -> dict | None:
-    if raw_payload is None or raw_payload == "":
-        return None
-    if isinstance(raw_payload, dict):
-        return raw_payload
-    try:
-        payload = json.loads(str(raw_payload))
-    except (TypeError, ValueError, json.JSONDecodeError):
-        return None
-    return payload if isinstance(payload, dict) else None
+    return safe_payload_json(raw_payload)
 
 
 def payload_json_from_row(row: object) -> dict | None:
@@ -315,6 +308,16 @@ def upsert_payload(table_name: str, item_id: str, payload: str) -> None:
         insert_payload(table_name, item_id, payload)
     else:
         update_payload(table_name, item_id, payload)
+
+
+def safe_models(model_class, payloads: list[dict]) -> list:
+    rows: list = []
+    for payload in payloads:
+        try:
+            rows.append(model_class(**payload))
+        except Exception:
+            continue
+    return rows
 
 
 def audit_revenue_action(
@@ -495,7 +498,7 @@ def status_for_opportunity(
 
 def list_goals() -> list[RevenueGoal]:
     seed_revenue_defaults()
-    return [RevenueGoal(**payload) for payload in fetch_payloads(REVENUE_GOALS_TABLE)]
+    return safe_models(RevenueGoal, fetch_payloads(REVENUE_GOALS_TABLE))
 
 
 def create_goal(request: RevenueGoalCreate, actor: AuthenticatedUser) -> RevenueGoal:
@@ -526,20 +529,17 @@ def create_goal(request: RevenueGoalCreate, actor: AuthenticatedUser) -> Revenue
 
 def get_global_goal() -> RevenueGoal:
     goals = list_goals()
-    return next(goal for goal in goals if goal.scope == "global")
+    return next((goal for goal in goals if goal.scope == "global"), default_goals()[0])
 
 
 def get_ecommerce_goal() -> RevenueGoal:
     goals = list_goals()
-    return next(goal for goal in goals if goal.scope == "ecommerce")
+    return next((goal for goal in goals if goal.scope == "ecommerce"), default_goals()[1])
 
 
 def list_opportunities() -> list[RevenueOpportunity]:
     seed_revenue_defaults()
-    return [
-        RevenueOpportunity(**payload)
-        for payload in fetch_payloads(REVENUE_OPPORTUNITIES_TABLE)
-    ]
+    return safe_models(RevenueOpportunity, fetch_payloads(REVENUE_OPPORTUNITIES_TABLE))
 
 
 def get_opportunity(opportunity_id: str) -> RevenueOpportunity:
@@ -675,10 +675,7 @@ def evaluate_opportunity(
 
 def list_approval_requests() -> list[RevenueApprovalRequest]:
     seed_revenue_defaults()
-    return [
-        RevenueApprovalRequest(**payload)
-        for payload in fetch_payloads(REVENUE_APPROVAL_REQUESTS_TABLE)
-    ]
+    return safe_models(RevenueApprovalRequest, fetch_payloads(REVENUE_APPROVAL_REQUESTS_TABLE))
 
 
 def request_approval_for_opportunity(
@@ -1154,7 +1151,7 @@ def create_sprint_route(request: RevenueSprintRouteCreate, actor: AuthenticatedU
 
 def list_sprint_missions() -> list[RevenueSprintMission]:
     ensure_sprint_defaults()
-    return [RevenueSprintMission(**payload) for payload in fetch_payloads(REVENUE_SPRINT_MISSIONS_TABLE)]
+    return safe_models(RevenueSprintMission, fetch_payloads(REVENUE_SPRINT_MISSIONS_TABLE))
 
 
 def save_sprint_mission(mission: RevenueSprintMission) -> RevenueSprintMission:

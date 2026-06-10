@@ -289,7 +289,13 @@ def mission_from_payload(payload: dict) -> MissionLoopMission:
 
 def list_mission_payloads() -> list[dict]:
     list_missions()
-    return [normalized_payload(payload) for payload in fetch_payloads(CEREBRO_MISSIONS_TABLE)]
+    payloads: list[dict] = []
+    for payload in fetch_payloads(CEREBRO_MISSIONS_TABLE):
+        try:
+            payloads.append(normalized_payload(payload))
+        except Exception:
+            continue
+    return payloads
 
 
 def get_mission_payload(mission_id: str) -> dict:
@@ -479,7 +485,13 @@ def create_loop_mission(request: MissionLoopCreate, actor: AuthenticatedUser) ->
 
 
 def list_loop_missions() -> list[MissionLoopMission]:
-    return [mission_from_payload(payload) for payload in list_mission_payloads()]
+    missions: list[MissionLoopMission] = []
+    for payload in list_mission_payloads():
+        try:
+            missions.append(mission_from_payload(payload))
+        except Exception:
+            continue
+    return missions
 
 
 def get_loop_mission(mission_id: str) -> MissionLoopMission:

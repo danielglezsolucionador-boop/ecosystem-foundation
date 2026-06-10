@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from uuid import uuid4
 
 from app.core.database import connect, sql_placeholder
+from app.core.safe_data import safe_payload
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser, ControlCenterRole, UserPublic, UserStatus
 from app.schemas.workday import (
@@ -129,7 +130,7 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
             f"SELECT payload_json FROM {table_name} WHERE id = {ph}",
             (item_id,),
         ).fetchone()
-    return json.loads(row["payload_json"]) if row else None
+    return safe_payload(row) if row else None
 
 
 def fetch_payloads(table_name: str) -> list[dict]:
@@ -143,7 +144,12 @@ def fetch_payloads(table_name: str) -> list[dict]:
             ORDER BY created_at DESC
             """
         ).fetchall()
-    return [json.loads(row["payload_json"]) for row in rows]
+    payloads: list[dict] = []
+    for row in rows:
+        payload = safe_payload(row)
+        if payload is not None:
+            payloads.append(payload)
+    return payloads
 
 
 def actor_name(actor: AuthenticatedUser | None) -> str:
@@ -305,7 +311,13 @@ def build_session_payload(date: str | None = None, timezone: str = "America/Lima
 def save_session(payload: dict) -> WorkdaySession:
     payload["updated_at"] = now_iso()
     upsert_payload("workday_sessions", payload["id"], payload)
-    return WorkdaySession(**payload)
+    try:
+        return WorkdaySession(**payload)
+    except Exception:
+        fallback = build_session_payload(date=today_lima())
+        fallback["blockers"] = ["Safe fallback because source data is missing or incomplete."]
+        upsert_payload("workday_sessions", fallback["id"], fallback)
+        return WorkdaySession(**fallback)
 
 
 def start_workday(
@@ -545,7 +557,10 @@ def get_checkpoint(phase: WorkdayPhase, actor: AuthenticatedUser | None = None) 
     session = current_session()
     payload = fetch_payload("workday_checkpoints", checkpoint_id(session.date, phase))
     if payload:
-        return WorkdayCheckpoint(**payload)
+        try:
+            return WorkdayCheckpoint(**payload)
+        except Exception:
+            pass
     if phase == WorkdayPhase.morning:
         return generate_morning(actor)
     if phase == WorkdayPhase.midday:
@@ -621,7 +636,13 @@ def evaluate_alert(
 
 def list_alerts() -> list[WorkdayAlert]:
     session = current_session()
-    return [WorkdayAlert(**payload) for payload in relevant_alert_payloads(session.id)]
+    alerts: list[WorkdayAlert] = []
+    for payload in relevant_alert_payloads(session.id):
+        try:
+            alerts.append(WorkdayAlert(**payload))
+        except Exception:
+            continue
+    return alerts
 
 
 def create_priority_change(
@@ -662,7 +683,13 @@ def create_priority_change(
 
 def list_priority_changes() -> list[WorkdayPriorityChange]:
     session = current_session()
-    return [WorkdayPriorityChange(**payload) for payload in priority_change_payloads(session.id)]
+    changes: list[WorkdayPriorityChange] = []
+    for payload in priority_change_payloads(session.id):
+        try:
+            changes.append(WorkdayPriorityChange(**payload))
+        except Exception:
+            continue
+    return changes
 
 
 def get_workday_status() -> WorkdayStatus:
