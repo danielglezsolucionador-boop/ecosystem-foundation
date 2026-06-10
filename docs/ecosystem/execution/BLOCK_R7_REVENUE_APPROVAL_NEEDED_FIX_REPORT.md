@@ -42,7 +42,6 @@ Archivos modificados:
 - `apps/api/app/services/revenue.py`
 - `apps/api/app/services/ceo.py`
 - `apps/web/control-center/assets/app.js`
-- `work/run_total_ecosystem_authenticated_audit.ps1`
 
 Cambios:
 
@@ -61,7 +60,7 @@ Cambios:
 - Si la carga de rutas falla, devuelve fallback seguro con HTTP 200.
 - No inventa aprobaciones, ingresos, ROI ni campañas.
 - Frontend acepta objeto nuevo o lista legacy.
-- Auditoría autenticada total ahora cubre `/api/v1/revenue/sprint/approval-needed`.
+- Auditoría autenticada total local verificada: `work/run_total_ecosystem_authenticated_audit.ps1` cubre `/api/v1/revenue/sprint/approval-needed`, pero `work/` está ignorado por Git y no se incluye en el commit.
 - Centro CEO conserva warning determinístico `nube_status_timeout_fallback` cuando se fuerza degradación local de NUBE, sin tocar `C:\Users\admin\nube`.
 
 ## Reglas CEO Preservadas
