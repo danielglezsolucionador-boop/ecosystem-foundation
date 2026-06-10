@@ -6,7 +6,7 @@ HEAD inicial: `365648e fix: stabilize authenticated release screenshots`
 
 ## Estado
 
-Estado R.7: `FIX_LOCAL_VALIDATED / DEPLOY_PENDING`.
+Estado R.7: `FIX_DEPLOYED_PUBLIC_PASS / AUTH_CAPTURES_PENDING`.
 
 ## Endpoint Fallido
 
@@ -117,12 +117,19 @@ Validaciones rápidas:
 - `$env:PYTHONPATH="apps/api"; python -m pytest -q`: PASS, `474 passed, 1 skipped`.
 - `python scripts/validate_v1.py`: PASS, `474 passed, 1 skipped`, secret scan PASS.
 
+Confirmado post-fix:
+
+- commit funcional: `5572679 fix: stabilize revenue sprint approval-needed endpoint`;
+- push a `origin/main`: PASS;
+- deploy automático Vercel: PASS;
+- `/version`: commit `5572679`;
+- `/runtime/status`: commit `5572679`, PostgreSQL conectado, SQLite false, persistent true;
+- `/control-center`: HTTP 200.
+
 Pendiente:
 
-- commit;
-- push;
-- deploy;
-- reejecución de capturas auth por CEO.
+- reejecución de capturas auth por CEO;
+- tag `v1-ai-company-operating-system` solo si `R4_AUTH_CAPTURES_PASS`.
 
 ## No Tocado
 
@@ -140,7 +147,7 @@ No se tocó:
 
 ## Siguiente Paso
 
-Ejecutar suite completa, `validate_v1.py`, commit, push, deploy y pedir al CEO reejecutar:
+Pedir al CEO reejecutar desde PowerShell segura:
 
 ```powershell
 cd "C:\Users\admin\Documents\Codex\2026-05-31\auditoria-final-forja-render-he-validado"

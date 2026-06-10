@@ -221,7 +221,7 @@ Pendiente:
 
 Fecha/hora: 2026-06-09 22:35 -05:00
 
-Estado R.7: `FIX_LOCAL_VALIDATED / DEPLOY_PENDING`.
+Estado R.7: `FIX_DEPLOYED_PUBLIC_PASS / AUTH_CAPTURES_PENDING`.
 
 Endpoint fallido exacto:
 
@@ -256,11 +256,18 @@ Reporte dedicado:
 
 - `docs/ecosystem/execution/BLOCK_R7_REVENUE_APPROVAL_NEEDED_FIX_REPORT.md`
 
+Confirmado R.7:
+
+- commit funcional: `5572679 fix: stabilize revenue sprint approval-needed endpoint`.
+- push a `origin/main`: PASS.
+- deploy automático Vercel: PASS.
+- `/version`: commit `5572679`.
+- `/runtime/status`: commit `5572679`, PostgreSQL conectado, SQLite false, persistent true.
+- `/control-center`: HTTP 200.
+
 Pendiente R.7:
 
-- suite completa;
-- deploy;
-- reejecutar capturas auth;
+- reejecutar capturas auth desde PowerShell segura;
 - tag solo si `R4_AUTH_CAPTURES_PASS`.
 
 ## Estado

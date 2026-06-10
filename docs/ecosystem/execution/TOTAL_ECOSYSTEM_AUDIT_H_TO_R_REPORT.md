@@ -184,7 +184,7 @@ Pendiente:
 
 Fecha/hora: 2026-06-09 22:35 -05:00
 
-Estado R.7: `FIX_LOCAL_VALIDATED / DEPLOY_PENDING`.
+Estado R.7: `FIX_DEPLOYED_PUBLIC_PASS / AUTH_CAPTURES_PENDING`.
 
 Endpoint fallido exacto:
 
@@ -211,10 +211,16 @@ Tests:
 - Suite completa: PASS, `474 passed, 1 skipped`.
 - `validate_v1.py`: PASS, secret scan PASS.
 
+Confirmado:
+
+- validaciones completas PASS;
+- commit funcional `5572679 fix: stabilize revenue sprint approval-needed endpoint`;
+- push a `origin/main` PASS;
+- deploy automático Vercel PASS;
+- producción básica PASS en `/version`, `/runtime/status` y `/control-center`.
+
 Pendiente:
 
-- validaciones completas;
-- commit/push/deploy;
 - reejecutar capturas auth;
 - tag final solo con capturas PASS.
 
