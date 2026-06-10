@@ -132,6 +132,23 @@ def read_value(source: Any, name: str, default: Any = "unknown") -> Any:
     return getattr(source, name, default)
 
 
+def chief_of_staff_fallback() -> dict[str, Any]:
+    return {
+        "status": "chief_of_staff_fallback_prepared",
+        "role": "Chief of Staff OS / Jefe de Gabinete IA",
+        "motto": "El tiempo es dinero",
+        "autonomy_summary": (
+            "CEREBRO mantiene coordinación interna preparada sin dinero real, credenciales, "
+            "SUNAT real, cuenta externa nueva ni runtime externo."
+        ),
+        "external_connection_enabled": False,
+        "runtime_connected": False,
+        "sunat_enabled": False,
+        "local_agent_enabled": False,
+        "fallback": True,
+    }
+
+
 def safe_snapshot_call(
     label: str,
     callback,
@@ -185,7 +202,7 @@ def snapshot_call_specs() -> dict[str, tuple[Callable[[], Any], Any]]:
         "cerebro_tasks": (list_cerebro_tasks, []),
         "bus_overview": (get_bus_overview, None),
         "cerebro_status": (get_cerebro_status, {}),
-        "chief_of_staff_status": (get_chief_of_staff_status, {}),
+        "chief_of_staff_status": (get_chief_of_staff_status, chief_of_staff_fallback()),
         "bus_status": (get_bus_status, {}),
         "auditoria_status": (get_auditoria_status, {}),
         "auditoria_reviews": (lambda: list_auditoria_reviews(limit=24), []),
@@ -230,7 +247,7 @@ def build_ceo_snapshot() -> CeoSnapshot:
     cerebro_status = safe_model_dump(snapshot_sources["cerebro_status"])
     chief_of_staff_status = safe_model_dump(
         snapshot_sources["chief_of_staff_status"]
-    )
+    ) or chief_of_staff_fallback()
     bus_status = safe_model_dump(snapshot_sources["bus_status"])
     auditoria_status = safe_model_dump(snapshot_sources["auditoria_status"])
     auditoria_reviews = snapshot_sources["auditoria_reviews"][:24]

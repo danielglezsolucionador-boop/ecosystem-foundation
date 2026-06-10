@@ -167,3 +167,9 @@ CEREBRO no puede:
 - activar SUNAT;
 - declarar venta real sin evidencia;
 - conectar APIs externas con costo desde este bloque.
+
+## Definiciones pendientes CEO
+
+Revenue OS debe usar `CEO_PENDING_DEFINITIONS_REGISTER.md` cuando una ruta de ingreso dependa de cuentas, nichos, productos, métricas, pricing o evidencias no confirmadas.
+
+Si falta definición del CEO, la oportunidad puede seguir como hipótesis o pipeline preparado, pero no como ingreso real, venta real, campaña real ni cuenta oficial conectada.

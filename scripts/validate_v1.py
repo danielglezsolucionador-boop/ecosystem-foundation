@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,7 @@ SKIP_PARTS = {
     "venv",
     "node_modules",
     "outputs",
+    "backup",
     "test-results",
     "work",
 }
@@ -109,7 +111,7 @@ def secret_scan() -> None:
 
 
 def main() -> None:
-    pytest_temp = REPO_ROOT / "work" / "pytest-validate-v1"
+    pytest_temp = REPO_ROOT / "work" / f"pytest-validate-v1-{uuid4().hex}"
     pytest_temp.mkdir(parents=True, exist_ok=True)
     run([sys.executable, "-m", "compileall", "apps/api", "api", "-q"])
     run(

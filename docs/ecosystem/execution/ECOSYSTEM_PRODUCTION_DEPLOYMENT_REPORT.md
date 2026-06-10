@@ -1,25 +1,25 @@
 # ECOSYSTEM PRODUCTION DEPLOYMENT REPORT
 
 Fecha/hora: 2026-06-08 06:50:19 -05:00
-Frente: ECOSISTEMA IA / CIERRE PRODUCTIVO AUTENTICADO / CORRECCIÃ“N ESPAÃ‘OL / TAG FINAL
+Frente: ECOSISTEMA IA / CIERRE PRODUCTIVO AUTENTICADO / CORRECCIÓN ESPAÑOL / TAG FINAL
 
 ## Estado
 
-- ProducciÃ³n pÃºblica: PASS.
-- ProducciÃ³n autenticada: PASS.
-- CorrecciÃ³n de espaÃ±ol/codificaciÃ³n: PASS.
-- Commit productivo inicial validado: $InitialCommit.
-- Commit de cierre: commit que contiene este reporte y se valida en producciÃ³n despuÃ©s del push.
-- Tag final objetivo: $TagName.
+- Producción pública: PASS.
+- Producción autenticada: PASS.
+- Corrección de español/codificación: PASS.
+- Commit productivo inicial validado: `$InitialCommit`.
+- Commit de cierre: commit que contiene este reporte y se valida en producción después del push.
+- Tag final objetivo: `$TagName`.
 
 ## Variables
 
-- CONTROL_CENTER_ADMIN_EMAIL presente: sÃ­.
-- CONTROL_CENTER_ADMIN_PASSWORD presente: sÃ­.
+- CONTROL_CENTER_ADMIN_EMAIL presente: sí.
+- CONTROL_CENTER_ADMIN_PASSWORD presente: sí.
 - No se imprimieron credenciales.
 - No se imprimieron tokens.
 
-## ProducciÃ³n pÃºblica
+## Producción pública
 
 - /: HTTP 200 PASS.
 - /health: HTTP 200 PASS.
@@ -29,7 +29,7 @@ Frente: ECOSISTEMA IA / CIERRE PRODUCTIVO AUTENTICADO / CORRECCIÃ“N ESPAÃ‘
 - /control-center: HTTP 200 PASS.
 - PostgreSQL connected: PASS.
 
-## ProducciÃ³n autenticada
+## Producción autenticada
 
 - /api/v1/auth/login: PASS.
 - /api/v1/auth/me: PASS.
@@ -44,7 +44,7 @@ Frente: ECOSISTEMA IA / CIERRE PRODUCTIVO AUTENTICADO / CORRECCIÃ“N ESPAÃ‘
 
 ## Capturas
 
-PÃºblicas existentes:
+Públicas existentes:
 
 - outputs/ecosystem-production-mobile-390x844.png.
 - outputs/ecosystem-production-desktop-1280x720.png.
@@ -54,7 +54,7 @@ Autenticadas generadas:
 - outputs/ecosystem-production-auth-mobile-390x844.png.
 - outputs/ecosystem-production-auth-desktop-1280x720.png.
 
-ValidaciÃ³n visual autenticada:
+Validación visual autenticada:
 
 - Mobile 390x844: PASS.
 - Desktop 1280x720: PASS.
@@ -64,8 +64,7 @@ ValidaciÃ³n visual autenticada:
 
 ## Validaciones locales
 
--
-ode --check apps/web/control-center/assets/app.js: PASS.
+- node --check apps/web/control-center/assets/app.js: PASS.
 - python -m compileall apps/api api scripts -q: PASS.
 - $env:PYTHONPATH="apps/api"; pytest -q: PASS.
 - python scripts/validate_v1.py: PASS.
@@ -74,7 +73,7 @@ ode --check apps/web/control-center/assets/app.js: PASS.
 
 ## Backup
 
-- Backup local creado: $BackupPath.
+- Backup local creado: `$BackupPath`.
 - El backup no se commitea.
 
 ## No Tocado
@@ -91,11 +90,11 @@ ode --check apps/web/control-center/assets/app.js: PASS.
 
 ## Riesgos
 
-- La validaciÃ³n autenticada depende de variables cargadas en la terminal segura del CEO/CTO.
+- La validación autenticada depende de variables cargadas en la terminal segura del CEO/CTO.
 - El reporte no contiene secretos ni tokens.
-- El tag debe crearse solo despuÃ©s del deploy post-reporte PASS.
+- El tag debe crearse solo después del deploy post-reporte PASS.
 
-## RecomendaciÃ³n
+## Recomendación
 
 - Mantener variables y credenciales fuera de chat y fuera de Git.
-- Usar el tag $TagName como cierre de la cabina Empresa IA v1 si el deploy post-reporte valida el commit final.
+- Usar el tag `$TagName` como cierre de la cabina Empresa IA v1 si el deploy post-reporte valida el commit final.

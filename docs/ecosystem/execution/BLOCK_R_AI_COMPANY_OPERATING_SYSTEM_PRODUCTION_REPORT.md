@@ -5,6 +5,218 @@ Rama: main
 HEAD auditado: 4a83141 feat: consolidate AI company operating system
 Tag objetivo: `v1-ai-company-operating-system`
 
+## R.3 - Actualización de cierre oficial
+
+Fecha/hora: 2026-06-09 20:36 -05:00
+
+Estado R.3: `AUTHENTICATED_TOTAL_AUDIT_PASS_CONFIRMED_BY_CEO / CAPTURES_BLOCKED_AUTH_IN_CODEX_SESSION`.
+
+Evidencia confirmada por CEO desde PowerShell segura:
+
+- `.\work\run_total_ecosystem_authenticated_audit.ps1`
+- Resultado: `AUTHENTICATED_TOTAL_AUDIT_PASS`.
+
+Producción autenticada confirmada PASS para:
+
+- `auth/me`
+- `control-center`
+- CEREBRO
+- chief-of-staff
+- goals
+- missions
+- alerts
+- revenue
+- approval-requests
+- checkpoints
+- departments
+- revenue sprint
+- arsenal
+- workday
+- upgrades
+- publishing
+- product-readiness
+- ceo daily-center
+- integration-bus
+- contracts
+- auditoria
+- nube
+- governance
+- audit
+- observability
+
+Confirmaciones R.3:
+
+- Producción autenticada: PASS por evidencia CEO.
+- Producción pública observada desde esta sesión: `/version`, `/runtime/status` y `/control-center` HTTP 200.
+- Commit productivo público observado: `2c16dec`.
+- Runtime productivo: PostgreSQL `true`, SQLite `false`, persistent `true`.
+- Publishing: PASS.
+- Product Readiness: PASS.
+- R.2 fix: desplegado y validado por auditoría autenticada CEO.
+- No se imprimieron credenciales.
+- No se imprimieron tokens.
+- No se imprimió `Authorization`.
+
+Bloqueo restante en esta sesión de Codex:
+
+- `CONTROL_CENTER_ADMIN_EMAIL`: ausente.
+- `CONTROL_CENTER_ADMIN_PASSWORD`: ausente.
+- La pestaña productiva abierta desde esta sesión muestra login, no cabina autenticada.
+- No se pueden generar las capturas productivas autenticadas finales sin sesión segura.
+
+Capturas finales R.3 pendientes:
+
+- `outputs/ecosystem-ai-company-operating-system-production-auth-mobile-390x844.png`
+- `outputs/ecosystem-ai-company-operating-system-production-auth-desktop-1280x720.png`
+
+Decisión de seguridad:
+
+- No inventar capturas autenticadas.
+- No crear tag `v1-ai-company-operating-system` hasta que existan las dos capturas productivas autenticadas o el CEO confirme explícitamente que el cierre puede etiquetarse con la evidencia disponible.
+- No hacer push/deploy/tag desde una sesión sin auth productiva para capturas.
+
+## R.4 - Capturas auth y tag final
+
+Fecha/hora: 2026-06-09 20:58 -05:00
+
+Estado R.4: `CAPTURES_BLOCKED_AUTH`.
+
+Inspección R.4:
+
+- Rama: `main`.
+- HEAD inicial R.4: `2c16dec docs: record R2 production validation blocker`.
+- Tag `v1-ai-company-operating-system`: no existe localmente.
+- Variables seguras en esta sesión: ausentes.
+- Pestaña productiva del navegador: muestra login, no cabina autenticada.
+- Capturas finales R.4: no existen aún.
+
+Backup pre-R4:
+
+- `backup/before-R4-auth-captures-and-final-tag-20260609-205815`
+
+Scripts seguros creados para ejecución del CEO:
+
+- `work/run_r4_auth_captures.ps1`
+- `work/r4_ai_company_auth_screenshots.mjs`
+
+Comando seguro:
+
+```powershell
+cd "C:\Users\admin\Documents\Codex\2026-05-31\auditoria-final-forja-render-he-validado"
+.\work\run_r4_auth_captures.ps1
+```
+
+El script:
+
+- valida presencia booleana de `CONTROL_CENTER_ADMIN_EMAIL` y `CONTROL_CENTER_ADMIN_PASSWORD`;
+- no imprime credenciales;
+- no imprime tokens;
+- no imprime `Authorization`;
+- genera `outputs/ecosystem-ai-company-operating-system-production-auth-mobile-390x844.png`;
+- genera `outputs/ecosystem-ai-company-operating-system-production-auth-desktop-1280x720.png`;
+- valida cabina autenticada, no login;
+- valida console errors 0;
+- valida overflow horizontal NO;
+- valida ausencia de mojibake visible;
+- termina con `R4_AUTH_CAPTURES_PASS` si todo pasa.
+
+Decisión R.4:
+
+- No commit final.
+- No push.
+- No deploy.
+- No tag.
+- Motivo: falta generar y validar las dos capturas productivas autenticadas finales desde PowerShell segura.
+
+## R.5 - Diagnóstico definitivo del 500 en capturas auth
+
+Fecha/hora: 2026-06-09 21:35 -05:00
+
+Estado R.5: `DIAGNOSTIC_READY / AWAITING_SECURE_CEO_EXECUTION`.
+
+El CEO confirmó que `.\work\run_r4_auth_captures.ps1` ya supera autenticación:
+
+- `EMAIL presente: True`
+- `PASSWORD presente: True`
+- `R4 authenticated API PASS`
+
+El fallo real es un recurso o endpoint que devuelve HTTP 500 durante el render visual autenticado.
+
+Corrección aplicada en script:
+
+- `work/r4_ai_company_auth_screenshots.mjs` ahora registra URL, método, status, content-type y body recortado para responses `>=400`.
+- También registra `requestfailed`, console errors con location y page errors.
+- Antes de abortar guarda:
+  - `outputs/r4-debug-auth-failure-mobile.png`
+  - `outputs/r4-auth-capture-diagnostics.json`
+- Redacta tokens, `Authorization`, cookies, passwords, secrets y query params sensibles.
+
+Reporte dedicado:
+
+- `docs/ecosystem/execution/BLOCK_R5_AUTH_CAPTURE_500_FIX_REPORT.md`
+
+Estabilización adicional:
+
+- `/api/v1/ceo/daily-center` ahora conserva fallback seguro de `cerebro.chief_of_staff` si una fuente interna se degrada.
+- El fallback conserva `El tiempo es dinero` y flags de no-runtime/no-conexión.
+- Validaciones locales PASS: `470 passed, 1 skipped`, `validate_v1.py` PASS, secret scan PASS.
+
+Pendiente:
+
+- Reejecutar desde PowerShell segura para obtener URL exacta del 500.
+- Clasificar causa.
+- Corregir backend/frontend solo con evidencia.
+- Regenerar capturas auth.
+- Cerrar commit/push/tag solo si `R4_AUTH_CAPTURES_PASS`.
+
+## R.6 - Fix final de capturas auth sin bucles
+
+Fecha/hora: 2026-06-09 22:05 -05:00
+
+Estado R.6: `SCRIPT_FIXED / AWAITING_SECURE_CAPTURE_EXECUTION`.
+
+Diagnóstico real:
+
+- `badResponses=[]`
+- `requestFailures=[]`
+- `consoleErrors=[]`
+- `pageErrors=[]`
+- `loginFormAttached=true`
+- `appAttached=true`
+- `roleText="CEO"`
+- señales visibles: `Empresa IA`, `CEREBRO`, `Revenue`, `AUDITORÍA`
+
+Conclusión:
+
+- No hay 500 real en el último diagnóstico.
+- El fallo era la regla incorrecta `loginFormAttached`.
+- La cabina autenticada estaba presente.
+
+Fix aplicado:
+
+- `work/r4_ai_company_auth_screenshots.mjs` ahora usa `loginFormVisible`, `appVisible`, `hasCabinSignals` y `authenticatedCabinReady`.
+- El script no falla si el login existe oculto en DOM pero la cabina autenticada está visible/lista.
+- Detector mojibake reforzado para `Ãƒ`, `Ã‚`, `Ã¢`, `ï¿½`, `Ã`, `Â`, `â`.
+
+Tests R.6:
+
+- `node --test work/r4_ai_company_auth_screenshots.test.mjs`: PASS, 4 tests.
+- `node --check work/r4_ai_company_auth_screenshots.mjs`: PASS.
+- `node --check apps/web/control-center/assets/app.js`: PASS.
+- `python -m compileall apps/api api scripts -q`: PASS.
+- `$env:PYTHONPATH="apps/api"; python -m pytest -q`: PASS, `470 passed, 1 skipped`.
+- `python scripts/validate_v1.py`: PASS, secret scan PASS.
+- `git diff --check`: PASS.
+
+Reporte dedicado:
+
+- `docs/ecosystem/execution/BLOCK_R6_FINAL_AUTH_CAPTURE_FIX_REPORT.md`
+
+Pendiente:
+
+- Ejecutar `.\work\run_r4_auth_captures.ps1` desde PowerShell segura.
+- Si devuelve `R4_AUTH_CAPTURES_PASS`, cerrar release con commit final, push, deploy y tag.
+
 ## Estado
 
 Estado R.1: `BLOCKED_AUTH_ENV_MISSING`.

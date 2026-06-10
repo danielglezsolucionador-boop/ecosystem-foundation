@@ -153,3 +153,9 @@ Publishing & Growth alimenta Revenue OS y Revenue Sprint con evidencia orgánica
 - Cabina muestra cuentas conectadas/no conectadas.
 - Tests PASS.
 - No push, no deploy, no publicación real.
+
+## Definiciones pendientes CEO
+
+Publishing & Growth debe consultar `CEO_PENDING_DEFINITIONS_REGISTER.md` antes de declarar cuentas oficiales, nichos finales, canales definitivos o publicación real.
+
+Si una red, canal, cuenta o nicho no está confirmado, el contenido queda en `publication_status="prepared"` y `account_status="not_connected"` hasta que exista evidencia o definición CEO.

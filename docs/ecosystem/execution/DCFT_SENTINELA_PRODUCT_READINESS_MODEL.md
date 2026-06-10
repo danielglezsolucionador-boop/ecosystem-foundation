@@ -198,3 +198,9 @@ Brechas iniciales:
 - No declarar tienda publicada.
 - No activar SUNAT.
 - No tocar productos reales.
+
+## Definiciones pendientes CEO
+
+Product Readiness debe usar `CEO_PENDING_DEFINITIONS_REGISTER.md` cuando falte evidencia o definición sobre estado real, pricing, landing, onboarding, app store, play store, fuentes oficiales, capacidades defensivas o paquete comercial de DCFT/SENTINELA.
+
+Si falta definición, el estado permitido es `unknown`, `needs_audit`, `requires_validation` o `prepared_until_defined`. No se declara listo, vendido, publicado, conectado ni aprobado sin evidencia y decisión correspondiente.

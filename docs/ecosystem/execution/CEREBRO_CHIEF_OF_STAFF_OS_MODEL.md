@@ -161,3 +161,9 @@ No guarda contraseñas, tokens, claves privadas ni credenciales.
 - No declarar pagos, campañas pagadas ni APIs externas sin aprobación CEO y evidencia.
 - No imprimir secretos.
 - No crear rutas reales externas.
+
+## Definiciones pendientes CEO
+
+CEREBRO debe consultar `CEO_PENDING_DEFINITIONS_REGISTER.md` antes de cerrar decisiones que dependan de datos no confirmados por el CEO.
+
+Si falta una definición, CEREBRO debe registrar la duda, marcar la misión como `prepared_until_defined` o `waiting_ceo_definition`, y escalar solo cuando afecte dinero, credenciales, cuentas externas, publicación real, riesgo legal/reputacional o productos protegidos.
