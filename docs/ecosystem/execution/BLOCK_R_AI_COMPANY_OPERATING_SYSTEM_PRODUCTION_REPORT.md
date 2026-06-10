@@ -588,3 +588,93 @@ Secuencia recomendada:
 5. Push, esperar deploy y verificar `/version`, `/runtime/status`, `/control-center`.
 6. Crear y pushear tag `v1-ai-company-operating-system`.
 7. Crear backup final `after-v1-ai-company-operating-system-production-close-*`.
+
+## R.9 - Cierre final oficial para tag
+
+Fecha/hora: 2026-06-10 00:39 -05:00
+
+Estado R.9: `RELEASE_READY_FOR_FINAL_TAG`.
+
+Evidencia confirmada por CEO desde PowerShell segura:
+
+- Auditoria autenticada ampliada: `AUTHENTICATED_TOTAL_AUDIT_PASS`.
+- Capturas productivas autenticadas: `R4_AUTH_CAPTURES_PASS`.
+
+Capturas productivas autenticadas confirmadas:
+
+- `outputs/ecosystem-ai-company-operating-system-production-auth-mobile-390x844.png`.
+- `outputs/ecosystem-ai-company-operating-system-production-auth-desktop-1280x720.png`.
+
+Validacion mobile confirmada:
+
+- viewport 390x844.
+- consoleErrors 0.
+- overflow false.
+- loginFormVisible false.
+- authenticatedCabinReady true.
+- senales visibles: Empresa IA, CEREBRO, CEO, Revenue, AUDITORIA.
+
+Validacion desktop confirmada:
+
+- viewport 1280x720.
+- consoleErrors 0.
+- overflow false.
+- loginFormVisible false.
+- authenticatedCabinReady true.
+- senales visibles: Empresa IA, CEREBRO, CEO, Centro CEO, Departamentos, AUDITORIA.
+
+Produccion publica:
+
+- PASS por validaciones previas y revalidacion final R.9 requerida sobre `/version`, `/runtime/status` y `/control-center`.
+
+Produccion autenticada ampliada:
+
+- PASS.
+- Evidencia: `AUTHENTICATED_TOTAL_AUDIT_PASS`.
+
+Capturas productivas autenticadas:
+
+- PASS.
+- Evidencia: `R4_AUTH_CAPTURES_PASS`.
+
+R.8 blindaje global:
+
+- Aplicado en commit `60b2948 fix: harden control center production endpoints`.
+- Reportado en `8264237 docs: record R8 production validation`.
+
+Tests finales esperados:
+
+- Suite completa R.8: `479 passed, 1 skipped`.
+- Si la suite final R.9 cambia, el resultado final actualizado debe prevalecer.
+
+Release:
+
+- `v1-ai-company-operating-system` queda listo para tag si las validaciones finales R.9 pasan.
+
+Seguridad:
+
+- No credenciales impresas.
+- No tokens impresos.
+- No secretos.
+- `backup/` no debe trackearse ni commitearse.
+
+No tocado:
+
+- DCFT real.
+- SENTINELA real.
+- FORJA externa.
+- `C:\Users\admin\nube`.
+- SUNAT real.
+- pagos.
+- campanas.
+- cuentas externas.
+- APIs externas reales.
+
+Decision R.9:
+
+- Cerrar con commit final de reporte/evidencia si las validaciones finales pasan.
+- Push a `main`.
+- Esperar deploy final.
+- Validar produccion.
+- Crear y pushear tag `v1-ai-company-operating-system`.
+- Crear backup final oficial post-tag.
