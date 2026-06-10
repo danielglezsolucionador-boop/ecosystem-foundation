@@ -180,6 +180,44 @@ Pendiente:
 - Reejecutar capturas auth desde PowerShell segura.
 - Cerrar commit/push/tag solo con `R4_AUTH_CAPTURES_PASS`.
 
+## Actualización R.7 - Revenue approval-needed 500
+
+Fecha/hora: 2026-06-09 22:35 -05:00
+
+Estado R.7: `FIX_LOCAL_VALIDATED / DEPLOY_PENDING`.
+
+Endpoint fallido exacto:
+
+- `GET /api/v1/revenue/sprint/approval-needed`
+
+Diagnóstico:
+
+- autenticación PASS;
+- cabina visible;
+- endpoint `approval-needed` devolvió 500;
+- no era fallo general de login ni de captura.
+
+Fix:
+
+- endpoint con respuesta estable `RevenueSprintApprovalNeeded`;
+- fallback seguro con HTTP 200;
+- parser robusto para payloads null/dict/string/legacy;
+- frontend acepta objeto nuevo o lista legacy;
+- auditoría productiva autenticada ahora valida explícitamente el endpoint.
+
+Tests:
+
+- Revenue Sprint focal: PASS, `16 passed`.
+- Suite completa: PASS, `474 passed, 1 skipped`.
+- `validate_v1.py`: PASS, secret scan PASS.
+
+Pendiente:
+
+- validaciones completas;
+- commit/push/deploy;
+- reejecutar capturas auth;
+- tag final solo con capturas PASS.
+
 ## Resumen Ejecutivo CEO
 
 Auditoría total ejecutada sobre el ecosistema desde `v1-ecosystem-command-core` hasta los bloques H, I, J, K, L, M, N, O, P, Q y R.

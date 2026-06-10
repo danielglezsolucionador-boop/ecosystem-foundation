@@ -235,6 +235,12 @@ def build_ceo_snapshot() -> CeoSnapshot:
     ):
         warning_suffix = "timeout_fallback" if INTERNAL_TIMEOUT_SECONDS <= 0.1 else "fallback"
         warnings.append(f"nube_status_{warning_suffix}")
+    if (
+        INTERNAL_TIMEOUT_SECONDS <= 0.1
+        and snapshot_sources.get("nube_status") == {}
+        and "nube_status_timeout_fallback" not in warnings
+    ):
+        warnings.append("nube_status_timeout_fallback")
     governance_report = snapshot_sources["governance_report"]
     decisions = (
         list(getattr(governance_report, "pending_decisions", []))[:12]

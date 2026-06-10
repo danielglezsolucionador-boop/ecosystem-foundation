@@ -258,6 +258,21 @@ class RevenueSprintRoute(BaseModel):
     updated_at: str = Field(min_length=1)
 
 
+class RevenueSprintApprovalNeeded(BaseModel):
+    status: str = Field(default="ok", min_length=1)
+    mode: str = Field(default="prepared", min_length=1)
+    approval_required: bool = False
+    items: list[RevenueSprintRoute] = Field(default_factory=list)
+    count: int = Field(default=0, ge=0)
+    requires_ceo_action: bool = False
+    message: str = Field(default="No revenue sprint approval requests pending.", min_length=1)
+    fallback: bool = False
+    external_connection_enabled: bool = False
+    runtime_connected: bool = False
+    payment_connected: bool = False
+    real_revenue_confirmed: bool = False
+
+
 class RevenueSprintMission(BaseModel):
     id: str = Field(min_length=1)
     route_id: str = Field(min_length=1)

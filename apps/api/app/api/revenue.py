@@ -10,6 +10,7 @@ from app.schemas.revenue import (
     RevenueOpportunity,
     RevenueOpportunityCreate,
     RevenueOpportunityEvaluateRequest,
+    RevenueSprintApprovalNeeded,
     RevenueSprintDaily,
     RevenueSprintMission,
     RevenueSprintMissionCreate,
@@ -271,10 +272,10 @@ def read_revenue_sprint_risks(
     return get_revenue_sprint_risks()
 
 
-@router.get("/sprint/approval-needed", response_model=list[RevenueSprintRoute])
+@router.get("/sprint/approval-needed", response_model=RevenueSprintApprovalNeeded)
 def read_revenue_sprint_approval_needed(
     current_user: AuthenticatedUser = Depends(get_current_user),
-) -> list[RevenueSprintRoute]:
+) -> RevenueSprintApprovalNeeded:
     require_revenue_read(current_user)
     return get_revenue_sprint_approval_needed()
 

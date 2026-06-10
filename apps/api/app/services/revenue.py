@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 import json
 from uuid import uuid4
 
-from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.cerebro import CerebroApprovalRequestCreate
@@ -17,6 +17,7 @@ from app.schemas.revenue import (
     RevenueOpportunityCreate,
     RevenueOpportunityEvaluateRequest,
     RevenueOpportunityStatus,
+    RevenueSprintApprovalNeeded,
     RevenueSprintDaily,
     RevenueSprintEvidenceStatus,
     RevenueSprintMission,
@@ -209,6 +210,22 @@ def safe_id(value: str, fallback: str) -> str:
     return normalized or fallback
 
 
+def parse_payload_json(raw_payload: object) -> dict | None:
+    if raw_payload is None or raw_payload == "":
+        return None
+    if isinstance(raw_payload, dict):
+        return raw_payload
+    try:
+        payload = json.loads(str(raw_payload))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def payload_json_from_row(row: object) -> dict | None:
+    return parse_payload_json(get_row_value(row, "payload_json"))
+
+
 def ensure_revenue_schema() -> None:
     initialize_database()
     with connect() as connection:
@@ -273,7 +290,12 @@ def fetch_payloads(table_name: str) -> list[dict]:
             ORDER BY created_at DESC
             """
         ).fetchall()
-    return [json.loads(row["payload_json"]) for row in rows]
+    payloads: list[dict] = []
+    for row in rows:
+        payload = payload_json_from_row(row)
+        if payload is not None:
+            payloads.append(payload)
+    return payloads
 
 
 def fetch_payload(table_name: str, item_id: str) -> dict | None:
@@ -284,7 +306,7 @@ def fetch_payload(table_name: str, item_id: str) -> dict | None:
             f"SELECT payload_json FROM {table_name} WHERE id = {placeholder}",
             (item_id,),
         ).fetchone()
-    return json.loads(row["payload_json"]) if row else None
+    return payload_json_from_row(row) if row else None
 
 
 def upsert_payload(table_name: str, item_id: str, payload: str) -> None:
@@ -1040,9 +1062,23 @@ def save_sprint_route(route: RevenueSprintRoute) -> RevenueSprintRoute:
     return route
 
 
+def safe_sprint_route_from_payload(payload: dict) -> RevenueSprintRoute | None:
+    try:
+        return RevenueSprintRoute(**payload)
+    except Exception:
+        return None
+
+
 def list_sprint_routes() -> list[RevenueSprintRoute]:
     ensure_sprint_defaults()
-    routes = [RevenueSprintRoute(**payload) for payload in fetch_payloads(REVENUE_SPRINT_ROUTES_TABLE)]
+    routes = [
+        route
+        for route in (
+            safe_sprint_route_from_payload(payload)
+            for payload in fetch_payloads(REVENUE_SPRINT_ROUTES_TABLE)
+        )
+        if route is not None
+    ]
     priority_order = {"p0": 0, "p1": 1, "p2": 2, "p3": 3}
     return sorted(routes, key=lambda route: (priority_order.get(route.priority, 9), route.name))
 
@@ -1310,8 +1346,33 @@ def get_revenue_sprint_risks() -> list[dict]:
     return risks
 
 
-def get_revenue_sprint_approval_needed() -> list[RevenueSprintRoute]:
-    return [route for route in list_sprint_routes() if route.approval_required]
+def get_revenue_sprint_approval_needed() -> RevenueSprintApprovalNeeded:
+    try:
+        approval_routes = [route for route in list_sprint_routes() if route.approval_required]
+    except Exception:
+        approval_routes = []
+        fallback = True
+    else:
+        fallback = False
+    count = len(approval_routes)
+    return RevenueSprintApprovalNeeded(
+        status="ok",
+        mode="prepared",
+        approval_required=count > 0,
+        items=approval_routes,
+        count=count,
+        requires_ceo_action=count > 0,
+        message=(
+            "Revenue sprint approval requests pending."
+            if count
+            else "No revenue sprint approval requests pending."
+        ),
+        fallback=fallback,
+        external_connection_enabled=False,
+        runtime_connected=False,
+        payment_connected=False,
+        real_revenue_confirmed=False,
+    )
 
 
 def create_revenue_sprint_report(

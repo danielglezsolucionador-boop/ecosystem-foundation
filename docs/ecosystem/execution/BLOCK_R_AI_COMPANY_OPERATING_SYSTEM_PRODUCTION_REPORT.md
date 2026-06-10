@@ -217,6 +217,52 @@ Pendiente:
 - Ejecutar `.\work\run_r4_auth_captures.ps1` desde PowerShell segura.
 - Si devuelve `R4_AUTH_CAPTURES_PASS`, cerrar release con commit final, push, deploy y tag.
 
+## R.7 - Fix revenue sprint approval-needed
+
+Fecha/hora: 2026-06-09 22:35 -05:00
+
+Estado R.7: `FIX_LOCAL_VALIDATED / DEPLOY_PENDING`.
+
+Endpoint fallido exacto:
+
+- `GET /api/v1/revenue/sprint/approval-needed`
+- Producción devolvió status `500` durante captura autenticada.
+
+Causa:
+
+- El endpoint devolvía lista directa de `RevenueSprintRoute`.
+- El flujo no tenía fallback si rutas/payloads legacy de Revenue Sprint en PostgreSQL fallaban al parsear o validar.
+- Cualquier payload inválido podía romper la cabina con 500.
+
+Fix:
+
+- Respuesta estable `RevenueSprintApprovalNeeded`.
+- `items=[]`, `count=0`, `requires_ceo_action=false` cuando no hay aprobaciones.
+- Fallback HTTP 200 si falla carga de rutas.
+- Frontend compatible con objeto nuevo y lista legacy.
+- Auditoría autenticada total incluye `/api/v1/revenue/sprint/approval-needed`.
+
+Tests focales:
+
+- `apps/api/tests/test_revenue_execution_sprint.py`: PASS, `16 passed`.
+
+Validaciones R.7:
+
+- suite completa: PASS, `474 passed, 1 skipped`.
+- `validate_v1.py`: PASS, secret scan PASS.
+- `git diff --check`: PASS.
+
+Reporte dedicado:
+
+- `docs/ecosystem/execution/BLOCK_R7_REVENUE_APPROVAL_NEEDED_FIX_REPORT.md`
+
+Pendiente R.7:
+
+- suite completa;
+- deploy;
+- reejecutar capturas auth;
+- tag solo si `R4_AUTH_CAPTURES_PASS`.
+
 ## Estado
 
 Estado R.1: `BLOCKED_AUTH_ENV_MISSING`.

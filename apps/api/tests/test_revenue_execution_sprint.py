@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.schemas.auth import ControlCenterRole
+from app.services import revenue as revenue_service
 from auth_helpers import auth_headers
 
 
@@ -176,9 +177,63 @@ def test_sprint_daily_risks_and_approval_needed_are_clear() -> None:
     assert daily.status_code == 200
     assert risks.status_code == 200
     assert approvals.status_code == 200
+    approval_payload = approvals.json()
     assert "ingresos reales: 0" in daily.json()["daily_tracking"]
     assert any("No inventar ventas" in risk["title"] for risk in risks.json())
-    assert all(route["approval_required"] is True for route in approvals.json())
+    assert approval_payload["status"] == "ok"
+    assert approval_payload["mode"] == "prepared"
+    assert approval_payload["count"] == len(approval_payload["items"])
+    assert approval_payload["requires_ceo_action"] == (approval_payload["count"] > 0)
+    assert all(route["approval_required"] is True for route in approval_payload["items"])
+
+
+def test_approval_needed_returns_empty_safe_payload_when_no_routes(monkeypatch) -> None:
+    monkeypatch.setattr(revenue_service, "list_sprint_routes", lambda: [])
+
+    payload = revenue_service.get_revenue_sprint_approval_needed()
+
+    assert payload.status == "ok"
+    assert payload.mode == "prepared"
+    assert payload.approval_required is False
+    assert payload.items == []
+    assert payload.count == 0
+    assert payload.requires_ceo_action is False
+    assert payload.fallback is False
+
+
+def test_approval_needed_returns_fallback_safe_payload_when_route_loading_fails(monkeypatch) -> None:
+    def broken_routes() -> list:
+        raise RuntimeError("legacy payload_json failure")
+
+    monkeypatch.setattr(revenue_service, "list_sprint_routes", broken_routes)
+
+    payload = revenue_service.get_revenue_sprint_approval_needed()
+
+    assert payload.status == "ok"
+    assert payload.items == []
+    assert payload.count == 0
+    assert payload.fallback is True
+    assert payload.real_revenue_confirmed is False
+    assert payload.payment_connected is False
+
+
+def test_payload_parser_accepts_dict_and_string_and_ignores_null() -> None:
+    assert revenue_service.parse_payload_json(None) is None
+    assert revenue_service.parse_payload_json("") is None
+    assert revenue_service.parse_payload_json({"id": "route"}) == {"id": "route"}
+    assert revenue_service.parse_payload_json('{"id": "route"}') == {"id": "route"}
+    assert revenue_service.parse_payload_json("not-json") is None
+
+
+def test_approval_needed_endpoint_does_not_invent_approvals() -> None:
+    response = client.get("/api/v1/revenue/sprint/approval-needed", headers=CEO_HEADERS)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["count"] == len(payload["items"])
+    assert all(item["approval_required"] is True for item in payload["items"])
+    assert all(item["real_revenue_confirmed"] is False for item in payload["items"])
 
 
 def test_sprint_report_keeps_actual_revenue_zero() -> None:

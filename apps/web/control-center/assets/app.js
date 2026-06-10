@@ -1676,7 +1676,9 @@ function renderRevenueSprint() {
   const missions = Array.isArray(state.data.revenueSprintMissions) ? state.data.revenueSprintMissions : [];
   const daily = state.data.revenueSprintDaily || {};
   const risks = Array.isArray(state.data.revenueSprintRisks) ? state.data.revenueSprintRisks : [];
-  const approvals = Array.isArray(state.data.revenueSprintApprovalNeeded) ? state.data.revenueSprintApprovalNeeded : [];
+  const approvalPayload = state.data.revenueSprintApprovalNeeded || {};
+  const approvals = Array.isArray(approvalPayload) ? approvalPayload : (Array.isArray(approvalPayload.items) ? approvalPayload.items : []);
+  const approvalCount = Number.isFinite(Number(approvalPayload.count)) ? Number(approvalPayload.count) : approvals.length;
   const topRoute = (Array.isArray(status.top_routes) ? status.top_routes[0] : null) || routes[0];
   const topMission = missions[0];
   const plan = Array.isArray(status.plan_30_days) ? status.plan_30_days : (Array.isArray(daily.plan_30_days) ? daily.plan_30_days : []);
@@ -1693,7 +1695,7 @@ function renderRevenueSprint() {
       <div class="revenue-sprint-kpis">
         <small><b>${number(status.routes || routes.length)}</b>rutas</small>
         <small><b>${number(status.missions || missions.length)}</b>misiones</small>
-        <small><b>${number(status.approval_needed || approvals.length)}</b>CEO</small>
+        <small><b>${number(status.approval_needed || approvalCount)}</b>CEO</small>
       </div>
     </article>
     <article class="revenue-sprint-card">
@@ -1716,7 +1718,7 @@ function renderRevenueSprint() {
     </article>
     <article class="revenue-sprint-card">
       <span class="eyebrow">Aprobaciones</span>
-      <strong>${number(approvals.length || status.approval_needed || 0)} requieren CEO</strong>
+      <strong>${number(approvalCount || status.approval_needed || 0)} requieren CEO</strong>
       <p>Dinero real, pauta pagada, cuentas externas y servicios con costo quedan bloqueados.</p>
       <small>Orgánico no requiere aprobación de dinero.</small>
     </article>
