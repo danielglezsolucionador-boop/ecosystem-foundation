@@ -228,7 +228,7 @@ Pendiente:
 
 Fecha/hora: 2026-06-09 23:32 -05:00
 
-Estado R.8: `LOCAL_VALIDATED / DEPLOY_PENDING`.
+Estado R.8: `FIX_DEPLOYED_PUBLIC_PASS / AUTH_AUDIT_PENDING`.
 
 Nuevo fallo productivo reportado:
 
@@ -247,8 +247,11 @@ Resultado:
 
 Pendiente:
 
-- validaciones finales;
-- commit/push/deploy;
+- commit funcional `60b2948 fix: harden control center production endpoints`;
+- push a `origin/main` PASS;
+- deploy automatico Vercel PASS;
+- produccion basica PASS en `/version`, `/runtime/status` y `/control-center`;
+- rutas protegidas sin auth devuelven 401;
 - reejecutar auditoria auth ampliada;
 - reejecutar capturas auth;
 - tag final solo con capturas PASS.

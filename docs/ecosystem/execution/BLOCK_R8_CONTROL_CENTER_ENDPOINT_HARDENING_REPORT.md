@@ -6,7 +6,7 @@ HEAD inicial: `1c1d3f7 docs: clarify R7 audit script scope`
 
 ## Estado
 
-Estado R.8: `LOCAL_VALIDATED / DEPLOY_PENDING`.
+Estado R.8: `FIX_DEPLOYED_PUBLIC_PASS / AUTH_AUDIT_PENDING`.
 
 ## Problema
 
@@ -220,11 +220,14 @@ No se toco:
 
 ## Pendiente
 
-- Ejecutar validaciones finales completas.
-- Commit `fix: harden control center production endpoints`.
-- Push a `origin/main`.
-- Esperar deploy.
-- Validar `/version`, `/runtime/status`, `/control-center`.
+- Validaciones finales completas: PASS.
+- Commit: `60b2948 fix: harden control center production endpoints`.
+- Push a `origin/main`: PASS.
+- Deploy automatico Vercel: PASS.
+- `/version`: commit `60b2948`.
+- `/runtime/status`: commit `60b2948`, PostgreSQL conectado, SQLite false, persistent true.
+- `/control-center`: HTTP 200.
+- Rutas protegidas sin auth: 401 en `chief-of-staff/status`, `revenue/sprint/approval-needed` y `control-center`.
 - CEO debe ejecutar `.\work\run_total_ecosystem_authenticated_audit.ps1`.
 - Luego CEO debe ejecutar `.\work\run_r4_auth_captures.ps1`.
 - Tag `v1-ai-company-operating-system` solo con auditoria auth ampliada PASS y `R4_AUTH_CAPTURES_PASS`.

@@ -274,7 +274,7 @@ Pendiente R.7:
 
 Fecha/hora: 2026-06-09 23:32 -05:00
 
-Estado R.8: `LOCAL_VALIDATED / DEPLOY_PENDING`.
+Estado R.8: `FIX_DEPLOYED_PUBLIC_PASS / AUTH_AUDIT_PENDING`.
 
 Endpoint fallido actual:
 
@@ -307,8 +307,13 @@ Reporte dedicado:
 
 Pendiente R.8:
 
-- validaciones finales;
-- commit/push/deploy;
+- commit funcional: `60b2948 fix: harden control center production endpoints`;
+- push a `origin/main`: PASS;
+- deploy automatico Vercel: PASS;
+- `/version`: commit `60b2948`;
+- `/runtime/status`: commit `60b2948`, PostgreSQL conectado, SQLite false, persistent true;
+- `/control-center`: HTTP 200;
+- rutas protegidas sin auth: 401;
 - CEO debe ejecutar auditoria auth ampliada;
 - CEO debe ejecutar capturas R4;
 - tag solo si `R4_AUTH_CAPTURES_PASS`.
