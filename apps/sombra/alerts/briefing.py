@@ -9,6 +9,7 @@ from typing import Any
 
 from apps.sombra.memory import DatabaseConnection, GlobalMemoryLayer, MemoryQueryEngine
 from apps.sombra.memory.database import LOG_DIR
+from apps.sombra.security.output_sanitizer import OutputSanitizer
 
 from .generator import AlertGenerationEngine
 
@@ -70,6 +71,7 @@ class DailyIntelligenceBriefing:
                 },
             },
         }
+        briefing = OutputSanitizer.sanitize_external(briefing)
         await asyncio.to_thread(self._write_briefing_file, briefing)
         return briefing
 

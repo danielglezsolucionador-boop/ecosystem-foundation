@@ -1,0 +1,19 @@
+{
+  "findings": "CRITICAL VULNERABILITY_PUBLISHED classified with 2 target indicator(s).",
+  "forja_action_needed": false,
+  "intel_id": "8194a978-5b1f-4e67-914c-3314c2973ca0",
+  "intelligence_confidence": 0.95,
+  "recommended_defense": "Activate urgent security review. Validate exposure, apply immediate mitigation, and escalate to SENTINELA. Owner: SENTINELA. Deadline: NOW.",
+  "severity": "CRITICAL",
+  "source": "THREAT_INTELLIGENCE_ENGINE",
+  "source_classification": "CLASSIFIED",
+  "target_assets": [
+    "cpe:2.3:a:ftp:ftp:*:*:*:*:*:*:*:*",
+    "cpe:2.3:a:ftpcd:ftpcd:*:*:*:*:*:*:*:*",
+    "www.alw.nih.gov"
+  ],
+  "threat_score": 100,
+  "threat_type": "VULNERABILITY_PUBLISHED",
+  "time_window": "0-24h",
+  "timestamp": "2026-06-11T08:42:51Z"
+}

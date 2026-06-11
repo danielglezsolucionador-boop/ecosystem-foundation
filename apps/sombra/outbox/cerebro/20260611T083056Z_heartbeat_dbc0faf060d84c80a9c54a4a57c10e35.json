@@ -1,0 +1,9 @@
+{
+  "encrypted": true,
+  "encrypted_payload": "gAAAAABqKnJANq3XfUePF8e9iqJL790reJORTBjzOWtgFPokSnhESKkLNQ8zBQUK0RImF2CvopX3xO5TG8A0JSzoeZSxDpUgPSHwL3aFqYScaFUvjWe88Kiratwkwddosf23UhzP5zrmyRXJaCqin7g1ngsczQKDe44HZdUELPce1gIwZUEWgCM1MvdBG4fqJZYB7a-kOu_fSMKJAgT9971UYzB0Ct_JT-Q0SUc6gK5AbiPYUC0QY0Gigi0N1S-h_mTzXCCYiDK4vmWJH6GyWTNEGi7lXRpuxAH4QlDNFhWnJoDnIssn6bI=",
+  "encryption": "fernet_sha256_derived_key",
+  "message_type": "heartbeat",
+  "payload_sha256": "6a11f51846e1b9bf9444e83caf9b66ccf04654087523431b608deed909d28d39",
+  "reason": "CEREBRO_WEBHOOK_NOT_CONFIGURED",
+  "timestamp_utc": "2026-06-11T08:30:56Z"
+}

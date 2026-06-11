@@ -1,0 +1,202 @@
+[
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Unauthenticated statuses: [401, 401, 401, 401, 401, 401]",
+    "status": "PASS",
+    "test_id": "R01",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Wrong-key statuses: [401, 401, 401, 401, 401, 401]",
+    "status": "PASS",
+    "test_id": "R02",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Unauthorized CEO-tagged order returned 401; unauthorized log present=True",
+    "status": "PASS",
+    "test_id": "R03",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Direct CEO shutdown impersonation was logged/rejected; response={'accepted': False, 'reason': 'invalid_structure', 'execution': 'queued_or_recorded'}",
+    "status": "PASS",
+    "test_id": "R04",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Injection response={'accepted': False, 'reason': 'injection_attempt', 'execution': 'queued_or_recorded'}; table_exists=True; logged=True",
+    "status": "PASS",
+    "test_id": "R05",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Injection response={'accepted': False, 'reason': 'invalid_structure', 'execution': 'queued_or_recorded'}; database_integrity=True",
+    "status": "PASS",
+    "test_id": "R06",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Oversized payload rejected without crash; response={'accepted': False, 'reason': 'oversized_payload', 'execution': 'queued_or_recorded'}",
+    "status": "PASS",
+    "test_id": "R07",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Malformed JSON returned 422",
+    "status": "PASS",
+    "test_id": "R08",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Response leaked classified name=False",
+    "status": "PASS",
+    "test_id": "R09",
+    "vulnerability": "None"
+  },
+  {
+    "details": {
+      "matches": []
+    },
+    "fix_applied": "None",
+    "happened": "Sentinela forbidden matches: []",
+    "status": "PASS",
+    "test_id": "R10",
+    "vulnerability": "None"
+  },
+  {
+    "details": {
+      "matches": []
+    },
+    "fix_applied": "None",
+    "happened": "Forja forbidden matches: []",
+    "status": "PASS",
+    "test_id": "R11",
+    "vulnerability": "None"
+  },
+  {
+    "details": {
+      "matches": []
+    },
+    "fix_applied": "None",
+    "happened": "Cerebro restricted-source matches: []",
+    "status": "PASS",
+    "test_id": "R12",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Delete blocked=True; before=52; after=52",
+    "status": "PASS",
+    "test_id": "R13",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Update blocked=True; modified_rows=0",
+    "status": "PASS",
+    "test_id": "R14",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Severity tamper detectable=True",
+    "status": "PASS",
+    "test_id": "R15",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Direct DB read returned 5 audit rows with hashes intact=True",
+    "status": "PASS",
+    "test_id": "R16",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Collector main.py moved=True; core start summary={\"hardening\": {\"checks_failed\": [], \"checks_passed\": [\"python_version_3_11_or_newer\", \"no_default_secret_like_environment_values_detected\", \"log_directory_exists_and_writable\", \"database_accessible_sqlite\", \"required_environment_variables_documented_in_code\"], \"overall_status\": \"PASS\", \"recommendations\": []}, \"modules_health\": {\"alerts\": {\"details\": \"key files present, importable, logs active\", \"last_log_entry\": \"{\\\"alert_id\\\": \\\"b2ec4662-be2c-49c1-a074-9a1033f4670e\\\", \\\"audit_logged\\\": true, \\\"",
+    "status": "PASS",
+    "test_id": "R17",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Database corruption handled; summary={'error_logged': True, 'error': \"DatabaseError('file is not a database')\"}",
+    "status": "PASS",
+    "test_id": "R18",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Wrong-key statuses=[401, 401, 401, 401, 401, 401, 401, 401, 401, 401]; brute_force_logs=10; status_after=200",
+    "status": "PASS",
+    "test_id": "R19",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "level3=True; non_ceo_rejected=True; ceo_deactivated=True",
+    "status": "PASS",
+    "test_id": "R20",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "poison={'is_poisoned': True, 'confidence': 0.75, 'quarantined': True, 'indicators_triggered': ['perfect_untrusted_critical_claim']}; route_locked=True",
+    "status": "PASS",
+    "test_id": "R21",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "poison={'is_poisoned': True, 'confidence': 0.7, 'quarantined': True, 'indicators_triggered': ['single_source_low_confidence_critical']}",
+    "status": "PASS",
+    "test_id": "R22",
+    "vulnerability": "None"
+  },
+  {
+    "details": {},
+    "fix_applied": "None",
+    "happened": "Processed unique packages=10 out of 50; duplicate triage active=True",
+    "status": "PASS",
+    "test_id": "R23",
+    "vulnerability": "None"
+  },
+  {
+    "details": {
+      "matches": []
+    },
+    "fix_applied": "None",
+    "happened": "Full external output forbidden matches: []",
+    "status": "PASS",
+    "test_id": "R24",
+    "vulnerability": "None"
+  }
+]

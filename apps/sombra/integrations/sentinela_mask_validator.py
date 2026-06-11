@@ -9,6 +9,7 @@ from typing import Any
 
 from apps.sombra.memory import BlackBoxAuditCore, DatabaseConnection
 from apps.sombra.memory.database import LOG_DIR
+from apps.sombra.security.output_sanitizer import OutputSanitizer
 
 
 SENTINELA_MASK_LOG = LOG_DIR / "sentinela_mask.log"
@@ -21,6 +22,10 @@ FORBIDDEN_WORDS = [
     "dark_web_identity",
     "fake_profile",
     "underground_forum_access",
+    "dark_web",
+    "underground",
+    "covert",
+    "operational_identity",
 ]
 ALLOWED_SOURCES = {
     "THREAT_INTELLIGENCE_ENGINE",
@@ -54,6 +59,8 @@ class SentinelaMaskValidator:
         await self._ensure_ready()
         payload_text = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
         violations = [word for word in FORBIDDEN_WORDS if word in payload_text]
+        if OutputSanitizer.contains_forbidden_external_reference(payload_text):
+            violations.append("classified_reference_pattern")
         if violations:
             result = ValidationResult(valid=False, violations=violations, reason="forbidden_word_detected")
             await self._log_failure(result, payload)

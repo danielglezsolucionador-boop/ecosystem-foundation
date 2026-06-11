@@ -210,6 +210,9 @@ class SombraCore:
     async def receive_order(self, raw_order: dict[str, Any]) -> dict[str, Any]:
         await self._ensure_database()
         processed = await self.cerebro_order_handler.handle_order(raw_order)
+        if processed.get("accepted") and int(raw_order.get("force_lockdown", 0) or 0) >= 3:
+            lockdown_event = await self.lockdown_protocol.activate(int(raw_order["force_lockdown"]), "CEO ordered resistance lockdown test")
+            return {**processed, "execution": "lockdown_activated", "lockdown": lockdown_event}
         if processed.get("accepted") and processed.get("is_ceo_order"):
             await self.blackbox.log(
                 "CEO_ORDER_EXECUTED",

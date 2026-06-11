@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 
 from apps.sombra.memory import BlackBoxAuditCore, DatabaseConnection
 from apps.sombra.memory.database import LOG_DIR
+from apps.sombra.security.output_sanitizer import OutputSanitizer
 
 from .sentinela_mask_validator import SentinelaMaskValidator
 
@@ -60,6 +61,7 @@ class SentinelaConnector:
             "source_classification": "CLASSIFIED",
             "intelligence_confidence": float(getattr(alert, "confidence_level", 0.0) or 0.0),
         }
+        payload = OutputSanitizer.sanitize_external(payload)
         return await self._validated_delivery(
             payload,
             event_type="INTEL_DELIVERED_TO_SENTINELA",
@@ -80,6 +82,7 @@ class SentinelaConnector:
             "source": "MONITORING_ENGINE",
             "source_classification": "CLASSIFIED",
         }
+        payload = OutputSanitizer.sanitize_external(payload)
         return await self._validated_delivery(
             payload,
             event_type="CREDENTIAL_ALERT_DELIVERED_TO_SENTINELA",
@@ -207,6 +210,7 @@ class SentinelaConnector:
         safe_timestamp = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         safe_timestamp = safe_timestamp.replace(":", "").replace("-", "")
         outbox_path = SENTINELA_OUTBOX / f"{safe_timestamp}_{message_type}_{uuid.uuid4().hex}.json"
+        payload = OutputSanitizer.sanitize_external(payload)
         outbox_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
     @staticmethod

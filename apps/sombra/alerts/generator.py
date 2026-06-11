@@ -7,6 +7,7 @@ from typing import Any
 
 from apps.sombra.memory import BlackBoxAuditCore, DatabaseConnection, GlobalMemoryLayer
 from apps.sombra.memory.database import LOG_DIR
+from apps.sombra.security.output_sanitizer import OutputSanitizer
 
 from .models import SombraAlert
 
@@ -272,5 +273,6 @@ class AlertGenerationEngine:
     @staticmethod
     def _append_alert_log(alert: SombraAlert) -> None:
         LOG_DIR.mkdir(parents=True, exist_ok=True)
+        row = OutputSanitizer.sanitize_external(alert.to_dict())
         with Path(ALERTS_LOG).open("a", encoding="utf-8") as log_file:
-            log_file.write(json.dumps(alert.to_dict(), sort_keys=True, default=str) + "\n")
+            log_file.write(json.dumps(row, sort_keys=True, default=str) + "\n")

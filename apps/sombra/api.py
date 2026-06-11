@@ -35,6 +35,7 @@ async def require_sombra_key(x_sombra_key: str | None = Header(default=None, ali
     if not expected:
         raise HTTPException(status_code=503, detail="SOMBRA_API_KEY is not configured")
     if x_sombra_key != expected:
+        await _log_auth_failure("invalid_or_missing_key")
         raise HTTPException(status_code=401, detail="invalid SOMBRA API key")
 
 
@@ -101,3 +102,17 @@ def _append_api_log(row: dict[str, Any]) -> None:
 
 def _now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+async def _log_auth_failure(reason: str) -> None:
+    try:
+        await sombra_core._ensure_database()
+        await sombra_core.blackbox.log(
+            "UNAUTHORIZED_ORDER_ATTEMPT",
+            "API_AUTH",
+            {"reason": reason},
+            order_origin="SECURITY",
+        )
+        await sombra_core.intrusion_detector.record_failed_auth("api")
+    except Exception:
+        return

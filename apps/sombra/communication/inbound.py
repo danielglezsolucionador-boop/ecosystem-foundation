@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 import json
+import re
 from typing import Any
 
 from apps.sombra.memory import BlackBoxAuditCore, DatabaseConnection
@@ -23,6 +24,16 @@ VALID_ORDER_TYPES = {
     "EMERGENCY_FREEZE",
     "INVESTIGATE",
 }
+MAX_TARGET_LENGTH = 4096
+INJECTION_PATTERNS = (
+    r"\bDROP\b",
+    r"\bDELETE\b",
+    r"\bUPDATE\b",
+    r"\bINSERT\b",
+    r"--",
+    r"\bOR\s+'?1'?\s*=\s*'?1'?\b",
+    r"\bUNION\s+SELECT\b",
+)
 
 
 class InboundOrderProcessor:
@@ -46,6 +57,31 @@ class InboundOrderProcessor:
             )
             await asyncio.to_thread(self._append_inbound_log, {"status": "rejected", "reason": "invalid_structure"})
             return {"accepted": False, "reason": "invalid_structure"}
+        target = str(raw_order.get("target", ""))
+        if len(target) > MAX_TARGET_LENGTH:
+            await self.blackbox.log(
+                "OVERSIZED_PAYLOAD_REJECTED",
+                "ORDER_TARGET",
+                {"target_length": len(target), "max_length": MAX_TARGET_LENGTH},
+                order_origin="SECURITY",
+            )
+            await asyncio.to_thread(
+                self._append_inbound_log,
+                {"status": "rejected", "reason": "oversized_payload", "target_length": len(target)},
+            )
+            return {"accepted": False, "reason": "oversized_payload"}
+        if self._looks_like_injection(target):
+            await self.blackbox.log(
+                "INJECTION_ATTEMPT",
+                "ORDER_TARGET",
+                {"target_excerpt": target[:250]},
+                order_origin="SECURITY",
+            )
+            await asyncio.to_thread(
+                self._append_inbound_log,
+                {"status": "rejected", "reason": "injection_attempt"},
+            )
+            return {"accepted": False, "reason": "injection_attempt"}
         is_ceo_order = raw_order.get("tag") == "[CEO]"
         priority = self._assign_priority(str(raw_order.get("priority", "STANDARD")), is_ceo_order)
         order = InboundOrder(
@@ -69,6 +105,7 @@ class InboundOrderProcessor:
             order_origin="CEO" if order.is_ceo_order else "CEREBRO",
         )
         processed = order.to_dict()
+        processed = self._sanitize_response(processed)
         processed["accepted"] = True
         await asyncio.to_thread(self._append_inbound_log, processed)
         return processed
@@ -78,6 +115,10 @@ class InboundOrderProcessor:
         if not isinstance(order, dict) or any(not order.get(field) for field in required):
             return False
         return str(order["order_type"]).upper() in VALID_ORDER_TYPES
+
+    @staticmethod
+    def _looks_like_injection(value: str) -> bool:
+        return any(re.search(pattern, value, flags=re.IGNORECASE) for pattern in INJECTION_PATTERNS)
 
     async def _ensure_ready(self) -> None:
         if self.database.connection is None:
@@ -101,6 +142,21 @@ class InboundOrderProcessor:
                 clean[str(key)] = "[REDACTED]"
             else:
                 clean[str(key)] = value
+        return clean
+
+    @staticmethod
+    def _sanitize_response(payload: dict[str, Any]) -> dict[str, Any]:
+        text = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+        if "sombra" not in text.lower():
+            return payload
+        clean = dict(payload)
+        clean["target"] = "CLASSIFIED_TARGET"
+        raw = clean.get("raw")
+        if isinstance(raw, dict):
+            clean["raw"] = {
+                key: ("[CLASSIFIED]" if "sombra" in str(value).lower() else value)
+                for key, value in raw.items()
+            }
         return clean
 
     @staticmethod

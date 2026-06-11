@@ -4,6 +4,7 @@ from typing import Any
 
 from apps.sombra.communication import InboundOrderProcessor
 from apps.sombra.memory import BlackBoxAuditCore, DatabaseConnection
+from apps.sombra.security.output_sanitizer import OutputSanitizer
 
 
 class CerebroOrderHandler:
@@ -52,6 +53,9 @@ class CerebroOrderHandler:
     def _normalize_cerebro_order(raw_order: dict[str, Any]) -> dict[str, Any]:
         normalized = dict(raw_order)
         normalized.setdefault("sender", "CEREBRO")
+        if str(normalized.get("sender", "")).upper() not in {"", "CEREBRO"}:
+            normalized["direct_sender_claim"] = str(normalized.get("sender", ""))
+            normalized["sender"] = "CEREBRO"
         if normalized.get("tag") == "[CEO]":
             normalized["sender"] = "CEREBRO"
         elif normalized.get("tag") not in {"[CEREBRO]", "[CEO]"}:
@@ -60,4 +64,5 @@ class CerebroOrderHandler:
             normalized["order_type"] = str(normalized["order_type"]).upper()
         if "priority" in normalized:
             normalized["priority"] = str(normalized["priority"]).upper()
+        normalized = OutputSanitizer.sanitize_external(normalized)
         return normalized

@@ -1,0 +1,21 @@
+{
+  "findings": "HIGH VULNERABILITY_PUBLISHED classified with 2 target indicator(s).",
+  "forja_action_needed": false,
+  "intel_id": "dda13a38-735e-4a99-bb0a-b286b37c14f5",
+  "intelligence_confidence": 0.95,
+  "recommended_defense": "Elevate monitoring on affected assets. Review exposure and apply patches. Owner: SENTINELA. Deadline: 24 hours.",
+  "severity": "HIGH",
+  "source": "THREAT_INTELLIGENCE_ENGINE",
+  "source_classification": "CLASSIFIED",
+  "target_assets": [
+    "cpe:2.3:o:bsd:bsd:4.2:*:*:*:*:*:*:*",
+    "cpe:2.3:o:bsd:bsd:4.3:*:*:*:*:*:*:*",
+    "www.cert.org",
+    "www.iss.net",
+    "www.securityfocus.com"
+  ],
+  "threat_score": 89,
+  "threat_type": "VULNERABILITY_PUBLISHED",
+  "time_window": "24-72h",
+  "timestamp": "2026-06-11T08:42:51Z"
+}

@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 
 from apps.sombra.memory import BlackBoxAuditCore, DatabaseConnection
 from apps.sombra.memory.database import LOG_DIR
+from apps.sombra.security.output_sanitizer import OutputSanitizer
 
 
 FORJA_OUTBOUND_LOG = LOG_DIR / "forja_outbound.log"
@@ -45,6 +46,7 @@ class ForjaConnector:
 
     async def send_construction_signal(self, signal: dict[str, Any]) -> bool:
         await self._ensure_ready()
+        signal = OutputSanitizer.sanitize_external(signal)
         validation = self._validate_signal(signal)
         if not validation["valid"]:
             await self.blackbox.log(
@@ -176,7 +178,7 @@ class ForjaConnector:
     def _validate_signal(signal: dict[str, Any]) -> dict[str, Any]:
         missing = sorted(REQUIRED_SIGNAL_FIELDS - set(signal))
         payload_text = json.dumps(signal, sort_keys=True, default=str)
-        forbidden_found = "SOMBRA" in payload_text or "sombra" in payload_text or "Sombra" in payload_text
+        forbidden_found = OutputSanitizer.contains_forbidden_external_reference(payload_text)
         if missing or forbidden_found:
             return {
                 "valid": False,

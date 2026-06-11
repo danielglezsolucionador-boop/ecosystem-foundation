@@ -47,6 +47,12 @@ class PoisonDetectionEngine:
         short_unreliable = self._short_unreliable_signal(package, raw_content)
         if short_unreliable:
             indicators.append(short_unreliable)
+        perfect_untrusted = self._perfect_untrusted_signal(package)
+        if perfect_untrusted:
+            indicators.append(perfect_untrusted)
+        single_source_critical = self._single_source_critical_signal(package)
+        if single_source_critical:
+            indicators.append(single_source_critical)
         confidence = self._confidence(indicators)
         is_poisoned = confidence >= 0.65
         return PoisonAssessment(
@@ -88,6 +94,24 @@ class PoisonDetectionEngine:
         return None
 
     @staticmethod
+    def _perfect_untrusted_signal(package: Any) -> str | None:
+        reliability = float(getattr(package, "source_reliability", 0.0))
+        source_category = str(getattr(package, "source_category", "")).upper()
+        severity = str(getattr(package, "suspected_severity", "")).upper()
+        if reliability >= 0.95 and severity == "CRITICAL" and source_category in {"UNDERGROUND", "UNKNOWN"}:
+            return "perfect_untrusted_critical_claim"
+        return None
+
+    @staticmethod
+    def _single_source_critical_signal(package: Any) -> str | None:
+        reliability = float(getattr(package, "source_reliability", 0.0))
+        severity = str(getattr(package, "suspected_severity", "")).upper()
+        indicators = list(getattr(package, "target_indicators", []) or [])
+        if severity == "CRITICAL" and reliability <= 0.4 and len(indicators) <= 1:
+            return "single_source_low_confidence_critical"
+        return None
+
+    @staticmethod
     def _confidence(indicators: list[str]) -> float:
         if not indicators:
             return 0.0
@@ -98,6 +122,8 @@ class PoisonDetectionEngine:
             "exfiltration_instruction": 0.55,
             "encoded_control_instruction": 0.4,
             "low_reliability_thin_evidence": 0.2,
+            "perfect_untrusted_critical_claim": 0.75,
+            "single_source_low_confidence_critical": 0.7,
         }
         score = sum(weight.get(indicator, 0.2) for indicator in set(indicators))
         return max(0.05, min(0.99, round(score, 3)))

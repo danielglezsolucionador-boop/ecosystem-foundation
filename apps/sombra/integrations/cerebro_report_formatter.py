@@ -3,11 +3,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from apps.sombra.security.output_sanitizer import OutputSanitizer
+
 
 class CerebroReportFormatter:
     @staticmethod
     def format_intel_report(alert: Any) -> dict[str, Any]:
-        return {
+        return OutputSanitizer.sanitize_external({
             "source": "THREAT_INTELLIGENCE_ENGINE",
             "timestamp": CerebroReportFormatter.utc_now(),
             "classification": str(getattr(alert, "severity", "")).upper(),
@@ -21,7 +23,7 @@ class CerebroReportFormatter:
             "forja_needed": bool(getattr(alert, "forja_construction_needed", False)),
             "forja_spec": str(getattr(alert, "forja_specification", "")),
             "source_classification": "CLASSIFIED",
-        }
+        })
 
     @staticmethod
     def format_heartbeat(
@@ -31,14 +33,14 @@ class CerebroReportFormatter:
         alerts_sent_today: int,
         lockdown_level: int,
     ) -> dict[str, Any]:
-        return {
+        return OutputSanitizer.sanitize_external({
             "type": "INTELLIGENCE_ENGINE_HEARTBEAT",
             "timestamp": CerebroReportFormatter.utc_now(),
             "status": status,
             "intel_processed_today": int(intel_processed_today),
             "alerts_sent_today": int(alerts_sent_today),
             "lockdown_level": int(lockdown_level),
-        }
+        })
 
     @staticmethod
     def utc_now() -> str:

@@ -1,0 +1,17 @@
+{
+  "findings": "HIGH RANSOMWARE_CAMPAIGN classified with 1 target indicator(s).",
+  "forja_action_needed": true,
+  "intel_id": "0d254965-c828-4003-8bab-20a5df45d5c4",
+  "intelligence_confidence": 0.8,
+  "recommended_defense": "Elevate monitoring on affected assets. Review exposure and apply patches. Owner: SENTINELA. Deadline: 24 hours.",
+  "severity": "HIGH",
+  "source": "THREAT_INTELLIGENCE_ENGINE",
+  "source_classification": "CLASSIFIED",
+  "target_assets": [
+    "krebsonsecurity.com"
+  ],
+  "threat_score": 81,
+  "threat_type": "RANSOMWARE_CAMPAIGN",
+  "time_window": "24-72h",
+  "timestamp": "2026-06-11T08:59:12Z"
+}

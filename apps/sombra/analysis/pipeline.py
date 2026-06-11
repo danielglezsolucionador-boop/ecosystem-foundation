@@ -56,7 +56,13 @@ class SombraAnalysisPipeline:
 
     def analyze_many(self, packages: list[Any]) -> list[AnalysisResult]:
         results: list[AnalysisResult] = []
+        seen_hashes: set[str] = set()
         for package in packages:
+            package_hash = str(getattr(package, "hash_sha256", ""))
+            if package_hash and package_hash in seen_hashes:
+                continue
+            if package_hash:
+                seen_hashes.add(package_hash)
             results.append(self.analyze(package))
         return results
 

@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 from typing import Any
 import uuid
 
+from apps.sombra.security.output_sanitizer import OutputSanitizer
+
 
 THREAT_CONSTRUCTION_MAP = {
     "ZERO_DAY_EXPLOIT": {
@@ -52,7 +54,7 @@ class ForjaSignalBuilder:
         )
         findings = str(getattr(alert, "findings", ""))[:200]
         description = str(mapping["description"]).format(findings=findings)
-        return {
+        signal = {
             "signal_id": str(uuid.uuid4()),
             "timestamp": self._utc_now(),
             "origin": "THREAT_INTELLIGENCE_ENGINE",
@@ -64,6 +66,7 @@ class ForjaSignalBuilder:
             "deadline_estimate": self._deadline_for_alert(alert),
             "indicators": list(getattr(alert, "target_assets", []) or []),
         }
+        return OutputSanitizer.sanitize_external(signal)
 
     @staticmethod
     def supported_threat_types() -> list[str]:

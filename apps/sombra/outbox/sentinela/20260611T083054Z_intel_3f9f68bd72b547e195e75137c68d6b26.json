@@ -1,0 +1,21 @@
+{
+  "findings": "CRITICAL VULNERABILITY_PUBLISHED classified with 1 target indicator(s).",
+  "forja_action_needed": false,
+  "intel_id": "85ea9151-c138-4c91-b192-61a10290c794",
+  "intelligence_confidence": 0.95,
+  "recommended_defense": "Activate urgent security review. Validate exposure, apply immediate mitigation, and escalate to SENTINELA. Owner: SENTINELA. Deadline: NOW.",
+  "severity": "CRITICAL",
+  "source": "THREAT_INTELLIGENCE_ENGINE",
+  "source_classification": "CLASSIFIED",
+  "target_assets": [
+    "cpe:2.3:a:eric_allman:sendmail:5.58:*:*:*:*:*:*:*",
+    "seclists.org",
+    "www.openwall.com",
+    "www.osvdb.org",
+    "www.securityfocus.com"
+  ],
+  "threat_score": 100,
+  "threat_type": "VULNERABILITY_PUBLISHED",
+  "time_window": "0-24h",
+  "timestamp": "2026-06-11T08:30:54Z"
+}
