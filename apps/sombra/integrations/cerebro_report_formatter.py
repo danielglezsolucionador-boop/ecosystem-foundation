@@ -32,6 +32,9 @@ class CerebroReportFormatter:
         intel_processed_today: int,
         alerts_sent_today: int,
         lockdown_level: int,
+        current_ai_cost_today_usd: float = 0.0,
+        budget_mode: str = "NORMAL",
+        ceo_risk_score: int = 0,
     ) -> dict[str, Any]:
         return OutputSanitizer.sanitize_external({
             "type": "INTELLIGENCE_ENGINE_HEARTBEAT",
@@ -40,6 +43,9 @@ class CerebroReportFormatter:
             "intel_processed_today": int(intel_processed_today),
             "alerts_sent_today": int(alerts_sent_today),
             "lockdown_level": int(lockdown_level),
+            "current_ai_cost_today_usd": round(float(current_ai_cost_today_usd), 8),
+            "budget_mode": str(budget_mode).upper(),
+            "ceo_risk_score": int(ceo_risk_score),
         })
 
     @staticmethod

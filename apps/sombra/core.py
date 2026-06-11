@@ -10,7 +10,7 @@ from apps.sombra.alerts import AlertGenerationEngine, DailyIntelligenceBriefing,
 from apps.sombra.analysis import SombraAnalysisPipeline
 from apps.sombra.collector import CollectorScheduler
 from apps.sombra.collector.agents import SombraAbuseAgent, SombraCVEAgent, SombraPasteAgent, SombraRSSAgent
-from apps.sombra.communication import InboundOrderProcessor, OutboundTransmissionEngine
+from apps.sombra.communication import CEOAlertCodeSystem, InboundOrderProcessor, OutboundTransmissionEngine
 from apps.sombra.identity import IdentityManager
 from apps.sombra.integrations import (
     CerebroConnector,
@@ -20,8 +20,9 @@ from apps.sombra.integrations import (
     SentinelaConnector,
 )
 from apps.sombra.memory import BlackBoxAuditCore, ClientMemoryLayer, DatabaseConnection, GlobalMemoryLayer
+from apps.sombra.memory.ceo_protection import CEOProtectionProfile
 from apps.sombra.memory.database import LOG_DIR
-from apps.sombra.monitoring import SombraHealthMonitor, SombraMetrics, SombraWatchdog
+from apps.sombra.monitoring import AICostMonitor, ModelRouter, SombraHealthMonitor, SombraMetrics, SombraWatchdog
 from apps.sombra.security import HardeningChecker, IntrusionDetectionSystem, LockdownProtocol
 
 
@@ -57,12 +58,21 @@ class SombraCore:
         self.inbound_processor = InboundOrderProcessor(self.database, self.blackbox)
         self.alert_generator = AlertGenerationEngine(self.database, self.blackbox)
         self.proactive_protocol = ProactiveAlertProtocol()
-        self.briefing_engine = DailyIntelligenceBriefing(self.database)
         self.intrusion_detector = IntrusionDetectionSystem(self.database, self.blackbox)
         self.lockdown_protocol = LockdownProtocol(self.database, self.blackbox)
         self.health_monitor = SombraHealthMonitor()
         self.watchdog = SombraWatchdog(self.database)
         self.metrics = SombraMetrics(self.database)
+        self.model_router = ModelRouter(self.database, self.blackbox)
+        self.ai_cost_monitor = AICostMonitor(self.database, self.blackbox, self.model_router)
+        self.ceo_alert_codes = CEOAlertCodeSystem(self.database, self.blackbox)
+        self.ceo_protection_profile = CEOProtectionProfile(self.database, self.blackbox)
+        self.briefing_engine = DailyIntelligenceBriefing(
+            self.database,
+            self.ai_cost_monitor,
+            self.model_router,
+            self.ceo_protection_profile,
+        )
         self.hardening_checker = HardeningChecker(self.database)
         self.cerebro_connector = CerebroConnector(
             self.database,
@@ -109,7 +119,7 @@ class SombraCore:
             {"status": "OPERATIONAL", "classification": "CLASSIFIED"},
             order_origin="SOMBRA_CORE",
         )
-        await self.cerebro_connector.send_heartbeat()
+        await self.cerebro_connector.send_heartbeat(**await self._heartbeat_context())
         await asyncio.to_thread(self._append_core_log, "SOMBRA FULLY OPERATIONAL")
         print(SYSTEM_BANNER, flush=True)
         return {"hardening": hardening, "modules_health": modules_health, "status": "OPERATIONAL"}
@@ -146,6 +156,7 @@ class SombraCore:
                         cycle_summary["alerts_generated"] += 1
                         if proactive:
                             cycle_summary["proactive_alerts"] += 1
+                        await self._handle_ceo_personal_asset_alert(alert)
                     cycle_summary["transmissions"] += await self._transmit_cycle_result(memory_id, analysis, alert)
                     cycle_summary["processed"] += 1
                     await self.metrics.record("intel_processed", 1)
@@ -239,6 +250,10 @@ class SombraCore:
             "last_heartbeat": heartbeat,
             "last_cycle_summary": self._last_cycle_summary,
             "database_backend": self.database.backend,
+            "current_ai_cost_today_usd": await self.ai_cost_monitor.get_daily_cost(),
+            "monthly_ai_projection_usd": await self.ai_cost_monitor.get_monthly_projection(),
+            "budget_mode": self.model_router.mode,
+            "ceo_risk_score": await self.ceo_protection_profile.get_ceo_risk_score(),
         }
 
     async def shutdown(self) -> None:
@@ -286,6 +301,32 @@ class SombraCore:
             await self.forja_connector.send_construction_signal(signal)
             transmissions += 1
         return transmissions
+
+    async def _heartbeat_context(self) -> dict[str, Any]:
+        return {
+            "current_ai_cost_today_usd": await self.ai_cost_monitor.get_daily_cost(),
+            "budget_mode": self.model_router.mode,
+            "ceo_risk_score": await self.ceo_protection_profile.get_ceo_risk_score(),
+        }
+
+    async def _handle_ceo_personal_asset_alert(self, alert: Any) -> None:
+        snapshot = await self.ceo_protection_profile.get_profile_snapshot()
+        if snapshot["asset_counts"]["personal_emails"] == 0 and snapshot["asset_counts"]["domains_owned"] == 0:
+            return
+        profile = await self.ceo_protection_profile._load_profile()
+        if not profile:
+            return
+        asset_terms = self.ceo_protection_profile._asset_terms(profile)
+        alert_text = json.dumps(alert.to_dict(), ensure_ascii=True).lower()
+        matched_assets = [asset for asset in asset_terms if asset.lower() in alert_text]
+        if not matched_assets:
+            return
+        code = "A1-PARA-1" if getattr(alert, "severity", "") == "CRITICAL" else "A2-PARA-1"
+        await self.ceo_alert_codes.send_ceo_alert(
+            code,
+            f"CEO protected asset affected by {getattr(alert, 'threat_type', 'UNKNOWN')}: {matched_assets[0]}",
+            intel_reference=str(getattr(alert, "alert_id", "")),
+        )
 
     @staticmethod
     def _should_generate_alert(analysis: Any, proactive: bool) -> bool:

@@ -69,7 +69,13 @@ class CerebroConnector:
         )
         return delivered
 
-    async def send_heartbeat(self) -> bool:
+    async def send_heartbeat(
+        self,
+        *,
+        current_ai_cost_today_usd: float = 0.0,
+        budget_mode: str = "NORMAL",
+        ceo_risk_score: int = 0,
+    ) -> bool:
         await self._ensure_ready()
         modules_health = await self.health_monitor.check_all_modules()
         status = self._overall_status_from_health(modules_health)
@@ -79,6 +85,9 @@ class CerebroConnector:
             intel_processed_today=daily_summary["intel_processed_today"],
             alerts_sent_today=daily_summary["alerts_generated_today"],
             lockdown_level=self.lockdown.get_current_level(),
+            current_ai_cost_today_usd=current_ai_cost_today_usd,
+            budget_mode=budget_mode,
+            ceo_risk_score=ceo_risk_score,
         )
         destination = self._join_webhook_path(self.webhook_url, "heartbeat") if self.webhook_url else ""
         delivered = await self._deliver_or_outbox(payload, destination, "heartbeat")
@@ -89,6 +98,8 @@ class CerebroConnector:
                 "delivered": delivered,
                 "status": status,
                 "outbox_fallback": not bool(destination),
+                "budget_mode": budget_mode,
+                "ceo_risk_score": ceo_risk_score,
             },
             order_origin="CEREBRO_INTEGRATION",
         )

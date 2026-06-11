@@ -9,6 +9,9 @@ from typing import Any
 
 from apps.sombra.memory import DatabaseConnection, GlobalMemoryLayer, MemoryQueryEngine
 from apps.sombra.memory.database import LOG_DIR
+from apps.sombra.memory.ceo_protection import CEOProtectionProfile
+from apps.sombra.monitoring.ai_cost_monitor import AICostMonitor
+from apps.sombra.monitoring.model_router import ModelRouter
 from apps.sombra.security.output_sanitizer import OutputSanitizer
 
 from .generator import AlertGenerationEngine
@@ -24,11 +27,20 @@ SECTOR_KEYWORDS = {
 
 
 class DailyIntelligenceBriefing:
-    def __init__(self, database: DatabaseConnection | None = None) -> None:
+    def __init__(
+        self,
+        database: DatabaseConnection | None = None,
+        ai_cost_monitor: AICostMonitor | None = None,
+        model_router: ModelRouter | None = None,
+        ceo_profile: CEOProtectionProfile | None = None,
+    ) -> None:
         self.database = database if database is not None else DatabaseConnection()
         self.memory = GlobalMemoryLayer(self.database)
         self.query = MemoryQueryEngine(self.database)
         self.alerts = AlertGenerationEngine(self.database)
+        self.ai_cost_monitor = ai_cost_monitor if ai_cost_monitor is not None else AICostMonitor(self.database)
+        self.model_router = model_router if model_router is not None else ModelRouter(self.database)
+        self.ceo_profile = ceo_profile if ceo_profile is not None else CEOProtectionProfile(self.database)
         self._owns_connection = database is None
 
     async def disconnect(self) -> None:
@@ -69,6 +81,8 @@ class DailyIntelligenceBriefing:
                     "alerts_last_24h": len(all_alerts),
                     "database_backend": self.database.backend,
                 },
+                "ai_cost_control": await self._ai_cost_status(),
+                "ceo_protection": await self._ceo_protection_status(),
             },
         }
         briefing = OutputSanitizer.sanitize_external(briefing)
@@ -131,6 +145,30 @@ class DailyIntelligenceBriefing:
             lines = scheduler_log.read_text(encoding="utf-8", errors="replace").splitlines()
             status["recent_scheduler_events"] = lines[-6:]
         return status
+
+    async def _ai_cost_status(self) -> dict[str, Any]:
+        try:
+            return {
+                "daily_ai_cost_usd": await self.ai_cost_monitor.get_daily_cost(),
+                "monthly_ai_total_usd": await self.ai_cost_monitor.get_monthly_total(),
+                "monthly_projection_usd": await self.ai_cost_monitor.get_monthly_projection(),
+                "budget_mode": self.model_router.mode,
+                "cost_by_model": await self.ai_cost_monitor.get_cost_by_model(),
+            }
+        except Exception as error:
+            return {"status": "UNAVAILABLE", "error": repr(error)}
+
+    async def _ceo_protection_status(self) -> dict[str, Any]:
+        try:
+            snapshot = await self.ceo_profile.get_profile_snapshot()
+            return {
+                "ceo_risk_score": snapshot["risk_score"],
+                "active_threat_count": snapshot["active_threat_count"],
+                "last_scan": snapshot["last_scan"],
+                "encrypted_at_rest": snapshot["encrypted_at_rest"],
+            }
+        except Exception as error:
+            return {"status": "UNAVAILABLE", "error": repr(error)}
 
     @staticmethod
     def _write_briefing_file(briefing: dict[str, Any]) -> None:
