@@ -1,0 +1,9 @@
+{
+  "encrypted": false,
+  "encryption_error": "missing_encryption_key",
+  "message_type": "intel",
+  "payload_redacted": true,
+  "payload_sha256": "2188088506109ecf1db8a0a273c11a64bed4d7a2de2d3e0987fef9e617c29d93",
+  "reason": "CEREBRO_WEBHOOK_NOT_CONFIGURED",
+  "timestamp_utc": "2026-06-11T08:11:26Z"
+}

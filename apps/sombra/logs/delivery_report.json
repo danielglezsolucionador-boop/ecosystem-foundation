@@ -1,0 +1,24 @@
+{
+  "cerebro": {
+    "delivered": 0,
+    "oldest_pending": "2026-06-11T07:56:27Z",
+    "pending": 47
+  },
+  "forja": {
+    "delivered": 0,
+    "oldest_pending": "2026-06-11T08:05:44Z",
+    "pending": 4
+  },
+  "report_timestamp": "2026-06-11T08:12:33Z",
+  "sentinela": {
+    "delivered": 0,
+    "oldest_pending": "2026-06-11T08:01:23Z",
+    "pending": 18
+  },
+  "total_pending": 69,
+  "webhooks_configured": {
+    "cerebro": false,
+    "forja": false,
+    "sentinela": false
+  }
+}

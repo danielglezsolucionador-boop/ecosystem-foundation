@@ -1,0 +1,45 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Any
+
+
+class CerebroReportFormatter:
+    @staticmethod
+    def format_intel_report(alert: Any) -> dict[str, Any]:
+        return {
+            "source": "THREAT_INTELLIGENCE_ENGINE",
+            "timestamp": CerebroReportFormatter.utc_now(),
+            "classification": str(getattr(alert, "severity", "")).upper(),
+            "threat_type": str(getattr(alert, "threat_type", "")).upper(),
+            "threat_score": int(getattr(alert, "threat_score", 0) or 0),
+            "findings": str(getattr(alert, "findings", "")),
+            "recommended_action": str(getattr(alert, "recommended_action", "")),
+            "route_to": list(getattr(alert, "route_to", []) or []),
+            "time_window": str(getattr(alert, "time_window", "")),
+            "blast_radius": str(getattr(alert, "blast_radius", "")),
+            "forja_needed": bool(getattr(alert, "forja_construction_needed", False)),
+            "forja_spec": str(getattr(alert, "forja_specification", "")),
+            "source_classification": "CLASSIFIED",
+        }
+
+    @staticmethod
+    def format_heartbeat(
+        *,
+        status: str,
+        intel_processed_today: int,
+        alerts_sent_today: int,
+        lockdown_level: int,
+    ) -> dict[str, Any]:
+        return {
+            "type": "INTELLIGENCE_ENGINE_HEARTBEAT",
+            "timestamp": CerebroReportFormatter.utc_now(),
+            "status": status,
+            "intel_processed_today": int(intel_processed_today),
+            "alerts_sent_today": int(alerts_sent_today),
+            "lockdown_level": int(lockdown_level),
+        }
+
+    @staticmethod
+    def utc_now() -> str:
+        return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")

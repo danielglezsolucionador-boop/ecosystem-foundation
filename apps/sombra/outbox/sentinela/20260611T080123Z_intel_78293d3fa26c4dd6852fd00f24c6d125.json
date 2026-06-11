@@ -1,0 +1,18 @@
+{
+  "findings": "HIGH CREDENTIAL_EXPOSURE classified with 2 target indicators.",
+  "forja_action_needed": false,
+  "intel_id": "7e1b07b4-7a55-4c8d-9a71-2f1f7e7ce43e",
+  "intelligence_confidence": 0.92,
+  "recommended_defense": "Force password reset immediately and enable MFA.",
+  "severity": "HIGH",
+  "source": "THREAT_INTELLIGENCE_ENGINE",
+  "source_classification": "CLASSIFIED",
+  "target_assets": [
+    "portal.example.com",
+    "admin.example.com"
+  ],
+  "threat_score": 86,
+  "threat_type": "CREDENTIAL_EXPOSURE",
+  "time_window": "0-2 hours",
+  "timestamp": "2026-06-11T08:01:23Z"
+}

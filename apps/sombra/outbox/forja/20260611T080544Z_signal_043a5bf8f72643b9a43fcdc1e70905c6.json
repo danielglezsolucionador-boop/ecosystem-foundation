@@ -1,0 +1,15 @@
+{
+  "construction_needed": "Backup isolation protocol",
+  "deadline_estimate": "NOW",
+  "description": "Build automated backup isolation trigger for ransomware indicators",
+  "indicators": [
+    "backup.example.com",
+    "fileserver.example.com"
+  ],
+  "origin": "THREAT_INTELLIGENCE_ENGINE",
+  "pattern_detected": "RANSOMWARE_CAMPAIGN",
+  "priority": "URGENT",
+  "signal_id": "bac55d50-ec99-4059-aa84-3c4ce112b4b1",
+  "technical_context": "Ransomware indicators detected in backup access pattern with elevated risk.",
+  "timestamp": "2026-06-11T08:05:44Z"
+}

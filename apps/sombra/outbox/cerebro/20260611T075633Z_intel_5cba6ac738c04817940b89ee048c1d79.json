@@ -1,0 +1,9 @@
+{
+  "encrypted": true,
+  "encrypted_payload": "gAAAAABqKmoxDDPaKImqVyO0QcSZG0usPF09FCt8Cks4La866Jqy1Kpe9CVYMxnO5GJuNFYwJbsQVJy3wDtcCgI9nK2dj2VbxJwTNnPNKv3cm1LwMp2IypUuYQree3Il_MSr1gQaGGg20DTLC-Vxa-gUCyrhLiFN72T9ZwQMkbGGzkasPlohgfCz4Nhn0YUgOA-pjYm46Fvp5eXD3HchKAZisQPgjjMrd9osWs6zAWEr9sEdTset3Z5asK-DvJGpzUQ-LRcF3PBDlHGnTtFOrorbCmn9piJsphrw9W-nQZmD2ZSN5gHR4ehliCZDuFzcqNmNc7pq14b3CbKg_or6y3EttwKgl-QoFzcEfPGbTOmS5Qj1BTPjk2UB3cl_MO7H7gW4ox5VSzEuTbKq3RIMa4onFOcDyPl1swxq2v8KcKMZuVDYUvhvjHyNgT7YnxJ10qsjKukPsKKF7-L10o3nycFVK2DuN3VtRn_3NsO_qfSkzwWJ2LS0Wv2qAIkZDzwQEgkP13tI6WQxs-tFhE8mlbp0p-Kr6uUJ9oHzfUoxH9Rd0E6tc2i39xEKa4zft7dRx446hQuNNhTAeT-tpJMacU9Ix6M4MAezpsFx6I1UQy8qEtOr_7I--pf-XVVfF3LSl9YEc2dSljQIYDVrUlx6HPkds-Vv8AiNYTVVDW9OAgaFZP2Jb8x73hg9xA1OyGMG3YlhVQjKGGJSGebR5gvlARi2kGoOReJRYi9qQW8z-hT8XKARmL0I_Ra5POqgcblOEWG5g2tDDodz",
+  "encryption": "fernet_sha256_derived_key",
+  "message_type": "intel",
+  "payload_sha256": "7ab235379b898bd50e8f8ba7d3e557ddb7d5fa1241b1d29965019502c125e8db",
+  "reason": "CEREBRO_WEBHOOK_NOT_CONFIGURED",
+  "timestamp_utc": "2026-06-11T07:56:33Z"
+}

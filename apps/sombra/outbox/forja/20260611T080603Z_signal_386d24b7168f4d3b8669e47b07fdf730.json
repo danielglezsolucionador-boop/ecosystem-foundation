@@ -1,0 +1,14 @@
+{
+  "construction_needed": "Backup isolation protocol",
+  "deadline_estimate": "24 hours",
+  "description": "Build automated backup isolation trigger for ransomware indicators",
+  "indicators": [
+    "krebsonsecurity.com"
+  ],
+  "origin": "THREAT_INTELLIGENCE_ENGINE",
+  "pattern_detected": "RANSOMWARE_CAMPAIGN",
+  "priority": "URGENT",
+  "signal_id": "e0de6d4e-f483-45c3-a8b8-b0dc016e739c",
+  "technical_context": "HIGH RANSOMWARE_CAMPAIGN classified with 1 target indicator(s).",
+  "timestamp": "2026-06-11T08:06:03Z"
+}

@@ -1,0 +1,9 @@
+{
+  "encrypted": false,
+  "encryption_error": "missing_encryption_key",
+  "message_type": "heartbeat",
+  "payload_redacted": true,
+  "payload_sha256": "2f21803cad2b5be9121868c6ad69e6831ff924be71fe82ba34b6d3fd5e3de002",
+  "reason": "CEREBRO_WEBHOOK_NOT_CONFIGURED",
+  "timestamp_utc": "2026-06-11T08:11:20Z"
+}
