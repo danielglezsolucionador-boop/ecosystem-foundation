@@ -14,6 +14,7 @@ from app.api.ceo import router as ceo_router
 from app.api.control_center import router as control_center_router
 from app.api.contracts import router as contracts_router
 from app.api.departments import router as departments_router
+from app.api.ecommerce_readiness import amazon_router, ecommerce_router
 from app.api.events import router as events_router
 from app.api.governance import router as governance_router
 from app.api.health import router as health_router
@@ -24,11 +25,20 @@ from app.api.missions import router as missions_router
 from app.api.nube import router as nube_router
 from app.api.observability import router as observability_router
 from app.api.permissions import router as permissions_router
+from app.api.phase_s_readiness import (
+    analytics_readiness_router,
+    commercial_readiness_router,
+    marketing_approval_router,
+    publishing_prepared_router,
+)
 from app.api.platform import router as platform_router
 from app.api.product_readiness import router as product_readiness_router
 from app.api.publishing import router as publishing_router
+from app.api.real_world import router as real_world_router
+from app.api.real_world_execution import router as real_world_execution_router
 from app.api.revenue import router as revenue_router
 from app.api.security import router as security_router
+from app.api.social_identity import router as social_identity_router
 from app.api.storage import router as storage_router
 from app.api.upgrades import router as upgrades_router
 from app.api.workday import router as workday_router
@@ -53,6 +63,8 @@ app.include_router(ceo_router)
 app.include_router(control_center_router)
 app.include_router(contracts_router)
 app.include_router(departments_router)
+app.include_router(ecommerce_router)
+app.include_router(amazon_router)
 app.include_router(events_router)
 app.include_router(governance_router)
 app.include_router(health_router)
@@ -63,11 +75,18 @@ app.include_router(missions_router)
 app.include_router(nube_router)
 app.include_router(observability_router)
 app.include_router(permissions_router)
+app.include_router(publishing_prepared_router)
+app.include_router(marketing_approval_router)
+app.include_router(commercial_readiness_router)
+app.include_router(analytics_readiness_router)
 app.include_router(platform_router)
 app.include_router(product_readiness_router)
 app.include_router(publishing_router)
+app.include_router(real_world_router)
+app.include_router(real_world_execution_router)
 app.include_router(revenue_router)
 app.include_router(security_router)
+app.include_router(social_identity_router)
 app.include_router(storage_router)
 app.include_router(upgrades_router)
 app.include_router(workday_router)

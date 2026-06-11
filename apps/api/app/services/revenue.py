@@ -258,6 +258,21 @@ def insert_payload(table_name: str, item_id: str, payload: str) -> None:
         connection.commit()
 
 
+def insert_payload_if_missing(table_name: str, item_id: str, payload: str) -> None:
+    placeholder = sql_placeholder()
+    now = utc_now()
+    with connect() as connection:
+        connection.execute(
+            f"""
+            INSERT INTO {table_name} (id, payload_json, created_at, updated_at)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+            ON CONFLICT(id) DO NOTHING
+            """,
+            (item_id, payload, now, now),
+        )
+        connection.commit()
+
+
 def update_payload(table_name: str, item_id: str, payload: str) -> None:
     placeholder = sql_placeholder()
     now = utc_now()
@@ -381,7 +396,7 @@ def seed_revenue_defaults() -> None:
     if existing:
         return
     for goal in default_goals():
-        insert_payload(REVENUE_GOALS_TABLE, goal.id, goal.model_dump_json())
+        insert_payload_if_missing(REVENUE_GOALS_TABLE, goal.id, goal.model_dump_json())
 
 
 def money_requires_approval(action_type: str, investment_usd: float | None) -> bool:

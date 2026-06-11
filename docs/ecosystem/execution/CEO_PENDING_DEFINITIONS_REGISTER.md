@@ -316,3 +316,150 @@ Cada definición debe tener:
 - No convertir una pregunta pendiente en decisión final.
 - No usar `prepared` como equivalente de ejecución real.
 - No declarar aprobado, publicado, vendido, conectado o productivo sin evidencia y autorización correspondiente.
+## Actualizacion S.1 - Real World Connection Readiness
+
+Fecha: 2026-06-10
+
+S.1 agrega el registro `REAL_WORLD_CONNECTIONS_REGISTER.md` como inventario operativo de conexiones reales posibles.
+
+Definiciones CEO que quedan explicitamente pendientes:
+
+### S1.1 REDES_OFICIALES_CONFIRMADAS
+
+- id: `S1_REDES_OFICIALES_CONFIRMADAS`
+- tema: Redes oficiales existentes y confirmadas.
+- pregunta: Que cuentas oficiales existen hoy para Marca Personal, Publishing, Marketing, LENTE y E-commerce?
+- contexto: S.1 no puede declarar cuenta conectada ni publicar real sin evidencia.
+- estado: `pending_ceo`
+- impacto: Publishing & Growth, Marca Personal, LENTE, Marketing.
+- siguiente_accion: CEO confirma lista o autoriza discovery documental.
+- riesgo_si_se_inventa: Publicacion en cuenta equivocada o claim falso de conexion.
+- puede_continuar_en_modo_prepared: si.
+
+### S1.2 CUENTAS_EXTERNAS_NUEVAS
+
+- id: `S1_CUENTAS_EXTERNAS_NUEVAS`
+- tema: Cuentas externas nuevas.
+- pregunta: Que cuentas nuevas se deben crear y cuales deben quedar bloqueadas?
+- contexto: Crear cuenta externa afecta marca, credenciales y gobierno.
+- estado: `pending_ceo`
+- impacto: LENTE, Marca Personal, E-commerce, App Stores, Marketing.
+- siguiente_accion: No crear cuenta real sin aprobacion CEO.
+- riesgo_si_se_inventa: Identidad publica duplicada o no autorizada.
+- puede_continuar_en_modo_prepared: si.
+
+### S1.3 CREDENCIALES_SENSIBLES
+
+- id: `S1_CREDENCIALES_SENSIBLES`
+- tema: Gobierno de credenciales.
+- pregunta: Que vault, variables seguras o flujo aprobado se usara para cada proveedor?
+- contexto: S.1 no guarda passwords, tokens, API keys, client secrets ni Clave SOL.
+- estado: `pending_ceo`
+- impacto: SENTINELA, DCFT, NUBE, Revenue OS, Marketing, Web Factory.
+- siguiente_accion: Definir canal seguro fuera de documentos y chat.
+- riesgo_si_se_inventa: Exposicion de secretos o falsa conexion.
+- puede_continuar_en_modo_prepared: no para conexion real; si para inventario.
+
+### S1.4 PUBLICACION_ORGANICA_REAL
+
+- id: `S1_PUBLICACION_ORGANICA_REAL`
+- tema: Publicacion organica real.
+- pregunta: Que cuentas oficiales ya estan configuradas para publicar organico sin aprobacion adicional?
+- contexto: La politica permite organico sin CEO solo si la cuenta oficial ya esta confirmada.
+- estado: `pending_ceo`
+- impacto: Publishing & Growth, PLUMA, LENTE, Marketing, Marca Personal.
+- siguiente_accion: Mantener `publication_status=prepared` hasta evidencia.
+- riesgo_si_se_inventa: Publicacion no autorizada o claim falso.
+- puede_continuar_en_modo_prepared: si.
+
+### S1.5 DINERO_REAL_Y_COSTOS
+
+- id: `S1_DINERO_REAL_Y_COSTOS`
+- tema: Dinero real, pagos, campanas y herramientas con costo.
+- pregunta: Que presupuestos, pasarelas, campanas pagadas, tiendas, dominios o herramientas externas puede aprobar el CEO?
+- contexto: Todo costo real requiere CEO con ROI, riesgo y evidencia.
+- estado: `pending_ceo`
+- impacto: Revenue OS, Marketing, Web Factory, E-commerce, APIs/Skills, App Stores.
+- siguiente_accion: Preparar ROI y solicitud; no gastar.
+- riesgo_si_se_inventa: Gasto no autorizado, cuenta con costo o campana real no aprobada.
+- puede_continuar_en_modo_prepared: si.
+
+### S1.6 FUENTES_REGULATORIAS_SEGURIDAD
+
+- id: `S1_FUENTES_REGULATORIAS_SEGURIDAD`
+- tema: Fuentes tributarias, contables y ciberseguridad.
+- pregunta: Que fuentes oficiales o feeds se usaran para DCFT y SENTINELA?
+- contexto: DCFT y SENTINELA no se tocan como runtime real desde S.1.
+- estado: `needs_legal_review`
+- impacto: DCFT, SENTINELA, AUDITORIA, Marketing.
+- siguiente_accion: Mantener `needs_legal_review` o `needs_credentials` hasta evidencia.
+- riesgo_si_se_inventa: Claim legal o de seguridad sin fuente.
+- puede_continuar_en_modo_prepared: si.
+
+## Actualizacion S.2 - Social Accounts & Identity Map
+
+Fecha: 2026-06-10
+
+S.2 agrega el registro `SOCIAL_ACCOUNTS_IDENTITY_REGISTER.md` como mapa preparado de identidades, marcas, cuentas y canales.
+
+Definiciones CEO pendientes:
+
+### S2.1 CUENTAS_OFICIALES_EXISTENTES
+
+- id: `S2_CUENTAS_OFICIALES_EXISTENTES`
+- tema: Cuentas oficiales existentes.
+- pregunta: Que cuentas oficiales existen hoy para Ecosistema IA, Marca Personal CEO, PLUMA, LENTE, MARKETING, Web Factory, E-Commerce, SNIFF AMAZON, DCFT, SENTINELA y APIs/Skills?
+- contexto: S.2 no puede declarar `confirmed_existing` sin evidencia.
+- estado: `pending_ceo`
+- impacto: Social Identity Map, Publishing, Marketing, Marca Personal, Revenue OS.
+- siguiente_accion: CEO confirma cuentas existentes o autoriza discovery documental.
+- riesgo_si_se_inventa: Publicar o posicionar una identidad en cuenta equivocada.
+- puede_continuar_en_modo_prepared: si.
+
+### S2.2 CUENTAS_NUEVAS_PROPUESTAS
+
+- id: `S2_CUENTAS_NUEVAS_PROPUESTAS`
+- tema: Cuentas externas nuevas.
+- pregunta: Que cuentas nuevas se deben crear y cuales deben quedar bloqueadas?
+- contexto: Crear cuenta externa define identidad publica y gobierno de credenciales.
+- estado: `pending_ceo`
+- impacto: Marca Personal, LENTE, E-Commerce, DCFT, SENTINELA, APIs/Skills.
+- siguiente_accion: Mantener `proposed_new` o `needs_account_creation` hasta decision CEO.
+- riesgo_si_se_inventa: Duplicar marca, abrir canal no autorizado o generar deuda operativa.
+- puede_continuar_en_modo_prepared: si.
+
+### S2.3 HANDLES_Y_NOMBRES_PUBLICOS
+
+- id: `S2_HANDLES_Y_NOMBRES_PUBLICOS`
+- tema: Handles, nombres de canal y nombres publicos.
+- pregunta: Cuales son los handles oficiales o criterios de nombre para cada marca/canal?
+- contexto: PLUMA, LENTE y MARKETING pueden preparar piezas, pero no cerrar identidad externa.
+- estado: `pending_ceo`
+- impacto: Marca Personal, LENTE, Publishing, Marketing.
+- siguiente_accion: Proponer opciones sin reservar ni crear cuentas reales.
+- riesgo_si_se_inventa: Perder coherencia de marca o usar nombre no autorizado.
+- puede_continuar_en_modo_prepared: si.
+
+### S2.4 CREDENCIALES_SOCIALES
+
+- id: `S2_CREDENCIALES_SOCIALES`
+- tema: Gobierno de credenciales sociales.
+- pregunta: Que canal seguro se usara para credenciales de redes, newsletter, podcast o herramientas sociales?
+- contexto: S.2 no guarda passwords, tokens, API keys ni sesiones.
+- estado: `pending_ceo`
+- impacto: Publishing, Marketing, SENTINELA, AUDITORIA.
+- siguiente_accion: Definir vault/flujo seguro fuera del chat y documentos.
+- riesgo_si_se_inventa: Exposicion de credenciales o falsa conexion.
+- puede_continuar_en_modo_prepared: no para conexion real; si para inventario.
+
+### S2.5 POLITICA_PUBLICACION_ORGANICA
+
+- id: `S2_POLITICA_PUBLICACION_ORGANICA`
+- tema: Politica de publicacion organica.
+- pregunta: En que cuentas oficiales confirmadas se puede publicar organico sin aprobacion adicional?
+- contexto: S.2 no publica; solo prepara la decision para S.3.
+- estado: `pending_ceo`
+- impacto: Publishing Prepared, PLUMA, LENTE, MARKETING, Marca Personal.
+- siguiente_accion: Mantener publicaciones como prepared si la cuenta no esta confirmada.
+- riesgo_si_se_inventa: Publicacion real no autorizada.
+- puede_continuar_en_modo_prepared: si.

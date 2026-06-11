@@ -53,16 +53,51 @@ const endpoints = {
   revenueSprintDaily: "/api/v1/revenue/sprint/daily",
   revenueSprintRisks: "/api/v1/revenue/sprint/risks",
   revenueSprintApprovalNeeded: "/api/v1/revenue/sprint/approval-needed",
+  ecommerceReadinessStatus: "/api/v1/ecommerce-readiness/status",
+  ecommerceReadinessOpportunities: "/api/v1/ecommerce-readiness/opportunities",
+  ecommerceReadinessApprovalNeeded: "/api/v1/ecommerce-readiness/approval-needed",
+  amazonReadinessStatus: "/api/v1/amazon-readiness/status",
+  amazonReadinessOpportunities: "/api/v1/amazon-readiness/opportunities",
+  amazonReadinessRisks: "/api/v1/amazon-readiness/risks",
   publishingStatus: "/api/v1/publishing/status",
   publishingChannels: "/api/v1/publishing/channels",
   publishingCalendar: "/api/v1/publishing/calendar",
   publishingContent: "/api/v1/publishing/content",
   publishingGrowth: "/api/v1/publishing/growth",
+  publishingPreparedStatus: "/api/v1/publishing-prepared/status",
+  publishingPreparedCalendar: "/api/v1/publishing-prepared/calendar",
+  publishingPreparedContent: "/api/v1/publishing-prepared/content",
+  publishingPreparedBlocked: "/api/v1/publishing-prepared/blocked",
+  marketingApprovalStatus: "/api/v1/marketing-approval/status",
+  marketingApprovalCampaigns: "/api/v1/marketing-approval/campaigns",
+  marketingApprovalApprovalNeeded: "/api/v1/marketing-approval/approval-needed",
+  marketingApprovalRisks: "/api/v1/marketing-approval/risks",
   productReadinessStatus: "/api/v1/product-readiness/status",
   productReadinessDcft: "/api/v1/product-readiness/dcft",
   productReadinessSentinela: "/api/v1/product-readiness/sentinela",
   productReadinessGaps: "/api/v1/product-readiness/gaps",
   productReadinessMarketingPackage: "/api/v1/product-readiness/marketing-package",
+  commercialReadinessStatus: "/api/v1/commercial-readiness/status",
+  commercialReadinessDcft: "/api/v1/commercial-readiness/dcft",
+  commercialReadinessSentinela: "/api/v1/commercial-readiness/sentinela",
+  commercialReadinessMarketingPackage: "/api/v1/commercial-readiness/marketing-package",
+  commercialReadinessApprovalNeeded: "/api/v1/commercial-readiness/approval-needed",
+  realWorldStatus: "/api/v1/real-world/status",
+  realWorldConnections: "/api/v1/real-world/connections",
+  realWorldApprovalNeeded: "/api/v1/real-world/approval-needed",
+  realWorldRisks: "/api/v1/real-world/risks",
+  analyticsReadinessStatus: "/api/v1/analytics-readiness/status",
+  analyticsReadinessMetrics: "/api/v1/analytics-readiness/metrics",
+  analyticsReadinessSources: "/api/v1/analytics-readiness/sources",
+  analyticsReadinessApprovalNeeded: "/api/v1/analytics-readiness/approval-needed",
+  analyticsReadinessRisks: "/api/v1/analytics-readiness/risks",
+  realWorldExecutionStatus: "/api/v1/real-world-execution/status",
+  realWorldExecutionQueue: "/api/v1/real-world-execution/queue",
+  realWorldExecutionApprovalNeeded: "/api/v1/real-world-execution/approval-needed",
+  socialIdentityStatus: "/api/v1/social-identity/status",
+  socialIdentityAccounts: "/api/v1/social-identity/accounts",
+  socialIdentityApprovalNeeded: "/api/v1/social-identity/approval-needed",
+  socialIdentityRisks: "/api/v1/social-identity/risks",
   arsenalStatus: "/api/v1/arsenal/status",
   arsenalCatalog: "/api/v1/arsenal/catalog",
   arsenalCategories: "/api/v1/arsenal/categories",
@@ -82,6 +117,42 @@ const endpoints = {
 };
 
 const AUTH_TOKEN_KEY = "ecosystem_control_center_session_v1";
+const DATA_FETCH_TIMEOUT_MS = 15000;
+const DATA_FETCH_CONCURRENCY = 12;
+const CRITICAL_DATA_NAMES = new Set([
+  "health",
+  "readiness",
+  "runtime",
+  "version",
+  "controlCenter",
+  "ceoDailyCenter",
+  "ceoMorning",
+  "ceoEvening",
+  "revenueSprintStatus",
+  "revenueSprintRoutes",
+  "revenueSprintApprovalNeeded",
+  "ecommerceReadinessStatus",
+  "ecommerceReadinessOpportunities",
+  "ecommerceReadinessApprovalNeeded",
+  "amazonReadinessStatus",
+  "amazonReadinessOpportunities",
+  "amazonReadinessRisks",
+  "publishingStatus",
+  "publishingPreparedStatus",
+  "publishingPreparedContent",
+  "marketingApprovalStatus",
+  "marketingApprovalCampaigns",
+  "productReadinessStatus",
+  "commercialReadinessStatus",
+  "analyticsReadinessStatus",
+  "analyticsReadinessMetrics",
+  "realWorldStatus",
+  "realWorldExecutionStatus",
+  "realWorldExecutionQueue",
+  "realWorldExecutionApprovalNeeded",
+  "socialIdentityStatus",
+  "boundary"
+]);
 
 function readStoredSession() {
   const persistentToken = localStorage.getItem(AUTH_TOKEN_KEY);
@@ -740,8 +811,16 @@ function scrollToSection(targetId) {
     upgrades: "department-upgrade-pipeline",
     mission: "mission-execution-loop",
     sprint: "revenue-execution-sprint",
+    ecommerceamazon: "ecommerce-amazon-readiness",
     publishing: "publishing-growth-engine",
+    publishingprepared: "publishing-prepared",
+    marketingapproval: "marketing-approval-gate",
     readiness: "product-readiness-dcft-sentinela",
+    commercialreadiness: "commercial-readiness",
+    realworld: "real-world-connections",
+    analyticsreadiness: "analytics-readiness",
+    executionqueue: "real-world-execution-queue",
+    socialidentity: "social-identity-map",
     revenue: "revenue-os",
     arsenal: "arsenal-blueprint",
     forja: "construccion",
@@ -808,16 +887,50 @@ function listItem({ title, body, meta, status, actions = "" }) {
 }
 
 async function fetchJson(name, url) {
-  const response = await fetch(url, {
-    headers: authHeaders({ Accept: "application/json" }),
-    cache: "no-store"
-  });
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), DATA_FETCH_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: authHeaders({ Accept: "application/json" }),
+      cache: "no-store",
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error(`${name} timeout`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
   if (response.status === 401) {
     clearSession();
     showLogin("Tu sesión expiró. Entra nuevamente.");
   }
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();
+}
+
+async function allSettledLimited(items, worker, limit = DATA_FETCH_CONCURRENCY) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      try {
+        results[currentIndex] = {
+          status: "fulfilled",
+          value: await worker(items[currentIndex], currentIndex)
+        };
+      } catch (reason) {
+        results[currentIndex] = { status: "rejected", reason };
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 async function loadCurrentUser() {
@@ -906,21 +1019,31 @@ async function loadData() {
   setLoading();
   const boundaryUrl = `/api/v1/governance/auth-boundary?role_id=${encodeURIComponent(state.role)}`;
   const entries = [...Object.entries(endpoints), ["boundary", boundaryUrl]];
-  const results = await Promise.allSettled(entries.map(([name, url]) => fetchJson(name, url)));
+  const criticalEntries = entries.filter(([name]) => CRITICAL_DATA_NAMES.has(name));
+  const secondaryEntries = entries.filter(([name]) => !CRITICAL_DATA_NAMES.has(name));
 
   state.data = {};
   state.errors = {};
 
-  results.forEach((result, index) => {
-    const [name] = entries[index];
-    if (result.status === "fulfilled") {
-      if (name === "boundary") state.boundary = result.value;
-      else state.data[name] = result.value;
-    } else {
-      state.errors[name] = result.reason.message;
-    }
-  });
+  const applyResults = (batchEntries, results) => {
+    results.forEach((result, index) => {
+      const [name] = batchEntries[index];
+      if (result.status === "fulfilled") {
+        if (name === "boundary") state.boundary = result.value;
+        else state.data[name] = result.value;
+      } else {
+        state.errors[name] = result.reason.message;
+      }
+    });
+  };
 
+  const criticalResults = await allSettledLimited(criticalEntries, ([name, url]) => fetchJson(name, url));
+  applyResults(criticalEntries, criticalResults);
+  state.lastUpdated = new Date();
+  render();
+
+  const secondaryResults = await allSettledLimited(secondaryEntries, ([name, url]) => fetchJson(name, url));
+  applyResults(secondaryEntries, secondaryResults);
   state.lastUpdated = new Date();
   render();
   if (state.restoredNoticePending) {
@@ -1167,8 +1290,16 @@ function renderExecutiveHome() {
   renderMissionExecutionLoop();
   renderDepartmentUpgradePipeline();
   renderRevenueSprint();
+  renderEcommerceAmazonReadiness();
   renderPublishingGrowth();
+  renderPublishingPrepared();
+  renderMarketingApprovalGate();
   renderProductReadiness();
+  renderCommercialReadiness();
+  renderRealWorldConnections();
+  renderAnalyticsReadiness();
+  renderRealWorldExecutionQueue();
+  renderSocialIdentityMap();
   renderRevenueOs();
   renderArsenalBlueprint();
   renderDepartmentAudits();
@@ -1200,8 +1331,13 @@ function renderCeoDailyCenter() {
   const auditoria = center.auditoria || {};
   const revenue = center.revenue || state.data.revenueStatus || {};
   const revenueSprint = center.revenue_sprint || state.data.revenueSprintStatus || {};
+  const ecommerceReadiness = center.ecommerce_readiness || state.data.ecommerceReadinessStatus || {};
+  const amazonReadiness = center.amazon_readiness || state.data.amazonReadinessStatus || {};
   const publishing = center.publishing || state.data.publishingStatus || {};
   const productReadiness = center.product_readiness || state.data.productReadinessStatus || {};
+  const realWorld = center.real_world || state.data.realWorldStatus || {};
+  const realWorldExecution = center.real_world_execution || state.data.realWorldExecutionStatus || {};
+  const socialIdentity = center.social_identity || state.data.socialIdentityStatus || {};
   const missionReport = center.missions || state.data.missionDailyReport || {};
   const activeMissions = Array.isArray(state.data.missionsActive) ? state.data.missionsActive : [];
   const workday = center.workday || state.data.workdayStatus || {};
@@ -1287,6 +1423,12 @@ function renderCeoDailyCenter() {
       meta: `${number(revenueSprint.approval_needed || 0)} aprobación`
     }),
     listItem({
+      title: "E-Commerce & Amazon",
+      body: `E-commerce USD ${number(ecommerceReadiness.monthly_goal_usd || 10000)} separado; ${number(ecommerceReadiness.opportunities || 0)} oportunidades. Amazon radar: ${number(amazonReadiness.opportunities || 0)} senales.`,
+      status: ecommerceReadiness.status || "prepared",
+      meta: `${number(ecommerceReadiness.approval_needed || 0)} CEO`
+    }),
+    listItem({
       title: "Publishing & Growth",
       body: `${number(publishing.content_items || 0)} contenidos, ${number(publishing.channels || 0)} canales; publicaciones reales no inventadas.`,
       status: publishing.status || "prepared",
@@ -1298,6 +1440,24 @@ function renderCeoDailyCenter() {
       body: `${number(productReadiness.open_gaps || 0)} brechas; MARKETING vende, productos validan evidencia.`,
       status: productReadiness.status || "requires_validation",
       meta: `${number(productReadiness.requires_validation || 0)} validaciones`
+    }),
+    listItem({
+      title: "Real World Connections",
+      body: `${number(realWorld.total_connections || 0)} conexiones; ${number(realWorld.needs_ceo || 0)} requieren CEO, ${number(realWorld.needs_credentials || 0)} credenciales.`,
+      status: realWorld.status || "prepared",
+      meta: `${number(realWorld.needs_paid_approval || 0)} dinero`
+    }),
+    listItem({
+      title: "Execution Queue",
+      body: `${number(realWorldExecution.total_items || 0)} acciones; ${number(realWorldExecution.ready_internal || 0)} internas, ${number(realWorldExecution.approval_needed || 0)} requieren CEO.`,
+      status: realWorldExecution.status || "prepared",
+      meta: `${number(realWorldExecution.blocked || 0)} bloqueadas`
+    }),
+    listItem({
+      title: "Social Identity Map",
+      body: `${number(socialIdentity.total_accounts || 0)} cuentas/canales; ${number(socialIdentity.unknown || 0)} unknown, ${number(socialIdentity.proposed_new || 0)} propuestas.`,
+      status: socialIdentity.status || "prepared",
+      meta: `${number(socialIdentity.needs_ceo || 0)} CEO`
     }),
     listItem({
       title: "Siguiente accion",
@@ -1313,8 +1473,12 @@ function renderCeoDailyCenter() {
     { label: "Upgrades", target: "upgrades", detail: "Brechas" },
     { label: "Misiones", target: "mission", detail: "Loop" },
     { label: "Sprint 30 días", target: "sprint", detail: "Ingresos" },
+    { label: "E-Commerce", target: "ecommerceamazon", detail: "S.5" },
     { label: "Publishing", target: "publishing", detail: "Contenido" },
     { label: "Readiness", target: "readiness", detail: "DCFT/SENT" },
+    { label: "Conexiones", target: "realworld", detail: "S.1" },
+    { label: "Ejecucion", target: "executionqueue", detail: "S.8" },
+    { label: "Identidad", target: "socialidentity", detail: "S.2" },
     { label: "Revenue OS", target: "revenue", detail: "Ingresos" },
     { label: "Ver decisiones", target: "ceo-daily-center", detail: "CEO" },
     { label: "Ver AUDITORÍA", target: "auditor", detail: "Evidencia" },
@@ -1743,6 +1907,92 @@ function renderRevenueSprint() {
   `;
 }
 
+function renderEcommerceAmazonReadiness() {
+  const container = $("#ecommerce-amazon-grid");
+  if (!container) return;
+
+  const ecommerce = state.data.ecommerceReadinessStatus || state.data.ceoDailyCenter?.ecommerce_readiness || {};
+  const amazon = state.data.amazonReadinessStatus || state.data.ceoDailyCenter?.amazon_readiness || {};
+  const ecommerceItems = Array.isArray(state.data.ecommerceReadinessOpportunities)
+    ? state.data.ecommerceReadinessOpportunities
+    : (Array.isArray(ecommerce.opportunities_snapshot) ? ecommerce.opportunities_snapshot : []);
+  const amazonItems = Array.isArray(state.data.amazonReadinessOpportunities)
+    ? state.data.amazonReadinessOpportunities
+    : (Array.isArray(amazon.opportunities_snapshot) ? amazon.opportunities_snapshot : []);
+  const approvals = Array.isArray(state.data.ecommerceReadinessApprovalNeeded) ? state.data.ecommerceReadinessApprovalNeeded : [];
+  const amazonRisks = Array.isArray(state.data.amazonReadinessRisks) ? state.data.amazonReadinessRisks : [];
+  const combined = [...ecommerceItems, ...amazonItems];
+  const prepared = combined.filter((item) => item.state === "prepared");
+  const unknown = combined.filter((item) => item.state === "unknown" || item.state === "idea");
+  const investment = combined.filter((item) => item.requires_inventory || item.requires_paid_tool || item.requires_payment_provider || item.investment_needed !== "unknown");
+  const externalAccounts = combined.filter((item) => item.requires_external_account);
+  const topApproval = approvals[0] || combined.find((item) => item.requires_ceo) || {};
+  const topAmazonRisk = amazonRisks[0] || {};
+  const nextSteps = Array.isArray(ecommerce.next_steps) ? ecommerce.next_steps : [];
+  const amazonSteps = Array.isArray(amazon.next_steps) ? amazon.next_steps : [];
+
+  container.innerHTML = `
+    <article class="ecommerce-amazon-card primary">
+      <span class="eyebrow">E-Commerce & Amazon Readiness</span>
+      <strong>USD ${number(ecommerce.monthly_goal_usd || 10000)} separado</strong>
+      <p>No se mezcla con USD ${number(ecommerce.global_goal_usd || 6000)} global. Ventas reales: ${number(ecommerce.actual_revenue_usd || 0)}.</p>
+      <div class="ecommerce-amazon-kpis">
+        <small><b>${number(ecommerce.opportunities || ecommerceItems.length)}</b>e-commerce</small>
+        <small><b>${number(amazon.opportunities || amazonItems.length)}</b>Amazon</small>
+        <small><b>${number(ecommerce.approval_needed || approvals.length)}</b>CEO</small>
+      </div>
+    </article>
+    <article class="ecommerce-amazon-card">
+      <span class="eyebrow">Prepared</span>
+      <strong>${number(prepared.length)} oportunidades</strong>
+      <p>Tienda, contenido, radar y tablero pueden quedar preparados sin vender ni conectar.</p>
+      <small>store_created=false / payment_connected=false</small>
+    </article>
+    <article class="ecommerce-amazon-card">
+      <span class="eyebrow">Unknown / research</span>
+      <strong>${number(unknown.length + (ecommerce.needs_market_research || 0) + (amazon.needs_market_research || 0))} pendientes</strong>
+      <p>Si falta evidencia, se pide research. No se inventan productos ganadores ni margen.</p>
+      <small>margin_estimated=unknown_not_estimated</small>
+    </article>
+    <article class="ecommerce-amazon-card">
+      <span class="eyebrow">Inversion</span>
+      <strong>${number(investment.length)} bloqueos</strong>
+      <p>Inventario, herramientas pagadas, proveedor y pasarela requieren ROI y decision CEO.</p>
+      <small>inventory_purchased=false</small>
+    </article>
+    <article class="ecommerce-amazon-card">
+      <span class="eyebrow">Cuenta externa</span>
+      <strong>${number(externalAccounts.length)} requieren cuenta</strong>
+      <p>Marketplace y Amazon Seller no se crean ni conectan desde S.5.</p>
+      <small>amazon_seller_connected=false</small>
+    </article>
+    <article class="ecommerce-amazon-card">
+      <span class="eyebrow">Amazon radar</span>
+      <strong>${escapeHtml(label(amazon.mode || "radar_prepared_local"))}</strong>
+      <p>SNIFF AMAZON / CHIEF AMAZON detecta senales preparadas; no scrapea sitios prohibidos.</p>
+      <small>prohibited_scraping_enabled=false</small>
+    </article>
+    <article class="ecommerce-amazon-card">
+      <span class="eyebrow">Riesgos</span>
+      <strong>${escapeHtml(topAmazonRisk.product_category || "Sin producto ganador")}</strong>
+      <p>${escapeHtml(topAmazonRisk.next_action || "No declarar margen, ventas, inventario ni producto ganador sin evidencia.")}</p>
+      <small>${number(amazon.risks || amazonRisks.length)} riesgos Amazon</small>
+    </article>
+    <article class="ecommerce-amazon-card">
+      <span class="eyebrow">CEREBRO / Revenue</span>
+      <strong>Meta separada</strong>
+      <p>CEREBRO puede pedir research, Marketing/Publishing/Web Factory; no puede gastar ni vender real.</p>
+      <small>separated_from_global_goal=true</small>
+    </article>
+    <article class="ecommerce-amazon-card wide">
+      <span class="eyebrow">Siguiente paso</span>
+      <strong>${escapeHtml(nextSteps[0] || "Research antes de producto")}</strong>
+      <p>${[...nextSteps.slice(0, 3), ...amazonSteps.slice(0, 2)].map((step) => `<span>${escapeHtml(step)}</span>`).join("") || "<span>Research</span><span>CEO</span><span>Sin pagos</span>"}</p>
+      <small>${escapeHtml(topApproval.next_action || "Preparado para decision CEO posterior, sin ejecucion externa.")}</small>
+    </article>
+  `;
+}
+
 function renderPublishingGrowth() {
   const container = $("#publishing-growth-grid");
   if (!container) return;
@@ -1824,6 +2074,125 @@ function renderPublishingGrowth() {
   `;
 }
 
+function renderPublishingPrepared() {
+  const container = $("#publishing-prepared-grid");
+  if (!container) return;
+
+  const status = state.data.publishingPreparedStatus || {};
+  const content = Array.isArray(state.data.publishingPreparedContent)
+    ? state.data.publishingPreparedContent
+    : (Array.isArray(status.content_snapshot) ? status.content_snapshot : []);
+  const calendar = Array.isArray(state.data.publishingPreparedCalendar) ? state.data.publishingPreparedCalendar : [];
+  const blocked = Array.isArray(state.data.publishingPreparedBlocked)
+    ? state.data.publishingPreparedBlocked
+    : (Array.isArray(status.blocked_snapshot) ? status.blocked_snapshot : []);
+  const nextContent = content[0] || {};
+  const blockedPublish = blocked.find((item) => item.blocked_action === "real_publication") || blocked[0] || {};
+  const accountUnknown = content.filter((item) => ["unknown", "not_connected"].includes(item.account_status));
+
+  container.innerHTML = `
+    <article class="publishing-growth-card primary">
+      <span class="eyebrow">S3 Publishing Prepared</span>
+      <strong>${number(status.prepared_items || content.length)} piezas prepared</strong>
+      <p>Pipeline organico listo para ordenar contenido sin publicar real ni conectar cuentas externas.</p>
+      <div class="publishing-kpis">
+        <small><b>${number(status.published_items || 0)}</b>publicadas</small>
+        <small><b>${number(status.external_accounts_connected || 0)}</b>cuentas</small>
+        <small><b>${number(status.real_metrics_confirmed || 0)}</b>metricas</small>
+      </div>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Contenido</span>
+      <strong>${escapeHtml(nextContent.title || "Sin pieza publicada")}</strong>
+      <p>${escapeHtml(nextContent.next_action || "Mantener prepared hasta confirmar cuenta oficial.")}</p>
+      <small>${escapeHtml(label(nextContent.publication_status || "prepared"))}</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Bloqueo seguro</span>
+      <strong>${escapeHtml(label(blockedPublish.reason || "official_accounts_unknown"))}</strong>
+      <p>Cuenta desconocida o no conectada bloquea publicacion real. El fallback es publication_status=prepared.</p>
+      <small>${escapeHtml(label(blockedPublish.safe_fallback || "publication_status=prepared"))}</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Calendario</span>
+      <strong>${number(calendar.length)} etapas preparadas</strong>
+      <p>${calendar.map((item) => `<span>${escapeHtml(item.period || item.id)}</span>`).join("") || "<span>week_1</span><span>week_2</span>"}</p>
+      <small>Sin post real desde este bloque.</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Cuentas</span>
+      <strong>${number(accountUnknown.length)} unknown/not_connected</strong>
+      <p>Si la cuenta oficial no esta confirmada, CEREBRO solo prepara la pieza y escala definicion.</p>
+      <small>external_connection_enabled=false</small>
+    </article>
+    <article class="publishing-growth-card wide">
+      <span class="eyebrow">Regla S3</span>
+      <strong>Organico preparado no significa publicado</strong>
+      <p><span>PLUMA escribe</span><span>LENTE prepara</span><span>MARKETING valida</span><span>sin cuentas reales</span><span>sin metricas falsas</span></p>
+      <small>${escapeHtml(status.next_action || "CEO confirma cuentas antes de publicacion real.")}</small>
+    </article>
+  `;
+}
+
+function renderMarketingApprovalGate() {
+  const container = $("#marketing-approval-grid");
+  if (!container) return;
+
+  const status = state.data.marketingApprovalStatus || {};
+  const campaigns = Array.isArray(state.data.marketingApprovalCampaigns)
+    ? state.data.marketingApprovalCampaigns
+    : (Array.isArray(status.campaigns_snapshot) ? status.campaigns_snapshot : []);
+  const approvals = Array.isArray(state.data.marketingApprovalApprovalNeeded) ? state.data.marketingApprovalApprovalNeeded : [];
+  const risks = Array.isArray(state.data.marketingApprovalRisks) ? state.data.marketingApprovalRisks : [];
+  const paid = campaigns.filter((campaign) => campaign.campaign_type === "paid");
+  const organic = campaigns.filter((campaign) => campaign.campaign_type === "organic");
+  const topApproval = approvals[0] || paid[0] || {};
+  const topRisk = risks[0] || {};
+
+  container.innerHTML = `
+    <article class="publishing-growth-card primary">
+      <span class="eyebrow">S4 Marketing Gate</span>
+      <strong>${number(approvals.length || status.approval_needed || 0)} decisiones CEO</strong>
+      <p>Campana pagada requiere ROI, presupuesto y aprobacion CEO. No hay gasto ni lanzamiento real.</p>
+      <div class="publishing-kpis">
+        <small><b>${number(paid.length)}</b>paid</small>
+        <small><b>${number(organic.length)}</b>organic</small>
+        <small><b>${number(status.paid_campaigns_launched || 0)}</b>launched</small>
+      </div>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Paid</span>
+      <strong>${escapeHtml(topApproval.name || "Paid bloqueado")}</strong>
+      <p>${escapeHtml(topApproval.next_action || "Preparar ROI y esperar aprobacion CEO.")}</p>
+      <small>${escapeHtml(label(topApproval.roi_status || "missing"))}</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Organico</span>
+      <strong>${number(organic.length)} prepared</strong>
+      <p>Contenido organico preparado no requiere gasto, pero publicar real depende de cuentas oficiales conectadas.</p>
+      <small>budget_spent=${number(status.budget_spent || 0)}</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Riesgo</span>
+      <strong>${escapeHtml(label(topRisk.risk || "paid_campaign_without_roi"))}</strong>
+      <p>${escapeHtml(topRisk.control || "requires_ceo_approval=true")}</p>
+      <small>${escapeHtml(label(topRisk.severity || "high"))}</small>
+    </article>
+    <article class="publishing-growth-card">
+      <span class="eyebrow">Estado seguro</span>
+      <strong>0 pagos, 0 campanas reales</strong>
+      <p>No se cobra, no se activa pauta, no se conectan cuentas externas y no se inventa ROI.</p>
+      <small>paid_campaign_launched=false</small>
+    </article>
+    <article class="publishing-growth-card wide">
+      <span class="eyebrow">Regla S4</span>
+      <strong>Pagado solo con ROI aprobado</strong>
+      <p><span>ROI missing bloquea</span><span>CEO aprueba</span><span>cuentas externas bloqueadas</span><span>sin gasto real</span></p>
+      <small>${escapeHtml(status.next_action || "Paid campaigns requieren aprobacion CEO con ROI antes de lanzar.")}</small>
+    </article>
+  `;
+}
+
 function renderProductReadiness() {
   const container = $("#product-readiness-grid");
   if (!container) return;
@@ -1899,6 +2268,367 @@ function renderProductReadiness() {
       <strong>MARKETING vende; producto valida readiness</strong>
       <p><span>no SUNAT real</span><span>no tiendas reales</span><span>no paid real</span><span>no claims sin fuente</span><span>FORJA preparada</span></p>
       <small>Si falta informacion: status=unknown o requires_validation.</small>
+    </article>
+  `;
+}
+
+function renderCommercialReadiness() {
+  const container = $("#commercial-readiness-grid");
+  if (!container) return;
+
+  const status = state.data.commercialReadinessStatus || {};
+  const dcft = state.data.commercialReadinessDcft || {};
+  const sentinela = state.data.commercialReadinessSentinela || {};
+  const marketingPackage = state.data.commercialReadinessMarketingPackage || {};
+  const approvals = Array.isArray(state.data.commercialReadinessApprovalNeeded) ? state.data.commercialReadinessApprovalNeeded : [];
+  const items = Array.isArray(marketingPackage.items) ? marketingPackage.items : [];
+  const dcftItem = items.find((item) => item.product_id === "dcft") || {};
+  const sentinelaItem = items.find((item) => item.product_id === "sentinela") || {};
+  const topApproval = approvals[0] || {};
+
+  container.innerHTML = `
+    <article class="product-readiness-card primary">
+      <span class="eyebrow">S6 Commercial Readiness</span>
+      <strong>MARKETING es owner de venta</strong>
+      <p>DCFT y SENTINELA se preparan comercialmente, pero no tienen meta propia ni activacion real.</p>
+      <div class="product-readiness-kpis">
+        <small><b>${number(status.products || 2)}</b>productos</small>
+        <small><b>${number(status.products_with_own_sales_goal || 0)}</b>meta propia</small>
+        <small><b>${number(status.requires_validation || approvals.length)}</b>validar</small>
+      </div>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">DCFT</span>
+      <strong>${escapeHtml(label(dcft.commercial_status || status.dcft_status || "requires_validation"))}</strong>
+      <p>${escapeHtml(dcft.next_action || "Auditar evidencia, landing, pricing y fuentes legales antes del empuje comercial.")}</p>
+      <small>sunat_enabled=${String(Boolean(dcft.sunat_enabled))}</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">SENTINELA</span>
+      <strong>${escapeHtml(label(sentinela.commercial_status || status.sentinela_status || "requires_validation"))}</strong>
+      <p>${escapeHtml(sentinela.next_action || "Validar claims de seguridad, onboarding y soporte antes del empuje comercial.")}</p>
+      <small>runtime_connected=${String(Boolean(sentinela.runtime_connected))}</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">Marketing package</span>
+      <strong>${escapeHtml(label(marketingPackage.status || "prepared_requires_validation"))}</strong>
+      <p>${number(items.length)} paquetes sin claims legales o de seguridad no validados.</p>
+      <small>claims_invented=${String(Boolean(marketingPackage.claims_invented))}</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">Piezas</span>
+      <strong>${number((dcftItem.required_pieces || []).length + (sentinelaItem.required_pieces || []).length)} requeridas</strong>
+      <p>Landing, FAQ, objeciones, onboarding y evidencia quedan en estado preparado.</p>
+      <small>requires_validation=true</small>
+    </article>
+    <article class="product-readiness-card">
+      <span class="eyebrow">Aprobacion</span>
+      <strong>${escapeHtml(topApproval.product || "Claims pendientes")}</strong>
+      <p>${escapeHtml(topApproval.decision || "CEO revisa claims y readiness antes de cualquier empuje real.")}</p>
+      <small>${escapeHtml(label(topApproval.status || "pending"))}</small>
+    </article>
+    <article class="product-readiness-card wide">
+      <span class="eyebrow">Regla S6</span>
+      <strong>Producto preparado no significa vendido ni conectado</strong>
+      <p><span>Marketing vende</span><span>productos validan</span><span>FORJA prepared</span><span>AUDITORIA revisa</span><span>sin SUNAT real</span></p>
+      <small>Si falta evidencia, queda missing/unknown/requires_validation.</small>
+    </article>
+  `;
+}
+
+function renderRealWorldConnections() {
+  const container = $("#real-world-grid");
+  if (!container) return;
+
+  const status = state.data.realWorldStatus || state.data.ceoDailyCenter?.real_world || {};
+  const connections = Array.isArray(state.data.realWorldConnections)
+    ? state.data.realWorldConnections
+    : (Array.isArray(status.connections_snapshot) ? status.connections_snapshot : []);
+  const approvals = Array.isArray(state.data.realWorldApprovalNeeded) ? state.data.realWorldApprovalNeeded : [];
+  const risks = Array.isArray(state.data.realWorldRisks) ? state.data.realWorldRisks : [];
+  const unknown = connections.filter((item) => item.state === "unknown");
+  const prepared = connections.filter((item) => item.state === "prepared");
+  const credentials = connections.filter((item) => item.requires_credentials);
+  const money = connections.filter((item) => item.requires_money || item.state === "needs_paid_approval");
+  const sensitive = risks.filter((item) => item.risk === "sensitive");
+  const topApproval = approvals[0] || {};
+  const topRisk = risks[0] || {};
+  const nextSteps = Array.isArray(status.next_steps) ? status.next_steps : [];
+
+  container.innerHTML = `
+    <article class="real-world-card primary">
+      <span class="eyebrow">Real World Connections</span>
+      <strong>${number(status.total_connections || connections.length)} conexiones inventariadas</strong>
+      <p>${number(status.connected || 0)} conectadas. ${number(status.prepared || prepared.length)} prepared. ${number(status.unknown || unknown.length)} unknown. Sin ejecucion externa.</p>
+      <div class="real-world-kpis">
+        <small><b>${number(status.needs_ceo || approvals.length)}</b>CEO</small>
+        <small><b>${number(status.needs_credentials || credentials.length)}</b>credenciales</small>
+        <small><b>${number(status.needs_paid_approval || money.length)}</b>dinero</small>
+      </div>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Estado seguro</span>
+      <strong>${escapeHtml(status.mode ? label(status.mode) : "Prepared local")}</strong>
+      <p>No se crean cuentas, no se cobran pagos, no se publican piezas y no se conectan APIs externas.</p>
+      <small>external_connection_enabled=false</small>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Requiere CEO</span>
+      <strong>${escapeHtml(topApproval.connection || "Definiciones pendientes")}</strong>
+      <p>${escapeHtml(topApproval.recommended_action || "Cuentas nuevas, dinero, credenciales y publicacion real escalan al CEO.")}</p>
+      <small>${number(status.approval_needed_count || approvals.length)} en lista approval-needed</small>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Credenciales</span>
+      <strong>${number(credentials.length || status.needs_credentials || 0)} sensibles</strong>
+      <p>Passwords, tokens, API keys, client secrets y Clave SOL no se guardan ni se imprimen.</p>
+      <small>secrets_stored=false</small>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Dinero real</span>
+      <strong>${number(money.length || status.needs_paid_approval || 0)} bloqueadas</strong>
+      <p>Pagos, pasarelas, campanas pagadas, dominios, hosting, app stores y herramientas con costo requieren ROI y CEO.</p>
+      <small>paid_campaign_launched=false</small>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Riesgos</span>
+      <strong>${escapeHtml(topRisk.connection || `${number(status.high_risk || 0)} high / ${number(status.sensitive || sensitive.length)} sensitive`)}</strong>
+      <p>${escapeHtml(topRisk.recommended_action || "Riesgos altos o sensibles quedan en revision antes de cualquier conexion real.")}</p>
+      <small>${escapeHtml(label(topRisk.risk || "controlled"))}</small>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">CEREBRO</span>
+      <strong>Prepara, audita y prioriza</strong>
+      <p>CEREBRO puede crear misiones internas; no puede ejecutar pagos, cuentas, SUNAT, APIs con costo ni publicacion real sin CEO.</p>
+      <small>modo prepared/unknown</small>
+    </article>
+    <article class="real-world-card wide">
+      <span class="eyebrow">Siguiente paso</span>
+      <strong>${escapeHtml(nextSteps[0] || "Confirmar cuentas oficiales existentes")}</strong>
+      <p>${nextSteps.slice(0, 5).map((step) => `<span>${escapeHtml(step)}</span>`).join("") || "<span>Inventario</span><span>Definicion CEO</span><span>Credenciales seguras</span>"}</p>
+      <small>Preparado para futura conexion real, sin ejecutar nada externo.</small>
+    </article>
+  `;
+}
+
+function renderAnalyticsReadiness() {
+  const container = $("#analytics-readiness-grid");
+  if (!container) return;
+
+  const status = state.data.analyticsReadinessStatus || {};
+  const metrics = Array.isArray(state.data.analyticsReadinessMetrics)
+    ? state.data.analyticsReadinessMetrics
+    : (Array.isArray(status.metrics_snapshot) ? status.metrics_snapshot : []);
+  const sources = Array.isArray(state.data.analyticsReadinessSources)
+    ? state.data.analyticsReadinessSources
+    : (Array.isArray(status.sources_snapshot) ? status.sources_snapshot : []);
+  const approvals = Array.isArray(state.data.analyticsReadinessApprovalNeeded) ? state.data.analyticsReadinessApprovalNeeded : [];
+  const risks = Array.isArray(state.data.analyticsReadinessRisks) ? state.data.analyticsReadinessRisks : [];
+  const manualSources = sources.filter((source) => source.status === "manual_ready");
+  const disconnectedSources = sources.filter((source) => source.api_connected === false);
+  const topMetric = metrics[0] || {};
+  const topSource = sources[0] || {};
+  const topRisk = risks[0] || {};
+  const topApproval = approvals[0] || {};
+
+  container.innerHTML = `
+    <article class="real-world-card primary">
+      <span class="eyebrow">S7 Analytics Readiness</span>
+      <strong>${number(status.real_metrics_confirmed || 0)} metricas reales confirmadas</strong>
+      <p>Metricas preparadas para seguimiento, sin inventar ventas, conversiones, views ni ROI.</p>
+      <div class="real-world-kpis">
+        <small><b>${number(metrics.length || status.metrics || 0)}</b>metricas</small>
+        <small><b>${number(manualSources.length || status.manual_ready_sources || 0)}</b>manual</small>
+        <small><b>${number(status.api_connected_sources || 0)}</b>APIs</small>
+      </div>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Metrica base</span>
+      <strong>${escapeHtml(label(topMetric.metric || "actual_revenue_usd"))}</strong>
+      <p>Valor ${number(topMetric.value || 0)} porque no hay evidencia real conectada.</p>
+      <small>${escapeHtml(label(topMetric.evidence_status || "missing"))}</small>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Fuentes</span>
+      <strong>${escapeHtml(topSource.name || "Manual revenue register")}</strong>
+      <p>${number(disconnectedSources.length)} fuentes sin API conectada. Manual ready permite registro sin secreto.</p>
+      <small>${escapeHtml(label(topSource.status || "manual_ready"))}</small>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Aprobacion</span>
+      <strong>${escapeHtml(topApproval.id || "external_analytics_credentials")}</strong>
+      <p>${escapeHtml(topApproval.decision || "CEO aprueba ruta segura antes de conectar APIs de analitica.")}</p>
+      <small>${escapeHtml(label(topApproval.status || "pending"))}</small>
+    </article>
+    <article class="real-world-card">
+      <span class="eyebrow">Riesgo</span>
+      <strong>${escapeHtml(label(topRisk.risk || "metric_without_source"))}</strong>
+      <p>${escapeHtml(topRisk.control || "evidence_status=missing and invented=false")}</p>
+      <small>${escapeHtml(label(topRisk.severity || "high"))}</small>
+    </article>
+    <article class="real-world-card wide">
+      <span class="eyebrow">Regla S7</span>
+      <strong>No hay datos, no hay claim</strong>
+      <p><span>no ventas inventadas</span><span>no metricas falsas</span><span>manual ready</span><span>APIs no conectadas</span><span>secretos bloqueados</span></p>
+      <small>external_connection_enabled=false</small>
+    </article>
+  `;
+}
+
+function renderRealWorldExecutionQueue() {
+  const container = $("#real-world-execution-grid");
+  if (!container) return;
+
+  const status = state.data.realWorldExecutionStatus || state.data.ceoDailyCenter?.real_world_execution || {};
+  const queue = Array.isArray(state.data.realWorldExecutionQueue)
+    ? state.data.realWorldExecutionQueue
+    : (Array.isArray(status.queue_snapshot) ? status.queue_snapshot : []);
+  const approvals = Array.isArray(state.data.realWorldExecutionApprovalNeeded) ? state.data.realWorldExecutionApprovalNeeded : [];
+  const prepared = queue.filter((item) => item.state === "prepared");
+  const readyInternal = queue.filter((item) => item.state === "ready_internal");
+  const waitingCeo = queue.filter((item) => item.requires_ceo || String(item.state || "").startsWith("waiting_"));
+  const waitingCredentials = queue.filter((item) => item.requires_credentials || item.state === "waiting_credentials");
+  const waitingPaid = queue.filter((item) => item.requires_money || item.state === "waiting_paid_approval");
+  const blocked = queue.filter((item) => item.state === "blocked");
+  const highPriority = queue.filter((item) => item.priority === "critical" || item.priority === "high");
+  const next = queue[0] || {};
+  const topApproval = approvals[0] || waitingCeo[0] || {};
+  const nextSteps = Array.isArray(status.next_steps) ? status.next_steps : [];
+
+  container.innerHTML = `
+    <article class="execution-queue-card primary">
+      <span class="eyebrow">Real World Execution Queue</span>
+      <strong>${number(status.total_items || queue.length)} acciones preparadas</strong>
+      <p>Cola local para priorizar acciones futuras. No ejecuta pagos, cuentas, publicaciones ni APIs externas.</p>
+      <div class="execution-queue-kpis">
+        <small><b>${number(status.ready_internal || readyInternal.length)}</b>internas</small>
+        <small><b>${number(status.approval_needed || waitingCeo.length)}</b>CEO</small>
+        <small><b>${number(status.blocked || blocked.length)}</b>bloqueadas</small>
+      </div>
+    </article>
+    <article class="execution-queue-card">
+      <span class="eyebrow">Prepared</span>
+      <strong>${number(status.prepared || prepared.length)} acciones</strong>
+      <p>Preparadas/documentales: pueden quedarse en backlog sin ejecutar nada real.</p>
+      <small>external_execution_enabled=false</small>
+    </article>
+    <article class="execution-queue-card">
+      <span class="eyebrow">Ready internal</span>
+      <strong>${number(status.ready_internal || readyInternal.length)} internas</strong>
+      <p>Trabajo interno manual permitido solo si no requiere dinero, credenciales ni cuenta externa.</p>
+      <small>manual_execution_confirmed=false</small>
+    </article>
+    <article class="execution-queue-card">
+      <span class="eyebrow">Waiting CEO</span>
+      <strong>${number(status.approval_needed || approvals.length)} decisiones</strong>
+      <p>${escapeHtml(topApproval.next_action || "CEO decide cuentas, dinero, credenciales o revision legal antes de avanzar.")}</p>
+      <small>${escapeHtml(topApproval.id || "approval-needed")}</small>
+    </article>
+    <article class="execution-queue-card">
+      <span class="eyebrow">Credenciales</span>
+      <strong>${number(status.credentials_needed || waitingCredentials.length)} bloqueadas</strong>
+      <p>No se guardan passwords, tokens, API keys, Clave SOL ni sesiones externas.</p>
+      <small>credentials_stored=false</small>
+    </article>
+    <article class="execution-queue-card">
+      <span class="eyebrow">Dinero</span>
+      <strong>${number(status.money_needed || waitingPaid.length)} requieren ROI</strong>
+      <p>Pagos, dominios, herramientas, anuncios e inventario quedan esperando aprobacion CEO.</p>
+      <small>payment_executed=false</small>
+    </article>
+    <article class="execution-queue-card">
+      <span class="eyebrow">Blocked</span>
+      <strong>${number(status.blocked || blocked.length)} acciones</strong>
+      <p>Acciones riesgosas o externas sin vault/aprobacion quedan bloqueadas por defecto.</p>
+      <small>api_execution_confirmed=false</small>
+    </article>
+    <article class="execution-queue-card">
+      <span class="eyebrow">Prioridad</span>
+      <strong>${number(highPriority.length)} alta/critica</strong>
+      <p>${escapeHtml(next.action || "CEREBRO prioriza segun impacto economico, riesgo y dependencia.")}</p>
+      <small>${escapeHtml(label(next.priority || "medium"))}</small>
+    </article>
+    <article class="execution-queue-card wide">
+      <span class="eyebrow">CEREBRO</span>
+      <strong>Prioriza, bloquea o pide aprobacion</strong>
+      <p>${nextSteps.slice(0, 5).map((step) => `<span>${escapeHtml(step)}</span>`).join("") || "<span>Priorizar</span><span>Pedir CEO</span><span>No ejecutar real</span>"}</p>
+      <small>Vincula Revenue, Workday y Mission Loop como backlog preparado.</small>
+    </article>
+  `;
+}
+
+function renderSocialIdentityMap() {
+  const container = $("#social-identity-grid");
+  if (!container) return;
+
+  const status = state.data.socialIdentityStatus || state.data.ceoDailyCenter?.social_identity || {};
+  const accounts = Array.isArray(state.data.socialIdentityAccounts)
+    ? state.data.socialIdentityAccounts
+    : (Array.isArray(status.accounts_snapshot) ? status.accounts_snapshot : []);
+  const approvals = Array.isArray(state.data.socialIdentityApprovalNeeded) ? state.data.socialIdentityApprovalNeeded : [];
+  const risks = Array.isArray(state.data.socialIdentityRisks) ? state.data.socialIdentityRisks : [];
+  const unknown = accounts.filter((item) => item.state === "unknown");
+  const prepared = accounts.filter((item) => item.state === "prepared");
+  const proposed = accounts.filter((item) => item.state === "proposed_new");
+  const credentials = accounts.filter((item) => item.requires_credentials);
+  const creation = accounts.filter((item) => item.requires_account_creation);
+  const topApproval = approvals[0] || {};
+  const topRisk = risks[0] || {};
+  const platforms = Array.isArray(status.platforms) ? status.platforms : [];
+  const nextSteps = Array.isArray(status.next_steps) ? status.next_steps : [];
+
+  container.innerHTML = `
+    <article class="social-identity-card primary">
+      <span class="eyebrow">Social Identity Map</span>
+      <strong>${number(status.total_accounts || accounts.length)} cuentas y canales</strong>
+      <p>${number(status.confirmed_existing || 0)} confirmadas. ${number(status.prepared || prepared.length)} prepared. ${number(status.unknown || unknown.length)} unknown. Sin publicacion real.</p>
+      <div class="social-identity-kpis">
+        <small><b>${number(status.proposed_new || proposed.length)}</b>propuestas</small>
+        <small><b>${number(status.needs_ceo || approvals.length)}</b>CEO</small>
+        <small><b>${number(status.needs_credentials || credentials.length)}</b>credenciales</small>
+      </div>
+    </article>
+    <article class="social-identity-card">
+      <span class="eyebrow">Cuentas unknown</span>
+      <strong>${number(status.unknown || unknown.length)} sin evidencia</strong>
+      <p>Si no hay cuenta oficial confirmada, el estado queda unknown o existing_unconfirmed.</p>
+      <small>account_connected=false</small>
+    </article>
+    <article class="social-identity-card">
+      <span class="eyebrow">Nuevas propuestas</span>
+      <strong>${number(status.proposed_new || proposed.length)} propuestas</strong>
+      <p>Crear cuenta externa requiere definicion CEO; S.2 solo deja mapa y nombres pendientes.</p>
+      <small>${number(status.needs_account_creation || creation.length)} requieren creacion</small>
+    </article>
+    <article class="social-identity-card">
+      <span class="eyebrow">Requiere CEO</span>
+      <strong>${escapeHtml(topApproval.platform || "Definicion pendiente")}</strong>
+      <p>${escapeHtml(topApproval.recommended_action || "Cuentas nuevas, oficiales o sensibles quedan pendientes de CEO.")}</p>
+      <small>${number(status.approval_needed_count || approvals.length)} en approval-needed</small>
+    </article>
+    <article class="social-identity-card">
+      <span class="eyebrow">Credenciales</span>
+      <strong>${number(status.needs_credentials || credentials.length)} bloqueadas</strong>
+      <p>No se guardan passwords, tokens, API keys ni sesiones de redes sociales.</p>
+      <small>credentials_stored=false</small>
+    </article>
+    <article class="social-identity-card">
+      <span class="eyebrow">Riesgos</span>
+      <strong>${escapeHtml(topRisk.area || `${number(status.high_risk || 0)} high / ${number(status.sensitive || 0)} sensitive`)}</strong>
+      <p>${escapeHtml(topRisk.recommended_action || "Identidad publica, marca y cuentas sensibles requieren validacion.")}</p>
+      <small>${escapeHtml(label(topRisk.risk || "controlled"))}</small>
+    </article>
+    <article class="social-identity-card">
+      <span class="eyebrow">Plataformas</span>
+      <strong>${number(platforms.length || 10)} soportadas</strong>
+      <p>${platforms.slice(0, 6).map((platform) => `<span>${escapeHtml(platform)}</span>`).join("") || "<span>TikTok</span><span>Instagram</span><span>YouTube</span>"}</p>
+      <small>Todas no conectadas por defecto.</small>
+    </article>
+    <article class="social-identity-card wide">
+      <span class="eyebrow">Siguiente paso</span>
+      <strong>${escapeHtml(nextSteps[0] || "Confirmar cuentas oficiales existentes")}</strong>
+      <p>${nextSteps.slice(0, 5).map((step) => `<span>${escapeHtml(step)}</span>`).join("") || "<span>Confirmar existentes</span><span>Definir nuevas</span><span>Sin publicar</span>"}</p>
+      <small>prepared no equivale a publicado, conectado ni aprobado para crear cuentas.</small>
     </article>
   `;
 }

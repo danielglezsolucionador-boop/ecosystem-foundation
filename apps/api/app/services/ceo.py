@@ -24,6 +24,7 @@ from app.services.cerebro import (
 )
 from app.services.audit import get_auditoria_status, list_auditoria_reviews
 from app.services.departments import list_department_audits
+from app.services.ecommerce_readiness import get_amazon_readiness_status, get_ecommerce_readiness_status
 from app.services.governance import (
     GovernanceError,
     approve_decision,
@@ -37,7 +38,10 @@ from app.services.missions import get_mission_daily_report
 from app.services.nube import get_nube_status
 from app.services.product_readiness import get_product_readiness_status
 from app.services.publishing import get_publishing_status
+from app.services.real_world import get_real_world_status
+from app.services.real_world_execution import get_execution_status
 from app.services.revenue import get_revenue_sprint_status, get_revenue_status
+from app.services.social_identity import get_social_identity_status
 from app.services.upgrades import get_upgrade_status
 from app.services.workday import get_workday_status
 
@@ -78,8 +82,13 @@ class CeoSnapshot:
     nube_status: dict[str, Any] = field(default_factory=dict)
     revenue_status: dict[str, Any] = field(default_factory=dict)
     revenue_sprint_status: dict[str, Any] = field(default_factory=dict)
+    ecommerce_readiness_status: dict[str, Any] = field(default_factory=dict)
+    amazon_readiness_status: dict[str, Any] = field(default_factory=dict)
     publishing_status: dict[str, Any] = field(default_factory=dict)
     product_readiness_status: dict[str, Any] = field(default_factory=dict)
+    real_world_status: dict[str, Any] = field(default_factory=dict)
+    real_world_execution_status: dict[str, Any] = field(default_factory=dict)
+    social_identity_status: dict[str, Any] = field(default_factory=dict)
     mission_status: dict[str, Any] = field(default_factory=dict)
     workday_status: dict[str, Any] = field(default_factory=dict)
     upgrade_status: dict[str, Any] = field(default_factory=dict)
@@ -119,10 +128,12 @@ def item(
 
 
 def safe_model_dump(model: Any) -> dict[str, Any]:
-    if hasattr(model, "model_dump"):
-        return model.model_dump(mode="json")
     if isinstance(model, dict):
         return model
+    if hasattr(model, "model_dump"):
+        return model.model_dump(mode="json")
+    if hasattr(model, "dict"):
+        return model.dict()
     return {}
 
 
@@ -210,8 +221,13 @@ def snapshot_call_specs() -> dict[str, tuple[Callable[[], Any], Any]]:
         "nube_status": (get_nube_status, {}),
         "revenue_status": (get_revenue_status, {}),
         "revenue_sprint_status": (get_revenue_sprint_status, {}),
+        "ecommerce_readiness_status": (get_ecommerce_readiness_status, {}),
+        "amazon_readiness_status": (get_amazon_readiness_status, {}),
         "publishing_status": (get_publishing_status, {}),
         "product_readiness_status": (get_product_readiness_status, {}),
+        "real_world_status": (get_real_world_status, {}),
+        "real_world_execution_status": (get_execution_status, {}),
+        "social_identity_status": (get_social_identity_status, {}),
         "mission_status": (get_mission_daily_report, {}),
         "workday_status": (get_workday_status, {}),
         "upgrade_status": (get_upgrade_status, {}),
@@ -261,8 +277,13 @@ def build_ceo_snapshot() -> CeoSnapshot:
     nube_status = safe_model_dump(snapshot_sources["nube_status"])
     revenue_status = safe_model_dump(snapshot_sources["revenue_status"])
     revenue_sprint_status = safe_model_dump(snapshot_sources["revenue_sprint_status"])
+    ecommerce_readiness_status = safe_model_dump(snapshot_sources["ecommerce_readiness_status"])
+    amazon_readiness_status = safe_model_dump(snapshot_sources["amazon_readiness_status"])
     publishing_status = safe_model_dump(snapshot_sources["publishing_status"])
     product_readiness_status = safe_model_dump(snapshot_sources["product_readiness_status"])
+    real_world_status = safe_model_dump(snapshot_sources["real_world_status"])
+    real_world_execution_status = safe_model_dump(snapshot_sources["real_world_execution_status"])
+    social_identity_status = safe_model_dump(snapshot_sources["social_identity_status"])
     mission_status = safe_model_dump(snapshot_sources["mission_status"])
     workday_status = safe_model_dump(snapshot_sources["workday_status"])
     upgrade_status = safe_model_dump(snapshot_sources["upgrade_status"])
@@ -280,8 +301,13 @@ def build_ceo_snapshot() -> CeoSnapshot:
         nube_status=nube_status,
         revenue_status=revenue_status,
         revenue_sprint_status=revenue_sprint_status,
+        ecommerce_readiness_status=ecommerce_readiness_status,
+        amazon_readiness_status=amazon_readiness_status,
         publishing_status=publishing_status,
         product_readiness_status=product_readiness_status,
+        real_world_status=real_world_status,
+        real_world_execution_status=real_world_execution_status,
+        social_identity_status=social_identity_status,
         mission_status=mission_status,
         workday_status=workday_status,
         upgrade_status=upgrade_status,
@@ -670,15 +696,27 @@ def get_ceo_daily_center() -> CeoDailyCenter:
     nube = snapshot.nube_status
     revenue = snapshot.revenue_status
     revenue_sprint = snapshot.revenue_sprint_status
+    ecommerce_readiness = snapshot.ecommerce_readiness_status
+    amazon_readiness = snapshot.amazon_readiness_status
     publishing = snapshot.publishing_status
     product_readiness = snapshot.product_readiness_status
+    real_world = snapshot.real_world_status
+    real_world_execution = snapshot.real_world_execution_status
+    social_identity = snapshot.social_identity_status
     missions = snapshot.mission_status
     workday = snapshot.workday_status
     upgrades = snapshot.upgrade_status
     cerebro["revenue_os"] = revenue
     cerebro["revenue_execution_sprint"] = revenue_sprint
+    cerebro["ecommerce_amazon_readiness"] = {
+        "ecommerce": ecommerce_readiness,
+        "amazon": amazon_readiness,
+    }
     cerebro["publishing_growth_engine"] = publishing
     cerebro["product_readiness"] = product_readiness
+    cerebro["real_world_connection_readiness"] = real_world
+    cerebro["real_world_execution_queue"] = real_world_execution
+    cerebro["social_identity_map"] = social_identity
     cerebro["mission_execution_loop"] = missions
     cerebro["autonomous_workday_os"] = workday
     cerebro["department_upgrade_pipeline"] = upgrades
@@ -703,11 +741,29 @@ def get_ceo_daily_center() -> CeoDailyCenter:
     revenue_ecommerce_pipeline = float(read_value(revenue, "estimated_ecommerce_pipeline_usd", 0) or 0)
     revenue_sprint_routes = int(read_value(revenue_sprint, "routes", 0) or 0)
     revenue_sprint_missions = int(read_value(revenue_sprint, "missions", 0) or 0)
+    ecommerce_readiness_opportunities = int(read_value(ecommerce_readiness, "opportunities", 0) or 0)
+    ecommerce_readiness_approval = int(read_value(ecommerce_readiness, "approval_needed", 0) or 0)
+    amazon_readiness_opportunities = int(read_value(amazon_readiness, "opportunities", 0) or 0)
+    amazon_readiness_risks = int(read_value(amazon_readiness, "risks", 0) or 0)
     publishing_content = int(read_value(publishing, "content_items", 0) or 0)
     publishing_prepared = int(read_value(publishing, "prepared_items", 0) or 0)
     publishing_approvals = int(read_value(publishing, "approvals_needed", 0) or 0)
     product_open_gaps = int(read_value(product_readiness, "open_gaps", 0) or 0)
     product_requires_validation = int(read_value(product_readiness, "requires_validation", 0) or 0)
+    real_world_total = int(read_value(real_world, "total_connections", 0) or 0)
+    real_world_needs_ceo = int(read_value(real_world, "needs_ceo", 0) or 0)
+    real_world_needs_credentials = int(read_value(real_world, "needs_credentials", 0) or 0)
+    real_world_needs_paid = int(read_value(real_world, "needs_paid_approval", 0) or 0)
+    execution_total = int(read_value(real_world_execution, "total_items", 0) or 0)
+    execution_waiting_ceo = int(read_value(real_world_execution, "approval_needed", 0) or 0)
+    execution_ready_internal = int(read_value(real_world_execution, "ready_internal", 0) or 0)
+    execution_money = int(read_value(real_world_execution, "money_needed", 0) or 0)
+    execution_credentials = int(read_value(real_world_execution, "credentials_needed", 0) or 0)
+    execution_blocked = int(read_value(real_world_execution, "blocked", 0) or 0)
+    social_identity_total = int(read_value(social_identity, "total_accounts", 0) or 0)
+    social_identity_unknown = int(read_value(social_identity, "unknown", 0) or 0)
+    social_identity_proposed = int(read_value(social_identity, "proposed_new", 0) or 0)
+    social_identity_needs_ceo = int(read_value(social_identity, "needs_ceo", 0) or 0)
     mission_active_count = int(read_value(missions, "active_missions", 0) or 0)
     mission_waiting_audit = int(read_value(missions, "waiting_audit", 0) or 0)
     mission_waiting_forge = int(read_value(missions, "waiting_forge", 0) or 0)
@@ -728,10 +784,23 @@ def get_ceo_daily_center() -> CeoDailyCenter:
             f"Revenue OS: {revenue_opportunities} oportunidades, pipeline global USD {revenue_global_pipeline}, "
             f"e-commerce USD {revenue_ecommerce_pipeline}. "
             f"Revenue Sprint 30 dias: {revenue_sprint_routes} rutas, {revenue_sprint_missions} misiones; ingresos reales 0. "
+            f"E-Commerce/Amazon Readiness: e-commerce USD 10000 separado, "
+            f"{ecommerce_readiness_opportunities} oportunidades, {ecommerce_readiness_approval} requieren CEO; "
+            f"Amazon radar {amazon_readiness_opportunities} senales, {amazon_readiness_risks} riesgos; "
+            "sin tienda, pagos, inventario, Amazon Seller, scraping ni margen inventado. "
             f"Publishing & Growth: {publishing_content} contenidos, {publishing_prepared} preparados, "
             f"{publishing_approvals} aprobaciones; publicaciones reales no inventadas. "
             f"Product Readiness DCFT/SENTINELA: {product_open_gaps} brechas, "
             f"{product_requires_validation} estados requieren validacion; MARKETING vende. "
+            f"Real World Connections: {real_world_total} conexiones inventariadas, "
+            f"{real_world_needs_ceo} requieren CEO, {real_world_needs_credentials} credenciales, "
+            f"{real_world_needs_paid} aprobacion de dinero; no hay ejecucion externa. "
+            f"Real World Execution Queue: {execution_total} acciones, {execution_ready_internal} internas, "
+            f"{execution_waiting_ceo} requieren CEO, {execution_money} dinero, "
+            f"{execution_credentials} credenciales, {execution_blocked} bloqueadas; no ejecuta acciones reales. "
+            f"Social Identity Map: {social_identity_total} cuentas/canales, "
+            f"{social_identity_unknown} unknown, {social_identity_proposed} propuestas, "
+            f"{social_identity_needs_ceo} requieren CEO; sin publicacion real. "
             f"Mission Loop: {mission_active_count} activas, {mission_waiting_audit} en auditoria, "
             f"{mission_waiting_forge} en FORJA preparada. "
             f"Workday OS: {workday_alerts} alertas relevantes, "
@@ -769,8 +838,13 @@ def get_ceo_daily_center() -> CeoDailyCenter:
         nube=nube,
         revenue=revenue,
         revenue_sprint=revenue_sprint,
+        ecommerce_readiness=ecommerce_readiness,
+        amazon_readiness=amazon_readiness,
         publishing=publishing,
         product_readiness=product_readiness,
+        real_world=real_world,
+        real_world_execution=real_world_execution,
+        social_identity=social_identity,
         missions=missions,
         workday=workday,
         upgrades=upgrades,
