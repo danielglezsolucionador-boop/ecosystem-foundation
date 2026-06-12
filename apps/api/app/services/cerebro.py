@@ -1,9 +1,12 @@
 from datetime import UTC, datetime
+import hashlib
+import hmac
 import json
+from os import environ
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from app.core.database import connect, initialize_database, sql_placeholder
+from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
 from app.core.safe_data import SAFE_FALLBACK_MESSAGE, safe_payload
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
 from app.schemas.auth import AuthenticatedUser
@@ -15,6 +18,10 @@ from app.schemas.cerebro import (
     CerebroApprovalRequestCreate,
     CerebroAuthorityLevel,
     CerebroAuthorityRule,
+    CerebroChatAction,
+    CerebroChatRequest,
+    CerebroChatResponse,
+    CerebroChatState,
     CerebroCheckpoint,
     CerebroChiefOfStaffStatus,
     CerebroCompanyGoal,
@@ -40,9 +47,13 @@ from app.schemas.cerebro import (
     CerebroTask,
     CerebroTaskCreate,
     CerebroTaskStateUpdate,
+    SombraInboxMessageCreate,
+    SombraInboxMessageResponse,
+    SombraInboxRecentMessage,
 )
 from app.schemas.integration_bus import IntegrationDispatchRequest
 from app.services.audit import create_audit_event
+from app.services.centinela import get_centinela_status
 from app.services.integration_bus import dispatch_message, route_id_for_cerebro_target
 
 CEREBRO_DECISIONS_TABLE = "cerebro_decisions"
@@ -57,6 +68,7 @@ CEREBRO_REVENUE_TABLE = "cerebro_revenue_opportunities"
 CEREBRO_APPROVAL_REQUESTS_TABLE = "cerebro_approval_requests"
 CEREBRO_PRIORITY_CHANGES_TABLE = "cerebro_priority_changes"
 CEREBRO_CEO_CHECKPOINTS_TABLE = "cerebro_ceo_checkpoints"
+CEREBRO_SOMBRA_INBOX_TABLE = "cerebro_sombra_inbox"
 
 PERU_TZ = ZoneInfo("America/Lima")
 GLOBAL_MONTHLY_GOAL_USD = 6000.0
@@ -205,6 +217,305 @@ def ensure_cerebro_schema() -> None:
                 """
             )
         connection.commit()
+
+
+def ensure_sombra_inbox_schema() -> None:
+    initialize_database()
+    with connect() as connection:
+        connection.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {CEREBRO_SOMBRA_INBOX_TABLE} (
+                id TEXT PRIMARY KEY,
+                message_id TEXT NOT NULL UNIQUE,
+                source TEXT NOT NULL,
+                message_type TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                source_created_at TEXT NOT NULL,
+                received_at TEXT NOT NULL,
+                title TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                audience_json TEXT NOT NULL,
+                routed_to_json TEXT NOT NULL,
+                encrypted INTEGER NOT NULL,
+                payload_json TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                status TEXT NOT NULL,
+                header_message_id TEXT,
+                header_timestamp TEXT,
+                signature_present INTEGER NOT NULL DEFAULT 0,
+                received_count INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.commit()
+
+
+def bool_env(name: str) -> bool:
+    return environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def sombra_inbox_enabled() -> bool:
+    return bool_env("SOMBRA_INBOX_ENABLED")
+
+
+def read_sombra_receiver_token() -> str | None:
+    token = environ.get("SOMBRA_TO_CEREBRO_TOKEN", "").strip()
+    return token or None
+
+
+def extract_bearer_token(authorization: str | None) -> str | None:
+    if not authorization:
+        return None
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        return None
+    return token.strip()
+
+
+def validate_sombra_inbox_auth(authorization: str | None) -> None:
+    if not sombra_inbox_enabled():
+        raise CerebroError(
+            status_code=503,
+            detail={"error": "sombra_inbox_disabled", "enabled": False},
+        )
+    expected = read_sombra_receiver_token()
+    if not expected:
+        raise CerebroError(
+            status_code=503,
+            detail={"error": "sombra_receiver_token_not_configured"},
+        )
+    received = extract_bearer_token(authorization)
+    if not received:
+        raise CerebroError(
+            status_code=401,
+            detail={"error": "sombra_inbox_token_missing"},
+        )
+    if not hmac.compare_digest(received, expected):
+        raise CerebroError(
+            status_code=403,
+            detail={"error": "sombra_inbox_token_invalid"},
+        )
+
+
+def validate_sombra_signature(signature: str | None, raw_body: bytes) -> None:
+    secret = environ.get("SOMBRA_WEBHOOK_SECRET", "").strip()
+    if not secret or not signature:
+        return
+    expected = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+    normalized = signature.removeprefix("sha256=").strip()
+    if not hmac.compare_digest(normalized, expected):
+        raise CerebroError(
+            status_code=403,
+            detail={"error": "sombra_signature_invalid"},
+        )
+
+
+def determine_sombra_routes(message: SombraInboxMessageCreate) -> list[str]:
+    routes = list(dict.fromkeys(str(item) for item in message.audience))
+    if message.severity in {"high", "critical"} and "cerebro" not in routes:
+        routes.insert(0, "cerebro")
+    return routes
+
+
+def payload_type(value: object) -> str:
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, dict):
+        return "object"
+    return "unknown"
+
+
+def _json_dump(value: object) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+
+
+def _json_load(value: str, fallback: object) -> object:
+    try:
+        return json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return fallback
+
+
+def audit_sombra_inbox_message(
+    *,
+    message: SombraInboxMessageCreate,
+    routed_to: list[str],
+    duplicate: bool = False,
+) -> str:
+    event = create_audit_event(
+        AuditEventCreate(
+            category=AuditCategory.integration,
+            severity=AuditSeverity(message.severity.value),
+            source="cerebro.sombra_inbox",
+            action="receive_sombra_message",
+            status="duplicate" if duplicate else "received",
+            detail="CEREBRO received an inbox message for internal routing; no external action executed.",
+            metadata={
+                "message_id": message.message_id,
+                "message_type": message.type.value,
+                "severity": message.severity.value,
+                "audience": list(message.audience),
+                "routed_to": routed_to,
+                "encrypted": message.encrypted,
+                "external_connection_enabled": False,
+                "runtime_connected": False,
+                "sombra_runtime_called": False,
+            },
+        )
+    )
+    return event.id
+
+
+def _row_to_sombra_recent(row: object) -> SombraInboxRecentMessage:
+    audience = _json_load(get_row_value(row, "audience_json", default="[]"), [])
+    routed_to = _json_load(get_row_value(row, "routed_to_json", default="[]"), [])
+    metadata = _json_load(get_row_value(row, "metadata_json", default="{}"), {})
+    payload = _json_load(get_row_value(row, "payload_json", default='""'), "")
+    return SombraInboxRecentMessage(
+        message_id=get_row_value(row, "message_id"),
+        source=get_row_value(row, "source"),
+        type=get_row_value(row, "message_type"),
+        severity=get_row_value(row, "severity"),
+        created_at=get_row_value(row, "source_created_at"),
+        received_at=get_row_value(row, "received_at"),
+        title=get_row_value(row, "title"),
+        summary=get_row_value(row, "summary"),
+        audience=list(audience) if isinstance(audience, list) else [],
+        routed_to=list(routed_to) if isinstance(routed_to, list) else [],
+        encrypted=bool(get_row_value(row, "encrypted", default=1)),
+        payload_type=payload_type(payload),
+        metadata=metadata if isinstance(metadata, dict) else {},
+        status=get_row_value(row, "status"),
+    )
+
+
+def receive_sombra_inbox_message(
+    message: SombraInboxMessageCreate,
+    *,
+    authorization: str | None,
+    header_message_id: str | None = None,
+    header_timestamp: str | None = None,
+    signature: str | None = None,
+    raw_body: bytes = b"",
+) -> SombraInboxMessageResponse:
+    validate_sombra_inbox_auth(authorization)
+    validate_sombra_signature(signature, raw_body)
+    if header_message_id and header_message_id != message.message_id:
+        raise CerebroError(
+            status_code=400,
+            detail={
+                "error": "sombra_message_id_mismatch",
+                "message_id": message.message_id,
+                "header_message_id": header_message_id,
+            },
+        )
+
+    ensure_sombra_inbox_schema()
+    now = utc_now()
+    routed_to = determine_sombra_routes(message)
+    placeholder = sql_placeholder()
+    with connect() as connection:
+        existing = connection.execute(
+            f"SELECT * FROM {CEREBRO_SOMBRA_INBOX_TABLE} WHERE message_id = {placeholder}",
+            (message.message_id,),
+        ).fetchone()
+        if existing is not None:
+            connection.execute(
+                f"""
+                UPDATE {CEREBRO_SOMBRA_INBOX_TABLE}
+                SET received_count = received_count + 1, updated_at = {placeholder}
+                WHERE message_id = {placeholder}
+                """,
+                (now, message.message_id),
+            )
+            connection.commit()
+            audit_sombra_inbox_message(message=message, routed_to=routed_to, duplicate=True)
+            return SombraInboxMessageResponse(
+                ok=True,
+                received=True,
+                message_id=message.message_id,
+                stored=True,
+                routed_to=list(_json_load(get_row_value(existing, "routed_to_json"), routed_to)),
+            )
+        connection.execute(
+            f"""
+            INSERT INTO {CEREBRO_SOMBRA_INBOX_TABLE} (
+                id,
+                message_id,
+                source,
+                message_type,
+                severity,
+                source_created_at,
+                received_at,
+                title,
+                summary,
+                audience_json,
+                routed_to_json,
+                encrypted,
+                payload_json,
+                metadata_json,
+                status,
+                header_message_id,
+                header_timestamp,
+                signature_present,
+                received_count,
+                updated_at
+            )
+            VALUES (
+                {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}
+            )
+            """,
+            (
+                f"sombra-inbox-{uuid4()}",
+                message.message_id,
+                message.source,
+                message.type.value,
+                message.severity.value,
+                message.created_at,
+                now,
+                message.title,
+                message.summary,
+                _json_dump(list(message.audience)),
+                _json_dump(routed_to),
+                1 if message.encrypted else 0,
+                _json_dump(message.payload),
+                _json_dump(message.metadata),
+                "received_prepared",
+                header_message_id,
+                header_timestamp,
+                1 if signature else 0,
+                1,
+                now,
+            ),
+        )
+        connection.commit()
+    audit_sombra_inbox_message(message=message, routed_to=routed_to)
+    return SombraInboxMessageResponse(
+        ok=True,
+        received=True,
+        message_id=message.message_id,
+        stored=True,
+        routed_to=routed_to,
+    )
+
+
+def list_sombra_inbox_messages(limit: int = 20) -> list[SombraInboxRecentMessage]:
+    ensure_sombra_inbox_schema()
+    safe_limit = max(1, min(int(limit or 20), 100))
+    with connect() as connection:
+        rows = connection.execute(
+            f"""
+            SELECT *
+            FROM {CEREBRO_SOMBRA_INBOX_TABLE}
+            ORDER BY received_at DESC
+            LIMIT {safe_limit}
+            """
+        ).fetchall()
+    return [_row_to_sombra_recent(row) for row in rows]
 
 
 def actor_name(user: AuthenticatedUser) -> str:
@@ -1248,6 +1559,154 @@ def update_cerebro_task_state(
     )
     update_payload(CEREBRO_TASKS_TABLE, task.id, task.model_dump_json())
     return task
+
+
+def cerebro_chat_title(message: str, fallback: str) -> str:
+    clean = " ".join(str(message or "").split())
+    if not clean:
+        clean = fallback
+    return clean[:176]
+
+
+def cerebro_chat_intent(request: CerebroChatRequest) -> str:
+    if request.action != "auto":
+        return request.action
+    message = str(request.message or "").lower()
+    office = normalize_destination(request.office)
+    if office == "centinela":
+        return "centinela"
+    if office == "forja":
+        return "forja"
+    if any(token in message for token in ("centinela", "sentinela", "seguridad", "riesgo", "alerta")):
+        return "centinela"
+    if any(token in message for token in ("forja", "codigo", "código", "implementar", "construir", "arreglar")):
+        return "forja"
+    if any(token in message for token in ("mision", "misión", "objetivo", "plan", "prioridad", "seguimiento")):
+        return "mission"
+    return "info"
+
+
+def cerebro_chat_state() -> CerebroChatState:
+    terminal_states = {
+        CerebroMissionState.blocked,
+        CerebroMissionState.completed,
+        CerebroMissionState.failed,
+        CerebroMissionState.rejected,
+    }
+    missions = [mission for mission in list_missions() if mission.state not in terminal_states]
+    forja_tasks = [
+        task
+        for task in list_cerebro_tasks()
+        if task.destination == "forja" and not task.blocked and task.state != CerebroState.blocked
+    ]
+    centinela_status = get_centinela_status()
+    return CerebroChatState(
+        missions_active=len(missions),
+        forja_tasks=len(forja_tasks),
+        centinela_status=centinela_status.status,
+        sombra_connected=centinela_status.sombra_connected,
+    )
+
+
+def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> CerebroChatResponse:
+    ensure_cerebro_schema()
+    intent = cerebro_chat_intent(request)
+    message = " ".join(request.message.split())
+    actions: list[CerebroChatAction] = []
+
+    if intent == "mission":
+        mission = create_mission(
+            CerebroMissionCreate(
+                title=cerebro_chat_title(message, "Mision interna desde CEREBRO"),
+                objective=message,
+                origin="ceo_cerebro_chat",
+                leader_department="CEREBRO",
+                involved_departments=["CEREBRO"],
+                priority=request.priority,
+                action_type="create_internal_mission",
+                state=CerebroMissionState.assigned,
+                risks=["Sin acciones externas ejecutadas desde el chat."],
+                requires_money=False,
+                requires_ceo_approval=False,
+                expected_report="Reporte ejecutivo a CEO con accion registrada por CEREBRO.",
+            ),
+            actor,
+        )
+        actions.append(
+            CerebroChatAction(
+                type="mission_created",
+                status="created",
+                id=mission.id,
+                label=mission.title,
+                detail="Mision interna trazable creada por CEREBRO.",
+            )
+        )
+        reply = (
+            "Daniel, recibi la instruccion y cree una mision interna trazable. "
+            "Queda lista para seguimiento ejecutivo sin tocar runtimes externos."
+        )
+    elif intent == "forja":
+        task = create_cerebro_task(
+            CerebroTaskCreate(
+                title=cerebro_chat_title(message, "Trabajo interno para FORJA"),
+                description=message,
+                destination="FORJA",
+                priority=request.priority,
+                reason="Trabajo enviado desde CEREBRO a FORJA en modo interno.",
+                requires_ceo_approval=False,
+            ),
+            actor,
+        )
+        actions.append(
+            CerebroChatAction(
+                type="forja_task_created",
+                status="blocked" if task.blocked else "created",
+                id=task.id,
+                label=task.title,
+                detail=task.reason,
+            )
+        )
+        reply = (
+            "Daniel, envie el trabajo a FORJA como tarea interna. "
+            "Queda registrado para construccion controlada, sin ejecutar codigo ni tocar repos externos."
+        )
+    elif intent == "centinela":
+        centinela = get_centinela_status()
+        actions.append(
+            CerebroChatAction(
+                type="centinela_status",
+                status="prepared",
+                id="centinela-status-internal",
+                label="CENTINELA interno",
+                detail=centinela.message,
+            )
+        )
+        reply = (
+            "Daniel, CENTINELA esta preparado en modo interno. "
+            "Estado: prepared. Puente externo no conectado; SOMBRA no fue consultado."
+        )
+    else:
+        actions.append(
+            CerebroChatAction(
+                type="info",
+                status="prepared",
+                id="cerebro-internal-chat",
+                label="CEREBRO operativo",
+                detail="Puede crear mision, enviar trabajo a FORJA o consultar CENTINELA.",
+            )
+        )
+        reply = (
+            "Daniel, estoy operativo como centro de mando interno: puedo convertir instrucciones "
+            "en misiones, tareas para FORJA o lecturas de CENTINELA sin acciones externas."
+        )
+
+    return CerebroChatResponse(
+        ok=True,
+        reply=reply,
+        actions=actions,
+        state=cerebro_chat_state(),
+        provider="internal",
+    )
 
 
 def get_cerebro_status() -> CerebroStatus:

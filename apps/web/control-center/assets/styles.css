@@ -6123,6 +6123,40 @@ body {
   gap: 8px;
 }
 
+.cerebro-chat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cerebro-chat-response {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(100, 220, 148, 0.26);
+  border-radius: 8px;
+  background: rgba(100, 220, 148, 0.08);
+  color: rgba(246, 255, 242, 0.9);
+}
+
+.cerebro-chat-response[hidden] {
+  display: none;
+}
+
+.cerebro-chat-response strong {
+  color: #8df3a6;
+}
+
+.cerebro-chat-response span,
+.cerebro-chat-response small {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cerebro-chat-response small {
+  color: rgba(246, 255, 242, 0.68);
+}
+
 .department-office-grid {
   grid-template-columns: minmax(250px, 0.8fr) minmax(0, 1.3fr) minmax(250px, 0.9fr);
 }

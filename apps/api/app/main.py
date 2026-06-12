@@ -9,7 +9,8 @@ from app.api.auditoria import router as auditoria_router
 from app.api.auth import router as auth_router
 from app.api.apps import router as apps_router
 from app.api.arsenal import router as arsenal_router
-from app.api.cerebro import router as cerebro_router
+from app.api.cerebro import router as cerebro_router, sombra_inbox_router
+from app.api.centinela import router as centinela_router
 from app.api.ceo import router as ceo_router
 from app.api.control_center import router as control_center_router
 from app.api.contracts import router as contracts_router
@@ -59,6 +60,8 @@ app.include_router(audit_router)
 app.include_router(auditoria_router)
 app.include_router(auth_router)
 app.include_router(cerebro_router)
+app.include_router(sombra_inbox_router)
+app.include_router(centinela_router)
 app.include_router(ceo_router)
 app.include_router(control_center_router)
 app.include_router(contracts_router)

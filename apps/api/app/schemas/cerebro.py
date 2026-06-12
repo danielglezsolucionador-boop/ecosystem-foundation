@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -84,6 +85,96 @@ class CerebroTask(BaseModel):
     audit_event_id: str = Field(min_length=1)
     created_at: str = Field(min_length=1)
     updated_at: str = Field(min_length=1)
+
+
+class CerebroChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    context: str = Field(default="control_center", max_length=120)
+    office: str = Field(default="cerebro", max_length=120)
+    action: Literal["auto", "mission", "forja", "centinela", "info"] = "auto"
+    priority: str = Field(default="p1", pattern="^p[0-3]$")
+
+
+class CerebroChatAction(BaseModel):
+    type: Literal["mission_created", "forja_task_created", "centinela_status", "info"]
+    status: Literal["created", "prepared", "blocked", "failed"]
+    id: str | None = None
+    label: str | None = None
+    detail: str | None = None
+
+
+class CerebroChatState(BaseModel):
+    missions_active: int = 0
+    forja_tasks: int = 0
+    centinela_status: str = "prepared"
+    sombra_connected: bool = False
+
+
+class CerebroChatResponse(BaseModel):
+    ok: bool = True
+    reply: str = Field(min_length=1)
+    actions: list[CerebroChatAction] = Field(default_factory=list)
+    state: CerebroChatState
+    provider: str = "internal"
+
+
+class SombraInboxMessageType(StrEnum):
+    alert = "alert"
+    briefing = "briefing"
+    scan_report = "scan_report"
+    heartbeat = "heartbeat"
+    order_result = "order_result"
+
+
+class SombraInboxSeverity(StrEnum):
+    info = "info"
+    low = "low"
+    medium = "medium"
+    high = "high"
+    critical = "critical"
+
+
+SombraInboxAudience = Literal["cerebro", "centinela", "bunker", "ceo"]
+
+
+class SombraInboxMessageCreate(BaseModel):
+    message_id: str = Field(pattern=r"^sombra_[A-Za-z0-9_.:-]+$", max_length=160)
+    source: Literal["sombra"]
+    type: SombraInboxMessageType
+    severity: SombraInboxSeverity
+    created_at: str = Field(min_length=1, max_length=80)
+    title: str = Field(min_length=1, max_length=240)
+    summary: str = Field(min_length=1, max_length=2000)
+    audience: list[SombraInboxAudience] = Field(min_length=1, max_length=8)
+    encrypted: bool = True
+    payload: str | dict[str, Any] = Field(default="")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SombraInboxMessageResponse(BaseModel):
+    ok: bool
+    received: bool
+    message_id: str = Field(min_length=1)
+    stored: bool
+    routed_to: list[str] = Field(default_factory=list)
+
+
+class SombraInboxRecentMessage(BaseModel):
+    message_id: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+    type: SombraInboxMessageType
+    severity: SombraInboxSeverity
+    created_at: str = Field(min_length=1)
+    received_at: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    summary: str = Field(min_length=1)
+    audience: list[str] = Field(default_factory=list)
+    routed_to: list[str] = Field(default_factory=list)
+    encrypted: bool
+    payload_redacted: bool = True
+    payload_type: str = Field(min_length=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    status: str = Field(min_length=1)
 
 
 class CerebroDailyBrief(BaseModel):

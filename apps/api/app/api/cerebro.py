@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
 from app.schemas.auth import AuthenticatedUser, ControlCenterRole
 from app.schemas.cerebro import (
@@ -7,6 +7,8 @@ from app.schemas.cerebro import (
     CerebroApprovalActionRequest,
     CerebroApprovalRequest,
     CerebroApprovalRequestCreate,
+    CerebroChatRequest,
+    CerebroChatResponse,
     CerebroCheckpoint,
     CerebroChiefOfStaffStatus,
     CerebroCompanyGoal,
@@ -26,6 +28,9 @@ from app.schemas.cerebro import (
     CerebroTask,
     CerebroTaskCreate,
     CerebroTaskStateUpdate,
+    SombraInboxMessageCreate,
+    SombraInboxMessageResponse,
+    SombraInboxRecentMessage,
 )
 from app.services.auth import get_current_user, require_control_center_user
 from app.services.cerebro import (
@@ -45,6 +50,7 @@ from app.services.cerebro import (
     get_cerebro_status,
     get_chief_of_staff_status,
     get_mission,
+    list_sombra_inbox_messages,
     list_alerts,
     list_approval_requests,
     list_cerebro_decisions,
@@ -53,6 +59,8 @@ from app.services.cerebro import (
     list_department_goals,
     list_missions,
     list_revenue_opportunities,
+    receive_sombra_inbox_message,
+    run_cerebro_chat,
     update_approval_request_status,
     update_cerebro_task_state,
 )
@@ -61,6 +69,10 @@ router = APIRouter(
     prefix="/api/v1/cerebro",
     tags=["cerebro"],
     dependencies=[Depends(require_control_center_user)],
+)
+sombra_inbox_router = APIRouter(
+    prefix="/api/v1/cerebro/inbox/sombra",
+    tags=["cerebro"],
 )
 
 READ_ROLES = {
@@ -108,6 +120,29 @@ def raise_cerebro_error(error: CerebroError) -> None:
     raise HTTPException(status_code=error.status_code, detail=error.detail)
 
 
+@sombra_inbox_router.post("", response_model=SombraInboxMessageResponse)
+async def receive_sombra_message(
+    message: SombraInboxMessageCreate,
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_sombra_message_id: str | None = Header(default=None, alias="X-Sombra-Message-Id"),
+    x_sombra_timestamp: str | None = Header(default=None, alias="X-Sombra-Timestamp"),
+    x_sombra_signature: str | None = Header(default=None, alias="X-Sombra-Signature"),
+) -> SombraInboxMessageResponse:
+    raw_body = await request.body()
+    try:
+        return receive_sombra_inbox_message(
+            message,
+            authorization=authorization,
+            header_message_id=x_sombra_message_id,
+            header_timestamp=x_sombra_timestamp,
+            signature=x_sombra_signature,
+            raw_body=raw_body,
+        )
+    except CerebroError as error:
+        raise_cerebro_error(error)
+
+
 @router.get("/status", response_model=CerebroStatus)
 def read_cerebro_status(
     current_user: AuthenticatedUser = Depends(get_current_user),
@@ -122,6 +157,24 @@ def read_chief_of_staff_status(
 ) -> CerebroChiefOfStaffStatus:
     require_cerebro_read(current_user)
     return get_chief_of_staff_status()
+
+
+@router.post("/chat", response_model=CerebroChatResponse)
+def write_cerebro_chat(
+    request: CerebroChatRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> CerebroChatResponse:
+    require_cerebro_write(current_user)
+    return run_cerebro_chat(request, current_user)
+
+
+@router.get("/inbox/sombra/recent", response_model=list[SombraInboxRecentMessage])
+def read_sombra_inbox_recent(
+    limit: int = 20,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> list[SombraInboxRecentMessage]:
+    require_cerebro_read(current_user)
+    return list_sombra_inbox_messages(limit=limit)
 
 
 @router.get("/goals", response_model=list[CerebroCompanyGoal])
