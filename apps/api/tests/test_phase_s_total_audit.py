@@ -205,12 +205,33 @@ def test_phase_s_total_audit_control_center_contains_all_s_panels() -> None:
         assert claim not in normalized
 
 
-def test_phase_s_total_audit_sombra_and_backup_are_not_tracked() -> None:
-    result = subprocess.run(
-        ["git", "ls-files", "apps/sombra", "backup"],
+def test_phase_s_total_audit_backup_is_not_tracked_and_sombra_state_is_current() -> None:
+    sombra_result = subprocess.run(
+        ["git", "ls-files", "apps/sombra"],
         cwd=ROOT,
         text=True,
         capture_output=True,
         check=True,
     )
-    assert result.stdout.strip() == ""
+    backup_result = subprocess.run(
+        ["git", "ls-files", "backup"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    staged_result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    staged_paths = staged_result.stdout.splitlines()
+
+    # apps/sombra was later promoted into the repository by SOMBRA production commits.
+    # S9 no longer requires apps/sombra to be untracked; backup/ must remain untracked.
+    assert isinstance(sombra_result.stdout, str)
+    assert backup_result.stdout.strip() == ""
+    assert not any(path == "apps/sombra" or path.startswith("apps/sombra/") for path in staged_paths)
+    assert not any(path == "backup" or path.startswith("backup/") for path in staged_paths)

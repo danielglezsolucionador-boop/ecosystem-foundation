@@ -36,6 +36,7 @@ const endpoints = {
   cerebroEvening: "/api/v1/cerebro/brief/evening",
   cerebroDecisions: "/api/v1/cerebro/decisions",
   cerebroTasks: "/api/v1/cerebro/tasks",
+  cerebroExternalInbox: "/api/v1/cerebro/inbox/sombra/recent",
   ceoDailyCenter: "/api/v1/ceo/daily-center",
   ceoMorning: "/api/v1/ceo/morning",
   ceoEvening: "/api/v1/ceo/evening",
@@ -179,8 +180,266 @@ const state = {
   pendingAction: null,
   restoreAttempted: Boolean(initialSession.token),
   restoredNoticePending: false,
-  sessionRemembered: initialSession.remembered
+  sessionRemembered: initialSession.remembered,
+  officeView: "main"
 };
+
+const MAIN_OFFICES = [
+  {
+    id: "forja",
+    name: "FORJA",
+    icon: "⌘",
+    eyebrow: "Construcción",
+    summary: "Innovamos, creamos y construimos el futuro.",
+    status: "Preparado",
+    mode: "Interacción directa"
+  },
+  {
+    id: "pluma",
+    name: "PLUMA",
+    icon: "✒",
+    eyebrow: "Narrativa",
+    summary: "Ideas que inspiran. Palabras que construyen. Estrategias que elevan.",
+    status: "Preparado",
+    mode: "Contenido editorial"
+  },
+  {
+    id: "lente",
+    name: "LENTE",
+    icon: "◉",
+    eyebrow: "Audiovisual",
+    summary: "Creamos contenido que conecta. Producción audiovisual, narrativa visual y ejecución de contenidos.",
+    status: "Consulta vía CEREBRO",
+    mode: "CEO → CEREBRO → LENTE"
+  },
+  {
+    id: "auditoria",
+    name: "AUDITORÍA",
+    icon: "◎",
+    eyebrow: "Control",
+    summary: "Transparencia, datos y verdad operativa.",
+    status: "Operativa local",
+    mode: "Interacción directa"
+  },
+  {
+    id: "centinela",
+    name: "CENTINELA",
+    icon: "◆",
+    eyebrow: "Seguridad",
+    summary: "Protegemos lo que importa. Siempre alerta.",
+    status: "Base aprobada",
+    mode: "Operación directa"
+  },
+  {
+    id: "marketing",
+    name: "MARKETING",
+    icon: "◇",
+    eyebrow: "Crecimiento",
+    summary: "Conectamos, contamos y creamos impacto.",
+    status: "Preparado",
+    mode: "Growth"
+  },
+  {
+    id: "tendencias",
+    name: "TENDENCIAS",
+    icon: "◌",
+    eyebrow: "Radar",
+    summary: "Exploramos señales, tendencias y oportunidades que definen el futuro.",
+    status: "Consulta vía CEREBRO",
+    mode: "CEO → CEREBRO → TENDENCIAS"
+  }
+];
+
+const EXTRA_SPACES = [
+  ["NUBE", "Operación documental cloud; no toca NUBE local."],
+  ["Marca Personal", "Autoridad CEO y presencia futura."],
+  ["E-Commerce", "Meta separada, sin venta real."],
+  ["Amazon / Amazon Readiness", "Preparado, sin ejecutar comercio."],
+  ["DCFT", "Producto prioritario protegido; sin SUNAT real."],
+  ["ARSENAL", "Almacén estratégico planned / pending integration."],
+  ["HERMES", "Coordinación ligera preparada."],
+  ["Creador APIs/Skills", "Ideas vendibles sin API externa real."]
+];
+
+const OFFICE_REFERENCE_IMAGES = {
+  cerebro: "/control-center/assets/visuals/office-cerebro-reference.png",
+  forja: "/control-center/assets/visuals/office-forja-reference.png",
+  pluma: "/control-center/assets/visuals/office-pluma-reference.png",
+  lente: "/control-center/assets/visuals/office-lente-reference.png",
+  auditoria: "/control-center/assets/visuals/office-auditoria-reference.png",
+  centinela: "/control-center/assets/visuals/office-centinela-reference.png",
+  marketing: "/control-center/assets/visuals/office-marketing-reference.png",
+  tendencias: "/control-center/assets/visuals/office-tendencias-reference.png",
+  bunker: "/control-center/assets/visuals/office-bunker-peoc-reference.png"
+};
+
+const OFFICE_ACTION_DEFAULT_NOTE = "Puente operativo no conectado todavia. No ejecuta acciones externas, pagos, publicaciones, SUNAT ni runtimes reales.";
+
+function hotspot(id, label, x, y, width, height, config = {}) {
+  return {
+    id,
+    label,
+    x,
+    y,
+    width,
+    height,
+    status: "Puente operativo no conectado todavia",
+    primaryAction: "Preparar instruccion",
+    secondaryAction: "Crear instruccion",
+    placeholder: "Escribe tu instruccion...",
+    note: OFFICE_ACTION_DEFAULT_NOTE,
+    ...config
+  };
+}
+
+const OFFICE_HOTSPOTS = {
+  cerebro: [
+    hotspot("cerebro-chat", "Hablar con CEREBRO", 68, 20, 25, 26, {
+      panelTitle: "Hablar con CEREBRO",
+      panelBody: "Panel interno para registrar misiones, auditoria o trabajo hacia FORJA.",
+      placeholder: "Escribe una mision interna para CEREBRO..."
+    }),
+    hotspot("cerebro-history", "Historial y conversaciones", 3, 13, 26, 31, { panelTitle: "Historial de CEREBRO", panelBody: "Conversaciones y contexto local preparado para orientar decisiones del CEO.", primaryAction: "Preparar resumen" }),
+    hotspot("cerebro-missions", "Misiones activas", 5, 63, 16, 21, { panelTitle: "Misiones activas", panelBody: "Misiones internas preparadas y su estado local. No ejecuta acciones externas." }),
+    hotspot("cerebro-priorities", "Prioridades ejecutivas", 22, 63, 16, 21, { panelTitle: "Prioridades ejecutivas", panelBody: "Prioridades que CEREBRO puede convertir en tareas internas o solicitudes de auditoria." }),
+    hotspot("cerebro-delegated", "Trabajo delegado", 39, 63, 16, 21, { panelTitle: "Trabajo delegado", panelBody: "Trabajo preparado para departamentos. Requiere aprobacion si implica conexion real." }),
+    hotspot("cerebro-audit", "Coordinacion de auditoria", 56, 63, 17, 21, { panelTitle: "Coordinacion de auditoria", panelBody: "CEREBRO puede pedir revision a AUDITORIA antes de avanzar." }),
+    hotspot("cerebro-ecosystem", "Estado del ecosistema", 74, 53, 19, 22, { panelTitle: "Estado del ecosistema", panelBody: "Lectura ejecutiva local del estado de la Empresa IA. Sin produccion tocada." }),
+    hotspot("cerebro-shortcuts", "Accesos rapidos", 74, 80, 19, 15, { panelTitle: "Accesos rapidos", panelBody: "Accesos preparados para estrategia, equipos, OKRs, reportes y calendario." })
+  ],
+  forja: [
+    hotspot("forja-implementation", "Implementacion", 22, 56, 13, 30, { panelTitle: "Preparar trabajo para FORJA", panelBody: "Convertir una necesidad en tarea interna para FORJA. No ejecuta codigo real todavia.", placeholder: "Describe la tarea que FORJA debe registrar...", primaryAction: "Registrar instruccion" }),
+    hotspot("forja-queue", "Cola de ejecucion", 35, 56, 13, 30, { panelTitle: "Cola de ejecucion FORJA", panelBody: "Revision local de prioridades y trabajos pendientes." }),
+    hotspot("forja-progress", "En progreso", 48, 56, 13, 30, { panelTitle: "Trabajo en progreso", panelBody: "Seguimiento preparado de trabajo interno, sin runtime externo." }),
+    hotspot("forja-ready", "Listo para entregar", 61, 56, 13, 30, { panelTitle: "Listo para entregar", panelBody: "Entregables preparados para revision, no aprobados automaticamente." }),
+    hotspot("forja-cerebro-pending", "Pendientes de CEREBRO", 73, 56, 12, 30, { panelTitle: "Pendientes de CEREBRO", panelBody: "Bloqueos que requieren instruccion o decision de CEREBRO/CEO." }),
+    hotspot("forja-status", "Estado general", 85, 10, 12, 37, { panelTitle: "Estado general FORJA", panelBody: "Estado local preparado. No conecta FORJA externa ni ejecuta trabajos reales." }),
+    hotspot("forja-impact", "Impacto en marcha", 85, 53, 12, 30, { panelTitle: "Impacto en marcha", panelBody: "Impacto estimado de automatizaciones preparadas, sin reclamar resultados reales." })
+  ],
+  pluma: [
+    hotspot("pluma-ideas", "Ideas", 6, 15, 24, 15, { panelTitle: "Trabajo creativo PLUMA", panelBody: "Preparar ideas, angulos y propuestas editoriales.", placeholder: "Que texto, campana o idea quieres preparar?" }),
+    hotspot("pluma-messages", "Mensajes", 6, 31, 24, 15, { panelTitle: "Mensajes PLUMA", panelBody: "Crear mensajes claros, memorables y alineados con el proposito." }),
+    hotspot("pluma-campaigns", "Campanas", 6, 47, 24, 15, { panelTitle: "Campanas PLUMA", panelBody: "Preparar narrativa de campana sin publicar ni pagar pauta." }),
+    hotspot("pluma-storytelling", "Storytelling", 6, 63, 24, 16, { panelTitle: "Storytelling", panelBody: "Convertir historias reales en relatos estrategicos." }),
+    hotspot("pluma-strategy", "Comunicacion estrategica", 69, 16, 25, 15, { panelTitle: "Comunicacion estrategica", panelBody: "Alinear narrativa, tono y canales para un mensaje coherente." }),
+    hotspot("pluma-brand", "Narrativa de marca", 69, 32, 25, 15, { panelTitle: "Narrativa de marca", panelBody: "Definir alma de marca y expresarla con autenticidad." }),
+    hotspot("pluma-editorial", "Contenido editorial", 69, 48, 25, 15, { panelTitle: "Contenido editorial", panelBody: "Preparar contenido que informa, conecta y posiciona." }),
+    hotspot("pluma-copy", "Guion & copywriting", 69, 64, 25, 15, { panelTitle: "Guion & copywriting", panelBody: "Escribir guiones y textos persuasivos para campanas y lanzamientos." })
+  ],
+  lente: [
+    hotspot("lente-consult", "Consulta via CEREBRO", 72, 57, 23, 25, { panelTitle: "Consulta audiovisual via CEREBRO", panelBody: "CEREBRO coordina la necesidad audiovisual con LENTE. No se crea ni publica contenido real automaticamente.", placeholder: "Que produccion necesitas?", primaryAction: "Enviar consulta" }),
+    hotspot("lente-production", "Producciones activas", 5, 64, 17, 17, { panelTitle: "Producciones activas", panelBody: "Producciones preparadas en modo local, sin render ni publicacion real." }),
+    hotspot("lente-editing", "Edicion / postproduccion", 23, 64, 20, 17, { panelTitle: "Edicion y postproduccion", panelBody: "Revision preparada de edicion, cortes, narrativas y entregables." }),
+    hotspot("lente-library", "Biblioteca multimedia", 45, 64, 20, 17, { panelTitle: "Biblioteca multimedia", panelBody: "Assets y referencias preparados; no conecta bibliotecas externas." }),
+    hotspot("lente-deliveries", "Proximas entregas", 64, 64, 17, 17, { panelTitle: "Proximas entregas", panelBody: "Calendario preparado para entregables audiovisuales." })
+  ],
+  tendencias: [
+    hotspot("tendencias-consult", "Consulta via CEREBRO", 67, 53, 28, 30, { panelTitle: "Investigacion delegada via CEREBRO", panelBody: "Tema listo para que CEREBRO prepare investigacion de senales u oportunidades.", placeholder: "Pega link o tema a investigar...", primaryAction: "Enviar investigacion" }),
+    hotspot("tendencias-signals", "Senales recientes", 5, 58, 26, 20, { panelTitle: "Senales recientes", panelBody: "Senales preparadas para analisis. No afirma datos reales sin fuente." }),
+    hotspot("tendencias-opportunities", "Oportunidades", 34, 58, 20, 20, { panelTitle: "Oportunidades", panelBody: "Oportunidades a validar por CEREBRO antes de pasar a ejecucion." }),
+    hotspot("tendencias-topics", "Temas en observacion", 55, 58, 20, 20, { panelTitle: "Temas en observacion", panelBody: "Temas vigilados en modo preparado, sin rastreo externo activo." }),
+    hotspot("tendencias-map", "Mapa de senales", 69, 18, 24, 28, { panelTitle: "Mapa de senales", panelBody: "Mapa visual de senales y categorias. No conecta fuentes externas reales." })
+  ],
+  centinela: [
+    hotspot("centinela-alerts", "Alertas activas", 5, 49, 18, 12, { panelTitle: "Alertas activas CENTINELA", panelBody: "Lectura tactica local. Puente operativo no conectado todavia; no expone secretos." }),
+    hotspot("centinela-level", "Nivel de amenaza", 24, 49, 18, 12, { panelTitle: "Nivel de amenaza", panelBody: "Lectura tactica interna del riesgo visible en la cabina." }),
+    hotspot("centinela-clients", "Clientes en riesgo", 43, 49, 18, 12, { panelTitle: "Clientes en riesgo", panelBody: "Estado visual/preparado. No contiene datos reales de clientes." }),
+    hotspot("centinela-decisions", "Decisiones pendientes", 62, 49, 18, 12, { panelTitle: "Decisiones pendientes", panelBody: "Decisiones que requieren CEO o CEREBRO antes de avanzar." }),
+    hotspot("centinela-intel", "Inteligencia hoy", 5, 62, 18, 12, { panelTitle: "Inteligencia hoy", panelBody: "Senales internas preparadas. No revela fuentes ni activa SOMBRA desde CEO." }),
+    hotspot("centinela-threats", "Amenazas detectadas", 24, 62, 18, 12, { panelTitle: "Amenazas detectadas", panelBody: "Amenazas visibles en modo preparado para revision tactica." }),
+    hotspot("centinela-shields", "Escudos activos", 43, 62, 18, 12, { panelTitle: "Escudos activos", panelBody: "Escudos representados visualmente. No activa protecciones reales." }),
+    hotspot("centinela-sombra", "Estado SOMBRA", 62, 62, 18, 12, { panelTitle: "Coordinacion interna CENTINELA - SOMBRA", panelBody: "El CEO no habla directamente con SOMBRA. CEREBRO y CENTINELA gestionan la coordinacion interna.", primaryAction: "Enviar a CEREBRO" }),
+    hotspot("centinela-coordination", "Coordinacion tactica interna", 70, 49, 24, 28, { panelTitle: "Coordinacion interna CENTINELA - SOMBRA", panelBody: "El CEO no habla directamente con SOMBRA. CEREBRO y CENTINELA gestionan la coordinacion interna.", primaryAction: "Preparar senal tactica" }),
+    hotspot("centinela-cerebro", "Hablar con CEREBRO", 39, 76, 17, 8, { panelTitle: "Hablar con CEREBRO sobre seguridad", panelBody: "Canal del CEO hacia CEREBRO para coordinar seguridad sin hablar directo con SOMBRA.", placeholder: "Escribe la instruccion para CEREBRO..." }),
+    hotspot("centinela-report", "Ver reporte del dia", 58, 76, 18, 8, { panelTitle: "Reporte del dia CENTINELA", panelBody: "Reporte tactico preparado para revision local." })
+  ],
+  auditoria: [
+    hotspot("auditoria-status", "Estado general", 5, 49, 18, 13, { panelTitle: "Revision de AUDITORIA", panelBody: "Estado de auditoria local y criterios de revision.", primaryAction: "Preparar revision" }),
+    hotspot("auditoria-validations", "Validaciones", 5, 63, 18, 16, { panelTitle: "Validaciones", panelBody: "Checklist local de validaciones y controles." }),
+    hotspot("auditoria-risks", "Riesgos identificados", 24, 63, 18, 16, { panelTitle: "Riesgos identificados", panelBody: "Riesgos visibles y accion sugerida antes de avanzar." }),
+    hotspot("auditoria-evidence", "Evidencia revisada", 43, 63, 18, 16, { panelTitle: "Evidencia revisada", panelBody: "Evidencia local preparada. No inventa aprobaciones." }),
+    hotspot("auditoria-gates", "Quality gates", 59, 63, 17, 16, { panelTitle: "Quality gates", panelBody: "Controles de cierre y revision antes de cambios reales." }),
+    hotspot("auditoria-pending", "Pendientes por revisar", 74, 63, 15, 16, { panelTitle: "Pendientes por revisar", panelBody: "Elementos pendientes que requieren revision o decision." }),
+    hotspot("auditoria-findings", "Hallazgos relevantes", 72, 23, 22, 24, { panelTitle: "Hallazgos relevantes", panelBody: "Hallazgos con severidad y accion sugerida." }),
+    hotspot("auditoria-activity", "Actividad reciente", 72, 54, 22, 25, { panelTitle: "Actividad reciente", panelBody: "Registro local de actividad y revisiones recientes." })
+  ],
+  marketing: [
+    hotspot("marketing-strategy", "Estrategia", 3, 65, 15, 17, { panelTitle: "Accion MARKETING", panelBody: "Preparar estrategia sin publicar ni pagar.", placeholder: "Describe la campana, analisis o lanzamiento..." }),
+    hotspot("marketing-content", "Contenidos", 18, 65, 15, 17, { panelTitle: "Contenidos MARKETING", panelBody: "Preparar piezas organicas o briefing para PLUMA/LENTE." }),
+    hotspot("marketing-design", "Diseno & creatividad", 34, 65, 16, 17, { panelTitle: "Diseno & creatividad", panelBody: "Preparar concepto creativo sin conectar cuentas externas." }),
+    hotspot("marketing-media", "Medios & pauta", 51, 65, 16, 17, { panelTitle: "Medios & pauta", panelBody: "La pauta pagada requiere ROI y aprobacion CEO antes de gastar." }),
+    hotspot("marketing-analysis", "Analisis & datos", 68, 65, 16, 17, { panelTitle: "Analisis & datos", panelBody: "Preparar analisis sin inventar metricas reales." }),
+    hotspot("marketing-campaigns", "Campanas activas", 78, 11, 19, 22, { panelTitle: "Campanas activas", panelBody: "Campanas representadas como preparadas; no publica ni paga." }),
+    hotspot("marketing-funnel", "Embudo de crecimiento", 78, 36, 19, 16, { panelTitle: "Embudo de crecimiento", panelBody: "Embudo visual preparado para revision y validacion." }),
+    hotspot("marketing-impact", "Impacto generado", 78, 53, 19, 16, { panelTitle: "Impacto generado", panelBody: "Indicadores visuales sin reclamar impacto real no validado." }),
+    hotspot("marketing-launches", "Proximos lanzamientos", 78, 71, 19, 19, { panelTitle: "Proximos lanzamientos", panelBody: "Lanzamientos preparados para planificacion local." })
+  ],
+  bunker: [
+    hotspot("bunker-codes", "Codigos CEO sin leer", 3, 43, 20, 12, { panelTitle: "Codigos CEO sin leer", panelBody: "Codigos ejecutivos pendientes de revision local." }),
+    hotspot("bunker-personal-risk", "Riesgo personal", 24, 43, 19, 12, { panelTitle: "Riesgo personal", panelBody: "Riesgo personal representado en modo local/preparado." }),
+    hotspot("bunker-threats", "Amenazas activas", 44, 43, 18, 12, { panelTitle: "Amenazas activas", panelBody: "Amenazas visibles para PEOC, sin conexion externa." }),
+    hotspot("bunker-sombra-status", "Estado SOMBRA", 63, 43, 18, 12, { panelTitle: "Canal CEREBRO - SOMBRA", panelBody: "CEO no habla directo con SOMBRA. CEO habla con CEREBRO; CEREBRO coordina con SOMBRA.", placeholder: "Escribe instruccion para CEREBRO..." }),
+    hotspot("bunker-intel", "Inteligencia hoy", 3, 56, 20, 12, { panelTitle: "Inteligencia hoy", panelBody: "Inteligencia preparada para revision. Sin fuentes externas activas." }),
+    hotspot("bunker-ai-cost", "Costo IA", 24, 56, 19, 12, { panelTitle: "Costo IA", panelBody: "Control local de costos; no ejecuta pagos ni consumo real." }),
+    hotspot("bunker-decisions", "Decisiones pendientes", 44, 56, 18, 12, { panelTitle: "Decisiones pendientes PEOC", panelBody: "Decisiones que requieren criterio CEO antes de mover capacidades." }),
+    hotspot("bunker-clients", "Clientes en riesgo", 66, 8, 14, 35, { panelTitle: "Clientes en riesgo", panelBody: "Lista visual preparada, sin datos reales conectados." }),
+    hotspot("bunker-cerebro-messages", "Mensajes de CEREBRO", 68, 69, 25, 16, { panelTitle: "Mensajes de CEREBRO", panelBody: "Mensajes internos preparados para PEOC." }),
+    hotspot("bunker-cerebro-channel", "Canal con CEREBRO", 2, 68, 70, 18, { panelTitle: "Canal CEREBRO - SOMBRA", panelBody: "CEO escribe a CEREBRO. CEREBRO coordina con SOMBRA cuando corresponda.", placeholder: "Escribe instruccion para CEREBRO...", primaryAction: "Enviar a CEREBRO" })
+  ]
+};
+
+const MORE_SPACE_ACTIONS = EXTRA_SPACES.reduce((actions, [title, summary]) => {
+  const id = `more-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+  actions[id] = {
+    id,
+    label: title,
+    office: "Mas espacios",
+    status: "Puente operativo no conectado todavia",
+    panelTitle: "Espacio preparado",
+    panelBody: `${title}: ${summary}`,
+    placeholder: "Que insumo o siguiente accion necesita este espacio?",
+    primaryAction: "Enviar a CEREBRO",
+    secondaryAction: "Crear instruccion",
+    note: "Espacio visible para planificacion. Sin runtime real, secretos, pagos, publicacion ni conexion externa."
+  };
+  return actions;
+}, {});
+
+const DAILY_QUOTES = [
+  "No lidero para ser el mejor.\nLidero para dejar huella.",
+  "La empresa no corre más rápido que la claridad del CEO.",
+  "Primero mando, luego movimiento.",
+  "Lo urgente se mira de frente; lo importante se vuelve sistema."
+];
+
+const CONVERSATION_HISTORY = [
+  ["Prioridad del día", "Hoy 08:10", "Decisiones pendientes, riesgos y ruta de trabajo."],
+  ["Revenue Sprint", "Ayer 18:40", "Rutas orgánicas y preparación sin gasto real."],
+  ["Auditoría local", "Ayer 12:15", "Evidencia, bloqueos y revisión de acciones."],
+  ["Protección ejecutiva", "Lun 09:20", "Riesgo personal, alertas y señales internas."],
+  ["Departamentos", "Dom 17:05", "FORJA, PLUMA, LENTE, Marketing y Tendencias."]
+];
+
+const BUNKER_DATA = [
+  ["Amenazas activas", "3", "Mock interno, sin conexión externa"],
+  ["Estado SOMBRA", "Solo lectura", "CEO no habla directo con SOMBRA"],
+  ["Inteligencia hoy", "12", "Señales locales preparadas"],
+  ["Costo IA hoy", "US$ 0.00", "Control local"],
+  ["Proyección mensual", "US$ 0.00", "Sin consumo real"],
+  ["Decisiones pendientes", "4", "Requieren CEO"],
+  ["Clientes en riesgo", "Demo", "Sin datos reales"],
+  ["Mensajes de CEREBRO", "2", "Canal interno"],
+  ["Canal con CEREBRO", "Activo", "Cifrado local"],
+  ["Códigos CEO sin leer", "0", "A1/A2 pendientes"],
+  ["Riesgo personal", "Bajo", "Escaneo local limpio"]
+];
+
+const CENTINELA_ROWS = [
+  ["CRÍTICO", [["Alertas activas", "3"], ["Nivel de amenaza", "Medio"], ["Clientes en riesgo", "Demo"], ["Decisiones pendientes", "2"]]],
+  ["PULSO", [["Inteligencia hoy", "12"], ["Amenazas detectadas", "5"], ["Escudos activos", "Preparados"], ["Estado Sombra", "Clasificado"]]],
+  ["CEO", [["Tu riesgo personal", "Bajo"], ["Último escaneo", "Local"], ["Exposiciones", "0"], ["Mensajes de CEREBRO", "2"]]],
+  ["ACCIONES RÁPIDAS", [["Ver alertas críticas", "Abrir"], ["Aprobar decisiones pendientes", "CEO"], ["Hablar con CEREBRO", "Canal"], ["Ver reporte del día", "Listo"]]]
+];
 
 const humanAppCatalog = [
   {
@@ -912,6 +1171,31 @@ async function fetchJson(name, url) {
   return response.json();
 }
 
+async function postJson(name, url, payload) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json", Accept: "application/json" }),
+    cache: "no-store",
+    body: JSON.stringify(payload)
+  });
+  if (response.status === 401) {
+    clearSession();
+    showLogin("Tu sesiÃ³n expirÃ³. Entra nuevamente.");
+  }
+  const text = await response.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {};
+  }
+  if (!response.ok) {
+    const detail = data?.detail?.error || data?.detail || text || response.statusText;
+    throw new Error(`${name}: ${response.status} ${typeof detail === "string" ? detail : JSON.stringify(detail)}`);
+  }
+  return data;
+}
+
 async function allSettledLimited(items, worker, limit = DATA_FETCH_CONCURRENCY) {
   const results = new Array(items.length);
   let nextIndex = 0;
@@ -1076,6 +1360,7 @@ function render() {
   renderAuditor();
   renderSystem();
   renderNubeControlTower();
+  renderLivingOffice();
   renderView();
   bindActionButtons();
 }
@@ -1085,24 +1370,680 @@ function setText(selector, text) {
   if (element) element.textContent = text;
 }
 
+function navigateTo(view) {
+  state.officeView = view || "main";
+  renderLivingOffice();
+  renderOfficeNavigation();
+  const stage = $("#ceo-office-stage");
+  if (stage) stage.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderOfficeNavigation() {
+  const nav = $("#view-tabs");
+  if (!nav) return;
+  const items = [
+    ["main", "Oficina CEO"],
+    ["cerebro", "CEREBRO"],
+    ["forja", "FORJA"],
+    ["pluma", "PLUMA"],
+    ["lente", "LENTE"],
+    ["auditoria", "AUDITORÍA"],
+    ["centinela", "CENTINELA"],
+    ["marketing", "MARKETING"],
+    ["tendencias", "TENDENCIAS"],
+    ["more", "Más espacios"],
+    ["technical", "Vista técnica"]
+  ];
+  nav.dataset.livingNav = "true";
+  nav.innerHTML = items.map(([view, text]) => `
+    <button class="${state.officeView === view ? "active" : ""}" data-office-nav="${escapeHtml(view)}" type="button">
+      ${escapeHtml(text)}
+    </button>
+  `).join("");
+}
+
+function ensureOfficeStage() {
+  let stage = $("#ceo-office-stage");
+  if (stage) return stage;
+  const topbar = $(".topbar");
+  if (!topbar) return null;
+  topbar.insertAdjacentHTML("afterend", `<section id="ceo-office-stage" class="ceo-office-stage" aria-label="Oficina Viva CEO"></section>`);
+  return $("#ceo-office-stage");
+}
+
+function renderLivingOffice() {
+  const app = $("#app");
+  const stage = ensureOfficeStage();
+  if (!app || !stage) return;
+  stage.dataset.officeView = state.officeView;
+  app.classList.toggle("living-office-mode", state.officeView !== "technical");
+  app.classList.toggle("technical-office-mode", state.officeView === "technical");
+  stage.classList.toggle("hidden", state.officeView === "technical");
+  if (state.officeView === "technical") {
+    stage.innerHTML = "";
+    return;
+  }
+  const renderers = {
+    main: renderMainOffice,
+    cerebro: renderCerebroOffice,
+    forja: () => renderOfficeView("forja"),
+    pluma: () => renderOfficeView("pluma"),
+    lente: () => renderOfficeView("lente"),
+    auditoria: () => renderOfficeView("auditoria"),
+    centinela: renderCentinelaOffice,
+    marketing: () => renderOfficeView("marketing"),
+    tendencias: () => renderOfficeView("tendencias"),
+    more: renderMoreSpaces,
+    bunker: renderBunker
+  };
+  stage.innerHTML = (renderers[state.officeView] || renderMainOffice)();
+}
+
+function renderPulse() {
+  return `
+    <div class="office-pulse" aria-label="Pulso de la empresa">
+      <span>Pulso de la empresa</span>
+      <i></i>
+    </div>
+  `;
+}
+
+function renderOfficeBackHotspot(label = "Volver a la oficina principal", modifier = "") {
+  const className = `office-back-hotspot${modifier ? ` ${modifier}` : ""}`;
+  return `<button class="${className}" data-office-nav="main" type="button" aria-label="${escapeHtml(label)}"></button>`;
+}
+
+function renderOfficeReferenceImage(officeId) {
+  const src = OFFICE_REFERENCE_IMAGES[officeId];
+  if (!src) return "";
+  return `<img class="office-reference-image" src="${escapeHtml(src)}" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="sync" fetchpriority="high" />`;
+}
+
+function renderOfficeHotspots(officeId) {
+  const hotspots = OFFICE_HOTSPOTS[officeId] || [];
+  if (!hotspots.length) return "";
+  return `
+    <div class="office-hotspot-layer" aria-label="Acciones funcionales ${escapeHtml(officeId)}">
+      ${hotspots.map((item) => `
+        <button
+          class="office-hotspot"
+          data-office-action="${escapeHtml(item.id)}"
+          type="button"
+          title="${escapeHtml(item.label)}"
+          aria-label="${escapeHtml(item.label)}"
+          style="--hotspot-x:${item.x}%;--hotspot-y:${item.y}%;--hotspot-w:${item.width}%;--hotspot-h:${item.height}%"
+        >
+          <span>${escapeHtml(item.label)}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function findOfficeAction(actionId) {
+  if (MORE_SPACE_ACTIONS[actionId]) return MORE_SPACE_ACTIONS[actionId];
+  for (const [office, hotspots] of Object.entries(OFFICE_HOTSPOTS)) {
+    const match = hotspots.find((item) => item.id === actionId);
+    if (match) {
+      const reality = {
+        cerebro: {
+          operation: "create_cerebro_mission",
+          status: "Backend interno disponible: Mission Execution Loop. Chat LLM no conectado.",
+          primaryAction: "Crear mision interna",
+          secondaryAction: "Ver estado",
+          note: "CEREBRO no tiene chat LLM conectado en esta cabina. Puede crear mision interna o instruccion si el backend lo permite."
+        },
+        forja: {
+          operation: "create_forja_task",
+          status: "Backend interno disponible: cola CEREBRO -> FORJA. FORJA externa no conectada.",
+          primaryAction: "Preparar trabajo FORJA",
+          secondaryAction: "Ver cola",
+          note: "FORJA externa no conectada. Trabajo registrado internamente; no ejecuta codigo real ni toca repos externos."
+        },
+        centinela: {
+          operation: "read_centinela_readiness",
+          status: "Readiness interno disponible. CENTINELA runtime real no conectado.",
+          primaryAction: "Ver readiness",
+          secondaryAction: "Preparar reporte",
+          note: "CENTINELA representado en cabina. Puente operativo no conectado todavia. SOMBRA queda fuera y no se consulta desde esta cabina."
+        }
+      }[office] || {};
+      return { ...match, ...reality, office: office.toUpperCase() };
+    }
+  }
+  return null;
+}
+
+function currentOfficeElement() {
+  return $("#ceo-office-stage")?.firstElementChild || null;
+}
+
+function closeOfficeActionPanel() {
+  $(".office-action-panel")?.remove();
+  $(".office-toast")?.remove();
+}
+
+function showOfficeToast(message) {
+  $(".office-toast")?.remove();
+  const office = currentOfficeElement();
+  if (!office) return;
+  office.insertAdjacentHTML("beforeend", `<div class="office-toast" role="status">${escapeHtml(message)}</div>`);
+  window.setTimeout(() => $(".office-toast")?.remove(), 2600);
+}
+
+function officeRealityFacts(action) {
+  const office = String(action?.office || "").toLowerCase();
+  if (office === "cerebro") {
+    const status = state.data.cerebroStatus || {};
+    const missions = Array.isArray(state.data.missionsActive) ? state.data.missionsActive.length : 0;
+    const tasks = Array.isArray(state.data.cerebroTasks) ? state.data.cerebroTasks.length : number(status.tasks);
+    const inbox = Array.isArray(state.data.cerebroExternalInbox) ? state.data.cerebroExternalInbox.length : 0;
+    return [
+      `Estado: ${status.status || "backend interno consultable"}`,
+      `Misiones activas: ${number(missions)}`,
+      `Tareas CEREBRO: ${number(tasks)}`,
+      inbox ? `Inbox externo: ${number(inbox)} mensajes recibidos` : "Inbox externo preparado"
+    ];
+  }
+  if (office === "forja") {
+    const upgrades = state.data.upgradesStatus || {};
+    const packages = Array.isArray(state.data.upgradesPackages) ? state.data.upgradesPackages.length : number(upgrades.packages);
+    return [
+      "FORJA externa: no conectada",
+      `Paquetes upgrade: ${number(packages)}`,
+      "Tarea interna via CEREBRO disponible"
+    ];
+  }
+  if (office === "centinela") {
+    const readiness = state.data.productReadinessSentinela || {};
+    const status = state.data.productReadinessStatus || {};
+    return [
+      `Readiness: ${readiness.readiness_status || readiness.status || status.sentinela_status || "requires_validation"}`,
+      `Owner venta: ${readiness.sales_owner || "MARKETING"}`,
+      "SOMBRA: fuera de alcance"
+    ];
+  }
+  return ["Preparado local", "Sin puente operativo conectado", "Sin acciones externas"];
+}
+
+function renderOfficeActionPanel(action) {
+  const placeholder = action.placeholder || "Escribe tu instruccion...";
+  const status = action.status || "Puente operativo no conectado todavia";
+  const facts = officeRealityFacts(action);
+  return `
+    <aside class="office-action-panel command-drawer" role="dialog" aria-modal="false" aria-label="${escapeHtml(action.panelTitle || action.label)}">
+      <button class="office-action-close" data-office-panel-close type="button" aria-label="Cerrar panel">Cerrar</button>
+      <span class="office-action-origin">${escapeHtml(action.office || "Oficina")}</span>
+      <h3>${escapeHtml(action.panelTitle || action.label)}</h3>
+      <p>${escapeHtml(action.panelBody || "Accion preparada para revision local.")}</p>
+      <div class="office-action-status">${escapeHtml(status)}</div>
+      <ul class="office-action-facts">
+        ${facts.map((fact) => `<li>${escapeHtml(fact)}</li>`).join("")}
+      </ul>
+      <p class="office-action-note">${escapeHtml(action.note || OFFICE_ACTION_DEFAULT_NOTE)}</p>
+      <label class="office-action-input">
+        <span>${escapeHtml(placeholder)}</span>
+        <textarea rows="3" data-office-panel-input spellcheck="false" placeholder="${escapeHtml(placeholder)}"></textarea>
+      </label>
+      <div class="office-action-response" data-office-panel-response hidden></div>
+      <div class="office-action-buttons">
+        <button class="primary-action" data-office-panel-submit type="button">${escapeHtml(action.primaryAction || "Enviar")}</button>
+        <button class="mini-action" data-office-panel-create type="button">${escapeHtml(action.secondaryAction || "Crear mision")}</button>
+      </div>
+    </aside>
+  `;
+}
+
+function openOfficeActionPanel(actionId) {
+  const action = findOfficeAction(actionId);
+  const office = currentOfficeElement();
+  if (!action || !office) return;
+  closeOfficeActionPanel();
+  office.insertAdjacentHTML("beforeend", renderOfficeActionPanel(action));
+  const panel = $(".office-action-panel");
+  if (panel) {
+    panel.dataset.actionId = action.id;
+    panel.querySelector("[data-office-panel-input]")?.focus();
+  }
+  showOfficeToast("Command Drawer abierto");
+}
+
+function shortTitle(value, fallback) {
+  const clean = String(value || "").replace(/\s+/g, " ").trim();
+  return (clean || fallback).slice(0, 176);
+}
+
+async function createCerebroInternalMission(action, text) {
+  const instruction = text || `${action.panelTitle || action.label}: preparar instruccion interna desde Oficina CEO.`;
+  return postJson("crear mision CEREBRO", "/api/v1/missions", {
+    title: shortTitle(action.panelTitle || action.label, "Mision interna CEREBRO"),
+    objective: `Gestion interna desde ${action.office || "Oficina CEO"}.`,
+    ceo_instruction: instruction,
+    source: "ceo_office_command_drawer",
+    leader_department: "CEREBRO",
+    involved_departments: ["CEREBRO"],
+    priority: "p1",
+    action_type: "internal_mission",
+    expected_business_impact: "unknown",
+    requires_money: false,
+    requires_ceo_approval: false,
+    risk: "controlled"
+  });
+}
+
+async function createForjaInternalTask(action, text) {
+  const description = text || `${action.panelTitle || action.label}: preparar trabajo interno para FORJA.`;
+  return postJson("crear tarea FORJA", "/api/v1/cerebro/tasks", {
+    title: shortTitle(action.panelTitle || action.label, "Trabajo interno para FORJA"),
+    description,
+    destination: "FORJA",
+    priority: "p1",
+    reason: "FORJA externa no conectada; tarea interna registrada desde Oficina CEO.",
+    requires_ceo_approval: false
+  });
+}
+
+function centinelaReadinessSummary() {
+  const readiness = state.data.productReadinessSentinela || {};
+  const gaps = Array.isArray(state.data.productReadinessGaps)
+    ? state.data.productReadinessGaps.filter((gap) => String(gap.product_id || "").toLowerCase() === "sentinela")
+    : [];
+  return {
+    status: readiness.readiness_status || readiness.status || "requires_validation",
+    owner: readiness.sales_owner || "MARKETING",
+    gaps: gaps.length,
+    evidence: readiness.evidence_status || "missing"
+  };
+}
+
+async function submitOfficeAction(mode = "send") {
+  const panel = $(".office-action-panel");
+  if (!panel) return;
+  const action = findOfficeAction(panel.dataset.actionId);
+  const input = panel.querySelector("[data-office-panel-input]");
+  const response = panel.querySelector("[data-office-panel-response]");
+  const text = input?.value.trim();
+  if (!response || !action) return;
+  response.hidden = false;
+  response.innerHTML = `<span>Procesando accion interna...</span>`;
+  try {
+    if (action.operation === "create_cerebro_mission") {
+      const mission = await createCerebroInternalMission(action, text);
+      response.innerHTML = `
+        <strong>Mision interna creada</strong>
+        <span>ID: ${escapeHtml(mission.id || "registrada")}</span>
+        <small>CEREBRO no tiene chat LLM conectado aqui; se registro una mision interna trazable.</small>
+      `;
+      showOfficeToast("Mision CEREBRO creada");
+      return;
+    }
+    if (action.operation === "create_forja_task") {
+      const task = await createForjaInternalTask(action, text);
+      response.innerHTML = `
+        <strong>Tarea interna FORJA registrada</strong>
+        <span>ID: ${escapeHtml(task.id || "registrada")}</span>
+        <small>FORJA externa no conectada. No se ejecuto codigo real.</small>
+      `;
+      showOfficeToast("Tarea FORJA registrada");
+      return;
+    }
+    if (action.operation === "read_centinela_readiness") {
+      const summary = centinelaReadinessSummary();
+      response.innerHTML = `
+        <strong>Readiness SENTINELA consultado</strong>
+        <span>Estado: ${escapeHtml(summary.status)} | Owner: ${escapeHtml(summary.owner)} | Brechas: ${escapeHtml(number(summary.gaps))}</span>
+        <small>SOMBRA queda fuera. No hay runtime CENTINELA real conectado desde esta cabina.</small>
+      `;
+      showOfficeToast("Readiness SENTINELA visible");
+      return;
+    }
+    response.innerHTML = `
+      <strong>Puente operativo no conectado todavia</strong>
+      <span>Esta oficina conserva navegacion y panel preparado, sin ejecucion real.</span>
+      ${text ? `<small>Entrada local no enviada: ${escapeHtml(text)}</small>` : ""}
+    `;
+    showOfficeToast("Puente no conectado");
+  } catch (error) {
+    response.innerHTML = `
+      <strong>Accion interna no completada</strong>
+      <span>${escapeHtml(error.message || "Error desconocido")}</span>
+      <small>No se ejecuto accion externa.</small>
+    `;
+    showOfficeToast("Accion interna bloqueada");
+  }
+}
+
+function renderMainOffice() {
+  const quote = DAILY_QUOTES[0];
+  return `
+    <div id="ceo-office" class="ceo-office-main" data-office="main">
+      <header class="office-header">
+        <div class="office-ceo-label">
+          <span>CEO</span>
+          <strong>Oficina principal</strong>
+        </div>
+        ${renderPulse()}
+      </header>
+      <main class="office-main-sequence">
+        <section id="cerebro-core" class="office-orbit-layout" aria-label="CEREBRO central">
+          <div class="office-ring office-ring-one"></div>
+          <div class="office-ring office-ring-two"></div>
+          <button id="cerebro-btn" class="cerebro-orb-button" data-office-nav="cerebro" type="button" aria-label="Entrar a Oficina CEREBRO">
+            <span class="cerebro-orb-core"></span>
+            <span class="orbit-node n1"></span>
+            <span class="orbit-node n2"></span>
+            <span class="orbit-node n3"></span>
+            <span class="orbital-particle p1"></span>
+            <span class="orbital-particle p2"></span>
+            <span class="orbital-particle p3"></span>
+            <strong>CEREBRO</strong>
+            <small>Tu asistente estratégico</small>
+          </button>
+        </section>
+        <section id="offices-grid" class="main-office-grid" aria-label="Oficinas internas">
+          ${MAIN_OFFICES.map((office) => renderOfficeCard(office)).join("")}
+        </section>
+        <section id="more-spaces" class="main-more-spaces" aria-label="Más espacios">
+          <button class="mini-action" data-office-nav="more" type="button">Más espacios</button>
+        </section>
+      </main>
+      <footer class="office-footer-note">
+        <div class="daily-quote">${escapeHtml(quote)}</div>
+        <span id="daniel-signature" class="daniel-signature" data-office-nav="bunker" role="button" tabindex="0" aria-label="Entrar al BÚNKER CEO">
+          Daniel
+        </span>
+      </footer>
+    </div>
+  `;
+}
+
+function officeIcon(officeId) {
+  const icons = {
+    forja: `<path d="M9 6 4 12l5 6"/><path d="m15 6 5 6-5 6"/><path d="m14 4-4 16"/>`,
+    pluma: `<path d="M18 3 7 14l-1 4 4-1L21 6z"/><path d="M14 7l3 3"/><path d="M5 21h14"/>`,
+    lente: `<circle cx="11" cy="11" r="6"/><path d="m16 16 5 5"/><path d="M8 11h6"/>`,
+    auditoria: `<circle cx="12" cy="12" r="8"/><path d="m8 12 3 3 5-6"/>`,
+    centinela: `<path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/><path d="M9 12l2 2 4-4"/>`,
+    marketing: `<path d="M4 13v-2l10-5v12z"/><path d="M14 9h3a3 3 0 0 1 0 6h-3"/><path d="M6 13l2 6"/>`,
+    tendencias: `<path d="M4 19h16"/><path d="M6 16l4-5 3 3 5-8"/><path d="M18 6h-4v4"/>`
+  };
+  return `
+    <svg class="office-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      ${icons[officeId] || icons.tendencias}
+    </svg>
+  `;
+}
+
+function renderOfficeCard(office) {
+  const footer = office.id === "centinela"
+    ? `<label class="sentinela-direct-chat" aria-label="Chat directo con CENTINELA">
+        <span>Chat directo CEO</span>
+        <input type="text" placeholder="Preguntar a CENTINELA" />
+      </label>`
+    : ["lente", "tendencias"].includes(office.id)
+      ? `<small>Consulta vía CEREBRO</small>`
+      : "";
+  return `
+    <article class="office-card" data-office-nav="${escapeHtml(office.id)}" role="button" tabindex="0">
+      ${officeIcon(office.id)}
+      <strong>${escapeHtml(office.name)}</strong>
+      <p>${escapeHtml(office.summary)}</p>
+      ${footer}
+    </article>
+  `;
+}
+
+function renderCerebroOffice() {
+  return `
+    <div class="office-view cerebro-office" data-office="cerebro">
+      ${renderOfficeReferenceImage("cerebro")}
+      ${renderOfficeBackHotspot()}
+      ${renderOfficeHotspots("cerebro")}
+      <div class="office-view-head">
+        <button class="mini-action" data-office-nav="main" type="button">Volver</button>
+        <div>
+          <span class="eyebrow">Oficina CEREBRO</span>
+          <h2>Centro de mando operativo</h2>
+        </div>
+      </div>
+      <div class="cerebro-room-layout">
+        <aside class="conversation-history">
+          <label>
+            <span>Historial de conversaciones</span>
+            <input type="search" placeholder="Buscar conversaciones..." aria-label="Buscar conversaciones" />
+          </label>
+          <div class="conversation-list">
+            ${CONVERSATION_HISTORY.map(([title, time, summary]) => `
+              <button type="button">
+                <strong>${escapeHtml(title)}</strong>
+                <small>${escapeHtml(time)}</small>
+                <p>${escapeHtml(summary)}</p>
+              </button>
+            `).join("")}
+          </div>
+        </aside>
+        <section class="cerebro-command-core">
+          <div class="cerebro-face">
+            <span class="cerebro-orb-core"></span>
+            <strong>CEREBRO</strong>
+            <small>CEO, esto requiere tu decisión.</small>
+          </div>
+          <div class="cerebro-chat">
+            <div class="chat-line system">Estado del ecosistema: local, protegido, sin acciones externas.</div>
+            <div class="chat-line user">Prioridad ejecutiva: revisar oficinas internas y PEOC.</div>
+            <label>
+              <span>Hablar con CEREBRO</span>
+              <div class="chat-input-row">
+                <input type="text" placeholder="Pregunta sobre decisión, riesgo o tarea..." />
+                <button class="primary-action" type="button">Enviar</button>
+              </div>
+            </label>
+          </div>
+        </section>
+        <aside class="cerebro-side-panel">
+          ${["Misiones activas", "Prioridades ejecutivas", "Trabajo delegado", "Coordinación de auditoría", "Accesos rápidos"].map((title) => `
+            <article>
+              <span>${escapeHtml(title)}</span>
+              <strong>Preparado</strong>
+              <p>Información local consolidada. Sin runtime externo.</p>
+            </article>
+          `).join("")}
+        </aside>
+      </div>
+    </div>
+  `;
+}
+
+function renderOfficeView(officeId) {
+  const office = MAIN_OFFICES.find((item) => item.id === officeId);
+  if (!office) return renderMainOffice();
+  const viaCerebro = ["lente", "tendencias"].includes(officeId);
+  const direct = ["forja", "auditoria"].includes(officeId);
+  const details = {
+    forja: ["Work orders", "Herramientas preparadas", "Construcción con aprobación", "Evidencia técnica"],
+    pluma: ["Ideas", "Mensajes", "Campañas", "Storytelling", "Guion & copywriting"],
+    lente: ["Estrategia audiovisual", "Grabación", "Edición", "Postproducción", "Biblioteca multimedia", "Entregas"],
+    auditoria: ["Revisiones", "Evidencia", "Riesgos", "Permisos", "Criterios de cierre"],
+    marketing: ["Campañas", "Posicionamiento", "Contenidos", "Impacto", "Crecimiento", "Lanzamientos"],
+    tendencias: ["Señales", "Investigación", "Oportunidades", "Análisis del entorno"]
+  };
+  return `
+    <div class="office-view department-office" data-office="${escapeHtml(officeId)}">
+      ${renderOfficeReferenceImage(officeId)}
+      ${renderOfficeBackHotspot()}
+      ${renderOfficeHotspots(officeId)}
+      <div class="office-view-head">
+        <button class="mini-action" data-office-nav="main" type="button">Volver</button>
+        <div>
+          <span class="eyebrow">${escapeHtml(office.eyebrow)}</span>
+          <h2>${escapeHtml(office.name)}</h2>
+          <p>${escapeHtml(office.summary)}</p>
+        </div>
+      </div>
+      <div class="department-office-grid">
+        <article class="department-brief">
+          <span>Modo operativo</span>
+          <strong>${viaCerebro ? "Consulta vía CEREBRO" : direct ? "Interacción directa" : "Preparado local"}</strong>
+          <p>${viaCerebro ? `Patrón: CEO → CEREBRO → ${office.name}.` : "No ejecuta acciones externas ni cambia producción."}</p>
+        </article>
+        <div class="department-capability-grid">
+          ${(details[officeId] || []).map((item) => `
+            <article>
+              <strong>${escapeHtml(item)}</strong>
+              <small>Estado local preparado</small>
+            </article>
+          `).join("")}
+        </div>
+        <article class="department-chat-panel">
+          <span>${viaCerebro ? "Consulta vía CEREBRO" : "Canal operativo"}</span>
+          <strong>${viaCerebro ? "CEREBRO coordina esta oficina" : "Acción interna preparada"}</strong>
+          <p>${viaCerebro ? "El CEO no ejecuta directo: la solicitud pasa por CEREBRO para coordinacion." : "Puede registrar instrucciones internas, sin conectar cuentas ni runtimes reales."}</p>
+          <button class="primary-action" data-office-nav="cerebro" type="button">Hablar con CEREBRO</button>
+        </article>
+      </div>
+    </div>
+  `;
+}
+
+function renderCentinelaOffice() {
+  return `
+    <div class="office-view centinela-office" data-office="centinela">
+      ${renderOfficeReferenceImage("centinela")}
+      ${renderOfficeBackHotspot()}
+      ${renderOfficeHotspots("centinela")}
+      <div class="office-view-head">
+        <button class="mini-action" data-office-nav="main" type="button">Volver</button>
+        <div>
+          <span class="eyebrow">Seguridad ejecutiva</span>
+          <h2>CENTINELA</h2>
+          <p>Operación directa de seguridad, protección y vigilancia interna preparada.</p>
+        </div>
+      </div>
+      <div class="sentinel-layout">
+        <section class="sentinel-map" aria-label="Mapa funcional de amenazas">
+          <div class="world-line"></div>
+          <span class="threat-dot latam">LATAM</span>
+          <span class="threat-dot usa">US</span>
+          <span class="threat-dot eu">EU</span>
+          <span class="threat-dot asia">ASIA</span>
+          <strong>Mapa vivo de focos</strong>
+          <small>Datos visuales/locales hasta conexión real autorizada.</small>
+        </section>
+        <section class="sentinel-matrix">
+          ${CENTINELA_ROWS.map(([row, items]) => `
+            <article class="sentinel-row">
+              <span>${escapeHtml(row)}</span>
+              <div>
+                ${items.map(([title, value]) => `<small><b>${escapeHtml(title)}</b>${escapeHtml(value)}</small>`).join("")}
+              </div>
+            </article>
+          `).join("")}
+        </section>
+        <section class="sentinel-coordination">
+          <span>Coordinación táctica</span>
+          <strong>CENTINELA ↔ SOMBRA</strong>
+          <p>Inteligencia clasificada entra como señal operativa. El CEO consulta a CEREBRO; CEREBRO coordina.</p>
+          <button class="primary-action" data-office-nav="cerebro" type="button">Hablar con CEREBRO</button>
+        </section>
+      </div>
+    </div>
+  `;
+}
+
+function renderMoreSpaces() {
+  return `
+    <div class="office-view more-spaces-office" data-office="more">
+      ${renderOfficeBackHotspot()}
+      <div class="office-view-head">
+        <button class="mini-action" data-office-nav="main" type="button">Volver</button>
+        <div>
+          <span class="eyebrow">Más espacios</span>
+          <h2>Apps futuras y áreas preparadas</h2>
+          <p>Visibles para planificación local. Sin runtime, secretos ni acciones externas.</p>
+        </div>
+      </div>
+      <div class="more-spaces-grid">
+        ${EXTRA_SPACES.map(([title, summary]) => `
+          <article class="more-space-card" data-office-action="${escapeHtml(`more-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`)}" role="button" tabindex="0" title="${escapeHtml(title)}">
+            <strong>${escapeHtml(title)}</strong>
+            <p>${escapeHtml(summary)}</p>
+            <small>Preparado / protegido</small>
+          </article>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderBunker() {
+  return `
+    <div class="office-view bunker-office" data-office="bunker">
+      ${renderOfficeReferenceImage("bunker")}
+      ${renderOfficeBackHotspot()}
+      ${renderOfficeBackHotspot("Salir del BUNKER y volver a la oficina principal", "office-back-hotspot--bunker-exit")}
+      ${renderOfficeHotspots("bunker")}
+      <div class="office-view-head">
+        <button class="mini-action" data-office-nav="main" type="button">Volver</button>
+        <div>
+          <span class="eyebrow">BÚNKER CEO</span>
+          <h2>Centro de Operaciones de Emergencia</h2>
+          <p>Acceso restringido. Canal cifrado activo.</p>
+        </div>
+      </div>
+      <p class="bunker-fixed-phrase">Lo que otros no ven — tú ya lo sabes.</p>
+      <p class="bunker-permanent-text">Tú hablas con CEREBRO. Él gestiona a SOMBRA.</p>
+      <div class="bunker-layout">
+        <section class="bunker-map">
+          <span class="radar-sweep"></span>
+          <strong>Mapa vivo PEOC</strong>
+          <small>Modo local. Sin conexión externa.</small>
+        </section>
+        <section class="bunker-grid">
+          ${BUNKER_DATA.map(([title, value, detail]) => `
+            <article>
+              <span>${escapeHtml(title)}</span>
+              <strong>${escapeHtml(value)}</strong>
+              <small>${escapeHtml(detail)}</small>
+            </article>
+          `).join("")}
+        </section>
+        <section class="bunker-command">
+          <span>Flujo visual</span>
+          <strong>CEO → CEREBRO → SOMBRA</strong>
+          <p>Tú hablas con CEREBRO. Él gestiona a SOMBRA. Sin canal directo CEO → SOMBRA.</p>
+          <label class="bunker-cerebro-channel">
+            <span>Canal con CEREBRO</span>
+            <div class="chat-input-row">
+              <input type="text" placeholder="Mensaje para CEREBRO" />
+              <button class="primary-action" type="button">Enviar</button>
+            </div>
+          </label>
+          <button class="mini-action" data-office-nav="main" type="button">Salir del BÚNKER</button>
+        </section>
+      </div>
+    </div>
+  `;
+}
+
 function renderCompanyShell() {
-  setText(".brand strong", "Empresa IA");
-  setText(".brand small", "Centro CEO");
+  setText(".brand strong", "CEO");
+  setText(".brand small", "Empresa IA");
+  renderOfficeNavigation();
   const topbar = $(".topbar");
   if (topbar && !topbar.querySelector(".mobile-brand-chip")) {
     topbar.insertAdjacentHTML("afterbegin", `
       <div class="mobile-brand-chip" aria-label="Empresa IA local">
         <span class="brand-mark ecosystem-mark" aria-hidden="true"><span class="globe-core"></span></span>
         <span>
-          <strong>Empresa IA</strong>
-          <small>Local / revisión CEO</small>
+          <strong>CEO</strong>
+          <small>Oficina Viva</small>
         </span>
       </div>
     `);
   }
-  setText(".topbar .eyebrow", "Empresa IA");
-  setText(".topbar h1", "Local / revisión CEO");
-  setText(".topbar p", "Cabina ejecutiva local. Sin producción tocada.");
+  setText(".topbar .eyebrow", "Oficina Viva CEO");
+  setText(".topbar h1", "Empresa IA");
+  setText(".topbar p", "Oficinas internas, PEOC y vista técnica local. Sin producción tocada.");
   setText(".search-box span", "Buscar");
   const search = $("#search");
   if (search) search.placeholder = "Buscar...";
@@ -1157,16 +2098,17 @@ function renderCompanyShell() {
   });
 
   const bottomItems = [
-    ["top", "Inicio"],
+    ["main", "CEO"],
     ["cerebro", "CEREBRO"],
-    ["revenue", "Revenue"],
-    ["alerts", "Riesgos"],
-    ["profile", "Perfil"]
+    ["centinela", "Seguridad"],
+    ["more", "Espacios"],
+    ["technical", "Técnica"]
   ];
   $$("#bottom-nav button").forEach((button, index) => {
     const item = bottomItems[index];
     if (!item) return;
-    button.dataset.bottomTarget = item[0];
+    button.dataset.officeNav = item[0];
+    delete button.dataset.bottomTarget;
     button.textContent = item[1];
   });
 }
@@ -1274,6 +2216,11 @@ function renderRoleBoundary() {
 
   $$("#view-tabs button").forEach((button) => {
     const view = button.dataset.view;
+    if (!view) {
+      button.classList.remove("restricted");
+      button.disabled = false;
+      return;
+    }
     const allowed = !boundary || boundary.views_allowed.includes(view);
     button.classList.toggle("restricted", !allowed);
     button.disabled = !allowed;
@@ -3571,7 +4518,11 @@ function buildTimeline() {
 }
 
 function renderView() {
+  if ($("#view-tabs")?.dataset.livingNav === "true") {
+    renderOfficeNavigation();
+  }
   $$("#view-tabs button").forEach((button) => {
+    if (!button.dataset.view) return;
     button.classList.toggle("active", button.dataset.view === state.view);
   });
   $$(".view-panel").forEach((panel) => {
@@ -3627,6 +4578,33 @@ function bindEvents() {
     });
   });
   document.addEventListener("click", (event) => {
+    const officeAction = event.target.closest("[data-office-action]");
+    if (officeAction) {
+      event.preventDefault();
+      openOfficeActionPanel(officeAction.dataset.officeAction);
+      return;
+    }
+    if (event.target.closest("[data-office-panel-close]")) {
+      event.preventDefault();
+      closeOfficeActionPanel();
+      return;
+    }
+    if (event.target.closest("[data-office-panel-submit]")) {
+      event.preventDefault();
+      submitOfficeAction("send");
+      return;
+    }
+    if (event.target.closest("[data-office-panel-create]")) {
+      event.preventDefault();
+      submitOfficeAction("create");
+      return;
+    }
+    const officeButton = event.target.closest("[data-office-nav]");
+    if (officeButton) {
+      if (event.target.closest(".sentinela-direct-chat")) return;
+      navigateTo(officeButton.dataset.officeNav);
+      return;
+    }
     const meetingButton = event.target.closest("[data-meeting]");
     if (meetingButton) {
       state.meeting = meetingButton.dataset.meeting === "evening" ? "evening" : "morning";
@@ -3642,9 +4620,26 @@ function bindEvents() {
     }
     scrollToSection(target);
   });
+  document.addEventListener("keydown", (event) => {
+    if (!["Enter", " "].includes(event.key)) return;
+    const officeAction = event.target.closest("[data-office-action]");
+    if (officeAction) {
+      event.preventDefault();
+      openOfficeActionPanel(officeAction.dataset.officeAction);
+      return;
+    }
+    const officeButton = event.target.closest("[data-office-nav]");
+    if (!officeButton || event.target.closest(".sentinela-direct-chat")) return;
+    event.preventDefault();
+    navigateTo(officeButton.dataset.officeNav);
+  });
   $$("#bottom-nav button").forEach((button) => {
     button.addEventListener("click", () => {
       $$("#bottom-nav button").forEach((item) => item.classList.toggle("active", item === button));
+      if (button.dataset.officeNav) {
+        navigateTo(button.dataset.officeNav);
+        return;
+      }
       scrollToSection(button.dataset.bottomTarget);
     });
   });
