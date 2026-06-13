@@ -84,7 +84,72 @@ def test_cerebro_chat_centinela_status_does_not_connect_sombra() -> None:
     assert action["status"] == "prepared"
     assert payload["state"]["centinela_status"] == "prepared"
     assert payload["state"]["sombra_connected"] is False
-    assert "SOMBRA no fue consultado" in payload["reply"]
+    assert "No consulte el servidor externo de SOMBRA" in payload["reply"]
+
+
+def test_cerebro_chat_generates_sanitized_commercial_draft() -> None:
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": "Prepara una publicacion LinkedIn y mensaje comercial para un cliente."},
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    action = payload["actions"][0]
+    assert action["type"] == "commercial_draft_created"
+    assert action["status"] == "created"
+    assert action["id"].startswith("cerebro-commercial-draft-")
+    assert "no publica automaticamente" in payload["reply"].lower()
+
+
+def test_cerebro_commercial_draft_endpoint_requires_auth() -> None:
+    response = client.post(
+        "/api/v1/cerebro/commercial-draft",
+        json={"title": "LinkedIn", "summary": "Borrador defensivo"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_cerebro_commercial_draft_endpoint_is_sanitized() -> None:
+    response = client.post(
+        "/api/v1/cerebro/commercial-draft",
+        json={
+            "title": "Riesgos de credenciales expuestas",
+            "summary": "Preparar contenido sin fuentes ni datos sensibles.",
+            "client_context": {"country": "PE", "sector": "ciberseguridad"},
+            "safe_for_commercial_use": True,
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    combined = " ".join(
+        [
+            payload["linkedin_post_idea"],
+            payload["private_message"],
+            payload["centinela_angle"],
+        ]
+    ).lower()
+    assert "sombra" not in combined
+    assert payload["publish_allowed"] is False
+    assert payload["contact_allowed"] is False
+    assert payload["mentions_sombra"] is False
+
+
+def test_cerebro_chat_reviews_internal_sombra_inbox_without_external_runtime() -> None:
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": "Revisa inteligencia entrante y mensajes de SOMBRA."},
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["actions"][0]["type"] == "sombra_inbox_reviewed"
+    assert "no consulte" in payload["reply"].lower() or "inbox interno" in payload["reply"].lower()
 
 
 def test_centinela_status_endpoint_is_internal_only() -> None:

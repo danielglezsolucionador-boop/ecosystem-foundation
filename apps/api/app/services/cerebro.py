@@ -6,10 +6,11 @@ from os import environ
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from app.core.database import connect, get_row_value, initialize_database, sql_placeholder
+from app.core.config import get_settings
+from app.core.database import connect, get_database_backend, get_row_value, initialize_database, sql_placeholder
 from app.core.safe_data import SAFE_FALLBACK_MESSAGE, safe_payload
 from app.schemas.audit import AuditCategory, AuditEventCreate, AuditSeverity
-from app.schemas.auth import AuthenticatedUser
+from app.schemas.auth import AuthenticatedUser, ControlCenterRole, UserStatus
 from app.schemas.cerebro import (
     CerebroAlert,
     CerebroAlertCreate,
@@ -24,6 +25,8 @@ from app.schemas.cerebro import (
     CerebroChatState,
     CerebroCheckpoint,
     CerebroChiefOfStaffStatus,
+    CerebroCommercialDraft,
+    CerebroCommercialDraftCreate,
     CerebroCompanyGoal,
     CerebroCompanyGoalCreate,
     CerebroDailyBrief,
@@ -69,10 +72,41 @@ CEREBRO_APPROVAL_REQUESTS_TABLE = "cerebro_approval_requests"
 CEREBRO_PRIORITY_CHANGES_TABLE = "cerebro_priority_changes"
 CEREBRO_CEO_CHECKPOINTS_TABLE = "cerebro_ceo_checkpoints"
 CEREBRO_SOMBRA_INBOX_TABLE = "cerebro_sombra_inbox"
+CEREBRO_COMMERCIAL_DRAFTS_TABLE = "cerebro_commercial_drafts"
 
 PERU_TZ = ZoneInfo("America/Lima")
 GLOBAL_MONTHLY_GOAL_USD = 6000.0
 ECOMMERCE_MONTHLY_GOAL_USD = 10000.0
+
+CEREBRO_CYBER_INTELLIGENCE_POLICY = {
+    "name": "CEREBRO Cyber Intelligence Core",
+    "ceo_codes": {
+        "critical": "A1-PARA-1",
+        "high": "A2-PARA-1",
+    },
+    "fallback": (
+        "Recibi informacion de inteligencia que requiere revision manual. "
+        "CEO: revisar bandeja de Sombra."
+    ),
+    "vocabulary": {
+        "CVE": "Vulnerabilidad conocida en software.",
+        "Ransomware": "Ataque que secuestra o cifra datos para exigir pago.",
+        "Credential exposure": "Contrasenas, accesos o credenciales filtradas.",
+        "Zero day": "Vulnerabilidad activa sin parche disponible.",
+        "Threat actor": "Grupo o persona atacante.",
+        "Dark web": (
+            "Zona no indexada de internet donde pueden circular datos robados, "
+            "accesos filtrados o mercados ilegales."
+        ),
+    },
+    "guardrails": [
+        "No ejecutar acciones ofensivas.",
+        "No exponer payload sensible completo.",
+        "No publicar automaticamente.",
+        "No contactar clientes automaticamente.",
+        "No consultar servidor externo desde CEREBRO.",
+    ],
+}
 
 NO_APPROVAL_REQUIRED_ACTIONS = {
     "local_agent_activation": "Permitido por politica del Chief of Staff; en Bloque H queda preparado, sin activar runtime real.",
@@ -205,6 +239,7 @@ def ensure_cerebro_schema() -> None:
             CEREBRO_APPROVAL_REQUESTS_TABLE,
             CEREBRO_PRIORITY_CHANGES_TABLE,
             CEREBRO_CEO_CHECKPOINTS_TABLE,
+            CEREBRO_COMMERCIAL_DRAFTS_TABLE,
         ]:
             connection.execute(
                 f"""
@@ -217,6 +252,22 @@ def ensure_cerebro_schema() -> None:
                 """
             )
         connection.commit()
+
+
+def add_column_if_missing(connection, table_name: str, column_definition: str) -> None:
+    column_name = column_definition.split()[0]
+    if get_database_backend(get_settings().database_url) == "sqlite":
+        rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+        existing = {get_row_value(row, "name") for row in rows}
+        if column_name in existing:
+            return
+        connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_definition}")
+        return
+    try:
+        connection.execute(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {column_definition}")
+    except Exception:
+        connection.rollback()
+        pass
 
 
 def ensure_sombra_inbox_schema() -> None:
@@ -236,6 +287,16 @@ def ensure_sombra_inbox_schema() -> None:
                 summary TEXT NOT NULL,
                 audience_json TEXT NOT NULL,
                 routed_to_json TEXT NOT NULL,
+                client_context_json TEXT NOT NULL DEFAULT '{{}}',
+                safe_for_commercial_use INTEGER NOT NULL DEFAULT 0,
+                sensitive INTEGER NOT NULL DEFAULT 1,
+                ceo_code TEXT,
+                immediate_ceo_attention INTEGER NOT NULL DEFAULT 0,
+                top_points_json TEXT NOT NULL DEFAULT '[]',
+                executive_summary TEXT,
+                commercial_summary TEXT,
+                commercial_draft_ready INTEGER NOT NULL DEFAULT 0,
+                manual_review_required INTEGER NOT NULL DEFAULT 0,
                 encrypted INTEGER NOT NULL,
                 payload_json TEXT NOT NULL,
                 metadata_json TEXT NOT NULL,
@@ -247,6 +308,44 @@ def ensure_sombra_inbox_schema() -> None:
                 updated_at TEXT NOT NULL
             )
             """
+        )
+        add_column_if_missing(
+            connection,
+            CEREBRO_SOMBRA_INBOX_TABLE,
+            "client_context_json TEXT NOT NULL DEFAULT '{}'",
+        )
+        add_column_if_missing(
+            connection,
+            CEREBRO_SOMBRA_INBOX_TABLE,
+            "safe_for_commercial_use INTEGER NOT NULL DEFAULT 0",
+        )
+        add_column_if_missing(
+            connection,
+            CEREBRO_SOMBRA_INBOX_TABLE,
+            "sensitive INTEGER NOT NULL DEFAULT 1",
+        )
+        add_column_if_missing(connection, CEREBRO_SOMBRA_INBOX_TABLE, "ceo_code TEXT")
+        add_column_if_missing(
+            connection,
+            CEREBRO_SOMBRA_INBOX_TABLE,
+            "immediate_ceo_attention INTEGER NOT NULL DEFAULT 0",
+        )
+        add_column_if_missing(
+            connection,
+            CEREBRO_SOMBRA_INBOX_TABLE,
+            "top_points_json TEXT NOT NULL DEFAULT '[]'",
+        )
+        add_column_if_missing(connection, CEREBRO_SOMBRA_INBOX_TABLE, "executive_summary TEXT")
+        add_column_if_missing(connection, CEREBRO_SOMBRA_INBOX_TABLE, "commercial_summary TEXT")
+        add_column_if_missing(
+            connection,
+            CEREBRO_SOMBRA_INBOX_TABLE,
+            "commercial_draft_ready INTEGER NOT NULL DEFAULT 0",
+        )
+        add_column_if_missing(
+            connection,
+            CEREBRO_SOMBRA_INBOX_TABLE,
+            "manual_review_required INTEGER NOT NULL DEFAULT 0",
         )
         connection.commit()
 
@@ -311,11 +410,62 @@ def validate_sombra_signature(signature: str | None, raw_body: bytes) -> None:
         )
 
 
+def sombra_inbox_accepting_messages() -> bool:
+    return sombra_inbox_enabled() and read_sombra_receiver_token() is not None
+
+
+def service_actor() -> AuthenticatedUser:
+    return AuthenticatedUser(
+        id="cerebro_sombra_inbox_service",
+        email="sombra-to-cerebro@internal.local",
+        name="SOMBRA to CEREBRO receiver",
+        role=ControlCenterRole.service,
+        status=UserStatus.active,
+        session_id="sombra-inbox",
+        created_at=utc_now(),
+        updated_at=utc_now(),
+    )
+
+
 def determine_sombra_routes(message: SombraInboxMessageCreate) -> list[str]:
     routes = list(dict.fromkeys(str(item) for item in message.audience))
     if message.severity in {"high", "critical"} and "cerebro" not in routes:
         routes.insert(0, "cerebro")
+    if message.severity in {"high", "critical"} and "centinela" not in routes:
+        routes.append("centinela")
+    if message.severity in {"high", "critical"} and "bunker" not in routes:
+        routes.append("bunker")
+    if message.type.value == "lead_signal":
+        for target in ["cerebro", "pluma", "marketing"]:
+            if target not in routes:
+                routes.append(target)
+    if sombra_message_needs_forja(message) and "forja" not in routes:
+        routes.append("forja")
     return routes
+
+
+def safe_lower_blob(*values: object) -> str:
+    return " ".join(str(value or "").lower() for value in values)
+
+
+def sombra_message_needs_forja(message: SombraInboxMessageCreate) -> bool:
+    if message.type.value in {"scan_report", "order_result"}:
+        return True
+    blob = safe_lower_blob(message.title, message.summary, message.payload)
+    return any(
+        token in blob
+        for token in (
+            "patch",
+            "parche",
+            "diagnostico",
+            "vulnerab",
+            "remedi",
+            "configuracion",
+            "hardening",
+            "technical",
+            "tecnico",
+        )
+    )
 
 
 def payload_type(value: object) -> str:
@@ -324,6 +474,169 @@ def payload_type(value: object) -> str:
     if isinstance(value, dict):
         return "object"
     return "unknown"
+
+
+SENSITIVE_METADATA_TOKENS = {
+    "token",
+    "secret",
+    "password",
+    "passwd",
+    "credential",
+    "credencial",
+    "api_key",
+    "apikey",
+    "authorization",
+    "auth",
+    "bearer",
+    "private_key",
+}
+
+
+def sanitize_metadata(value: object, depth: int = 0) -> object:
+    if depth > 4:
+        return "[redacted]"
+    if isinstance(value, dict):
+        sanitized: dict[str, object] = {}
+        for key, item in value.items():
+            normalized = str(key).lower()
+            if any(token in normalized for token in SENSITIVE_METADATA_TOKENS):
+                sanitized[str(key)] = "[redacted]"
+            else:
+                sanitized[str(key)] = sanitize_metadata(item, depth + 1)
+        return sanitized
+    if isinstance(value, list):
+        return [sanitize_metadata(item, depth + 1) for item in value[:20]]
+    return value
+
+
+def sanitize_public_text(value: object, max_length: int = 420) -> str:
+    text = " ".join(str(value or "").replace("\n", " ").split())
+    for token in SENSITIVE_METADATA_TOKENS:
+        text = text.replace(token, "[redacted]")
+        text = text.replace(token.upper(), "[redacted]")
+    return (text or "Inteligencia recibida requiere revision manual.")[:max_length]
+
+
+def cyber_ceo_code(severity: str) -> str | None:
+    return CEREBRO_CYBER_INTELLIGENCE_POLICY["ceo_codes"].get(severity)
+
+
+def extract_executive_top_points(message: SombraInboxMessageCreate) -> list[str]:
+    candidates: list[str] = []
+    for raw in [message.title, message.summary]:
+        text = sanitize_public_text(raw, 520)
+        parts = [
+            part.strip(" .:-")
+            for part in text.replace(";", ".").replace("|", ".").split(".")
+            if part.strip(" .:-")
+        ]
+        candidates.extend(parts)
+    if isinstance(message.payload, dict):
+        for key in ("finding", "risk", "recommendation", "summary"):
+            if key in message.payload:
+                candidates.append(sanitize_public_text(message.payload.get(key), 220))
+    elif isinstance(message.payload, str) and message.payload and len(candidates) < 3:
+        candidates.append(sanitize_public_text(message.payload, 220))
+
+    fallback_points = [
+        "Senal de inteligencia recibida y registrada en CEREBRO.",
+        "Requiere lectura ejecutiva sin exponer payload sensible.",
+        "No se ejecutaron acciones externas ni contacto con clientes.",
+    ]
+    top_points: list[str] = []
+    for item in candidates + fallback_points:
+        clean = sanitize_public_text(item, 220)
+        if clean and clean not in top_points:
+            top_points.append(clean)
+        if len(top_points) == 3:
+            break
+    return top_points
+
+
+def build_ceo_security_briefing(
+    message: SombraInboxMessageCreate,
+    top_points: list[str],
+    ceo_code: str | None,
+    manual_review_required: bool,
+) -> str:
+    if manual_review_required:
+        return CEREBRO_CYBER_INTELLIGENCE_POLICY["fallback"]
+    code_copy = f" Alerta {ceo_code} pendiente de revision CEO." if ceo_code else ""
+    severity_copy = message.severity.value.upper()
+    point_copy = " ".join(f"{index + 1}) {point}" for index, point in enumerate(top_points))
+    return (
+        f"Daniel, CEREBRO proceso inteligencia de ciberseguridad {severity_copy}."
+        f"{code_copy} Lectura ejecutiva: {point_copy}"
+    )
+
+
+def build_commercial_safe_summary(message: SombraInboxMessageCreate, top_points: list[str]) -> str:
+    topic = top_points[0] if top_points else sanitize_public_text(message.title, 160)
+    return (
+        "Borrador seguro para PLUMA/LinkedIn: educar sobre reduccion de riesgo digital "
+        f"a partir de senales defensivas como '{topic}', sin mencionar fuentes, sin acusar "
+        "empresas y sin compartir credenciales ni evidencia sensible."
+    )
+
+
+def build_forja_signal(message: SombraInboxMessageCreate) -> str:
+    severity = message.severity.value
+    return (
+        "FORJA: preparar diagnostico/parche defensivo derivado de inteligencia "
+        f"{severity}. No ejecutar codigo, no tocar repos externos y no desplegar automaticamente."
+    )
+
+
+def build_centinela_signal(message: SombraInboxMessageCreate) -> str:
+    if message.severity.value == "critical":
+        return "CENTINELA: activar defensa interna preparada y priorizar revision inmediata."
+    if message.severity.value == "high":
+        return "CENTINELA: ejecutar revision prioritaria de inteligencia recibida por CEREBRO."
+    return "CENTINELA: observar inteligencia recibida y mantener lectura interna preparada."
+
+
+def apply_cyber_intelligence_protocol(message: SombraInboxMessageCreate) -> dict[str, object]:
+    ceo_code = cyber_ceo_code(message.severity.value)
+    immediate_ceo_attention = message.severity.value in {"critical", "high"}
+    manual_review_required = bool(
+        message.metadata.get("force_manual_review")
+        or message.metadata.get("manual_review_required")
+        or message.metadata.get("requires_manual_review")
+    )
+    top_points = extract_executive_top_points(message)
+    executive_summary = build_ceo_security_briefing(
+        message,
+        top_points,
+        ceo_code,
+        manual_review_required,
+    )
+    commercial_draft_ready = (
+        message.type.value in {"briefing", "scan_report", "lead_signal"}
+        and not manual_review_required
+    )
+    commercial_summary = (
+        build_commercial_safe_summary(message, top_points)
+        if commercial_draft_ready
+        else None
+    )
+    return {
+        "policy": CEREBRO_CYBER_INTELLIGENCE_POLICY["name"],
+        "ceo_code": ceo_code,
+        "immediate_ceo_attention": immediate_ceo_attention,
+        "top_points": top_points,
+        "executive_summary": executive_summary,
+        "commercial_summary": commercial_summary,
+        "commercial_draft_ready": commercial_draft_ready,
+        "manual_review_required": manual_review_required,
+        "centinela_signal": build_centinela_signal(message),
+        "forja_signal": build_forja_signal(message) if sombra_message_needs_forja(message) else None,
+        "heartbeat_received": message.type.value == "heartbeat",
+        "safe_for_public_draft": commercial_draft_ready,
+    }
+
+
+def process_sombra_intelligence_message(message: SombraInboxMessageCreate) -> dict[str, object]:
+    return apply_cyber_intelligence_protocol(message)
 
 
 def _json_dump(value: object) -> str:
@@ -335,6 +648,13 @@ def _json_load(value: str, fallback: object) -> object:
         return json.loads(value)
     except (TypeError, json.JSONDecodeError):
         return fallback
+
+
+def row_bool(row: object, key: str, default: bool = False) -> bool:
+    value = get_row_value(row, key, default=1 if default else 0)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
 
 
 def audit_sombra_inbox_message(
@@ -358,6 +678,8 @@ def audit_sombra_inbox_message(
                 "audience": list(message.audience),
                 "routed_to": routed_to,
                 "encrypted": message.encrypted,
+                "safe_for_commercial_use": message.safe_for_commercial_use,
+                "sensitive": message.sensitive,
                 "external_connection_enabled": False,
                 "runtime_connected": False,
                 "sombra_runtime_called": False,
@@ -370,9 +692,12 @@ def audit_sombra_inbox_message(
 def _row_to_sombra_recent(row: object) -> SombraInboxRecentMessage:
     audience = _json_load(get_row_value(row, "audience_json", default="[]"), [])
     routed_to = _json_load(get_row_value(row, "routed_to_json", default="[]"), [])
+    client_context = _json_load(get_row_value(row, "client_context_json", default="{}"), {})
+    top_points = _json_load(get_row_value(row, "top_points_json", default="[]"), [])
     metadata = _json_load(get_row_value(row, "metadata_json", default="{}"), {})
     payload = _json_load(get_row_value(row, "payload_json", default='""'), "")
     return SombraInboxRecentMessage(
+        id=get_row_value(row, "id"),
         message_id=get_row_value(row, "message_id"),
         source=get_row_value(row, "source"),
         type=get_row_value(row, "message_type"),
@@ -383,9 +708,19 @@ def _row_to_sombra_recent(row: object) -> SombraInboxRecentMessage:
         summary=get_row_value(row, "summary"),
         audience=list(audience) if isinstance(audience, list) else [],
         routed_to=list(routed_to) if isinstance(routed_to, list) else [],
-        encrypted=bool(get_row_value(row, "encrypted", default=1)),
+        ceo_code=get_row_value(row, "ceo_code", default=None),
+        immediate_ceo_attention=row_bool(row, "immediate_ceo_attention"),
+        top_points=list(top_points) if isinstance(top_points, list) else [],
+        executive_summary=get_row_value(row, "executive_summary", default=None),
+        commercial_summary=get_row_value(row, "commercial_summary", default=None),
+        commercial_draft_ready=row_bool(row, "commercial_draft_ready"),
+        manual_review_required=row_bool(row, "manual_review_required"),
+        client_context=client_context if isinstance(client_context, dict) else {},
+        safe_for_commercial_use=row_bool(row, "safe_for_commercial_use"),
+        sensitive=row_bool(row, "sensitive", default=True),
+        encrypted=row_bool(row, "encrypted", default=True),
         payload_type=payload_type(payload),
-        metadata=metadata if isinstance(metadata, dict) else {},
+        metadata=sanitize_metadata(metadata) if isinstance(metadata, dict) else {},
         status=get_row_value(row, "status"),
     )
 
@@ -413,6 +748,7 @@ def receive_sombra_inbox_message(
 
     ensure_sombra_inbox_schema()
     now = utc_now()
+    protocol = apply_cyber_intelligence_protocol(message)
     routed_to = determine_sombra_routes(message)
     placeholder = sql_placeholder()
     with connect() as connection:
@@ -436,8 +772,26 @@ def receive_sombra_inbox_message(
                 received=True,
                 message_id=message.message_id,
                 stored=True,
+                severity=message.severity,
+                ceo_code=get_row_value(existing, "ceo_code", default=None),
+                immediate_ceo_attention=row_bool(existing, "immediate_ceo_attention"),
                 routed_to=list(_json_load(get_row_value(existing, "routed_to_json"), routed_to)),
+                executive_summary=get_row_value(existing, "executive_summary", default=None),
+                commercial_draft_ready=row_bool(existing, "commercial_draft_ready"),
+                manual_review_required=row_bool(existing, "manual_review_required"),
             )
+    internal_actions = route_sombra_message(message, routed_to, protocol)
+    stored_metadata = sanitize_metadata(
+        {
+            **message.metadata,
+            "cyber_intelligence_protocol": protocol,
+            "internal_actions": internal_actions,
+            "source_hidden_from_clients": True,
+            "publish_allowed": False,
+            "contact_allowed": False,
+        }
+    )
+    with connect() as connection:
         connection.execute(
             f"""
             INSERT INTO {CEREBRO_SOMBRA_INBOX_TABLE} (
@@ -452,6 +806,16 @@ def receive_sombra_inbox_message(
                 summary,
                 audience_json,
                 routed_to_json,
+                client_context_json,
+                safe_for_commercial_use,
+                sensitive,
+                ceo_code,
+                immediate_ceo_attention,
+                top_points_json,
+                executive_summary,
+                commercial_summary,
+                commercial_draft_ready,
+                manual_review_required,
                 encrypted,
                 payload_json,
                 metadata_json,
@@ -463,6 +827,8 @@ def receive_sombra_inbox_message(
                 updated_at
             )
             VALUES (
+                {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
                 {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
                 {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
                 {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
@@ -481,10 +847,20 @@ def receive_sombra_inbox_message(
                 message.summary,
                 _json_dump(list(message.audience)),
                 _json_dump(routed_to),
+                message.client_context.model_dump_json(),
+                1 if message.safe_for_commercial_use else 0,
+                1 if message.sensitive else 0,
+                protocol["ceo_code"],
+                1 if protocol["immediate_ceo_attention"] else 0,
+                _json_dump(protocol["top_points"]),
+                protocol["executive_summary"],
+                protocol["commercial_summary"],
+                1 if protocol["commercial_draft_ready"] else 0,
+                1 if protocol["manual_review_required"] else 0,
                 1 if message.encrypted else 0,
                 _json_dump(message.payload),
-                _json_dump(message.metadata),
-                "received_prepared",
+                _json_dump(stored_metadata),
+                "received_routed" if internal_actions else "received_prepared",
                 header_message_id,
                 header_timestamp,
                 1 if signature else 0,
@@ -499,8 +875,41 @@ def receive_sombra_inbox_message(
         received=True,
         message_id=message.message_id,
         stored=True,
+        severity=message.severity,
+        ceo_code=protocol["ceo_code"],
+        immediate_ceo_attention=bool(protocol["immediate_ceo_attention"]),
         routed_to=routed_to,
+        executive_summary=str(protocol["executive_summary"]),
+        commercial_draft_ready=bool(protocol["commercial_draft_ready"]),
+        manual_review_required=bool(protocol["manual_review_required"]),
     )
+
+
+def receive_sombra_inbox(
+    message: SombraInboxMessageCreate,
+    *,
+    authorization: str | None,
+    header_message_id: str | None = None,
+    header_timestamp: str | None = None,
+    signature: str | None = None,
+    raw_body: bytes = b"",
+) -> SombraInboxMessageResponse:
+    return receive_sombra_inbox_message(
+        message,
+        authorization=authorization,
+        header_message_id=header_message_id,
+        header_timestamp=header_timestamp,
+        signature=signature,
+        raw_body=raw_body,
+    )
+
+
+def store_sombra_message(
+    message: SombraInboxMessageCreate,
+    *,
+    authorization: str | None,
+) -> SombraInboxMessageResponse:
+    return receive_sombra_inbox_message(message, authorization=authorization)
 
 
 def list_sombra_inbox_messages(limit: int = 20) -> list[SombraInboxRecentMessage]:
@@ -516,6 +925,195 @@ def list_sombra_inbox_messages(limit: int = 20) -> list[SombraInboxRecentMessage
             """
         ).fetchall()
     return [_row_to_sombra_recent(row) for row in rows]
+
+
+def get_sombra_inbox_metrics() -> dict[str, object]:
+    messages = list_sombra_inbox_messages(limit=100)
+    severity_rank = {"unknown": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+    threat_level = "unknown"
+    for message in messages:
+        level = message.severity.value
+        if severity_rank[level] > severity_rank[threat_level]:
+            threat_level = level
+    critical_alerts = sum(1 for item in messages if item.severity.value == "critical")
+    high_alerts = sum(1 for item in messages if item.severity.value == "high")
+    lead_signals = sum(1 for item in messages if item.type.value == "lead_signal")
+    heartbeats = [item for item in messages if item.type.value == "heartbeat"]
+    ceo_codes_pending = list(dict.fromkeys(
+        item.ceo_code for item in messages if item.ceo_code and item.immediate_ceo_attention
+    ))
+    return {
+        "messages": messages,
+        "external_intel_messages": len(messages),
+        "critical_alerts": critical_alerts,
+        "high_alerts": high_alerts,
+        "lead_signals": lead_signals,
+        "threat_level": threat_level,
+        "last_intel_at": messages[0].received_at if messages else None,
+        "last_heartbeat_at": heartbeats[0].received_at if heartbeats else None,
+        "ceo_codes_pending": ceo_codes_pending,
+        "sombra_connected": bool(messages) and sombra_inbox_accepting_messages(),
+    }
+
+
+def list_sombra_recent(limit: int = 20) -> list[SombraInboxRecentMessage]:
+    return list_sombra_inbox_messages(limit=limit)
+
+
+def create_cerebro_commercial_draft(
+    request: CerebroCommercialDraftCreate,
+    actor: AuthenticatedUser,
+) -> CerebroCommercialDraft:
+    ensure_cerebro_schema()
+    now = utc_now()
+    country = request.client_context.country or "LATAM"
+    sector = request.client_context.sector or "empresas"
+    title = cerebro_chat_title(request.title, "Borrador comercial defensivo")
+    linkedin_post_idea = (
+        f"Publicacion LinkedIn sobre reduccion de riesgo por credenciales expuestas en {country}, "
+        f"orientada a {sector}, sin revelar fuentes, dominios ni datos sensibles."
+    )
+    draft = CerebroCommercialDraft(
+        id=f"cerebro-commercial-draft-{uuid4()}",
+        source=request.source,
+        source_message_id=request.source_message_id,
+        title=title,
+        draft_type="linkedin_post",
+        draft=linkedin_post_idea,
+        linkedin_post_idea=linkedin_post_idea,
+        private_message=(
+            "Mensaje privado profesional: ofrecer un diagnostico defensivo de exposicion digital "
+            "sin afirmar incidentes, sin acusaciones y sin compartir evidencia sensible."
+        ),
+        centinela_angle=(
+            "CENTINELA puede convertir la senal en lectura de riesgo defensiva y priorizar "
+            "controles preventivos para decision del CEO."
+        ),
+        guardrails=[
+            "No mencionar la fuente de inteligencia.",
+            "No publicar automaticamente.",
+            "No contactar clientes automaticamente.",
+            "No incluir credenciales, secretos, dominios sensibles ni payload completo.",
+            "Mantener tono defensivo, profesional y no acusatorio.",
+        ],
+        client_context=request.client_context,
+        safe_for_commercial_use=request.safe_for_commercial_use,
+        safe_for_public_review=True,
+        requires_ceo_approval=True,
+        created_at=now,
+    )
+    insert_payload(CEREBRO_COMMERCIAL_DRAFTS_TABLE, draft.id, draft.model_dump_json())
+    audit_cerebro_action(
+        action="create_commercial_draft",
+        actor=actor,
+        status=draft.status,
+        detail="CEREBRO prepared a sanitized commercial draft; no publishing or outreach executed.",
+        state=CerebroState.proposed,
+        destination="pluma_marketing",
+        reason=request.summary,
+        requires_ceo_approval=True,
+    )
+    return draft
+
+
+def list_commercial_drafts() -> list[CerebroCommercialDraft]:
+    return safe_models(CerebroCommercialDraft, fetch_payloads(CEREBRO_COMMERCIAL_DRAFTS_TABLE))
+
+
+def route_sombra_message(
+    message: SombraInboxMessageCreate,
+    routed_to: list[str],
+    protocol: dict[str, object] | None = None,
+) -> list[dict[str, str]]:
+    protocol = protocol or apply_cyber_intelligence_protocol(message)
+    actor = service_actor()
+    actions: list[dict[str, str]] = []
+    if message.severity.value in {"high", "critical"}:
+        try:
+            ceo_code = str(protocol.get("ceo_code") or "")
+            alert = create_alert(
+                CerebroAlertCreate(
+                    title=(
+                        f"Alerta {ceo_code} pendiente de revision CEO"
+                        if ceo_code
+                        else cerebro_chat_title(message.title, "Inteligencia defensiva entrante")
+                    ),
+                    summary=str(protocol.get("executive_summary") or message.summary),
+                    source="cerebro_sombra_inbox_internal",
+                    relevance_score=96 if message.severity.value == "critical" else 84,
+                    risk_level=message.severity.value,
+                    dafo=CerebroDafo(
+                        opportunities=[
+                            "Convertir inteligencia entrante en diagnostico defensivo gobernado."
+                        ],
+                        threats=[
+                            "Riesgo externo reportado sin exponer payload sensible ni ejecutar acciones."
+                        ],
+                    ),
+                ),
+                actor,
+            )
+            actions.append({
+                "type": "alert_created",
+                "id": alert.id,
+                "target": "cerebro_centinela_bunker",
+                "ceo_code": ceo_code,
+            })
+        except Exception as exc:
+            actions.append({"type": "alert_failed", "id": "unavailable", "target": str(exc)[:120]})
+
+    if sombra_message_needs_forja(message):
+        try:
+            task = create_cerebro_task(
+                CerebroTaskCreate(
+                    title="Revisar oportunidad de parche/diagnostico defensivo",
+                    description=str(protocol.get("forja_signal") or build_forja_signal(message)),
+                    destination="FORJA",
+                    priority="p0" if message.severity.value == "critical" else "p1",
+                    reason="origen=cerebro/sombra_inbox; tarea interna preparada sin ejecucion automatica.",
+                    requires_ceo_approval=False,
+                ),
+                actor,
+            )
+            actions.append({"type": "forja_task_created", "id": task.id, "target": "forja"})
+        except Exception as exc:
+            actions.append({"type": "forja_task_failed", "id": "unavailable", "target": str(exc)[:120]})
+
+    if message.type.value in {"briefing", "scan_report", "lead_signal"} and not protocol.get("manual_review_required"):
+        try:
+            if message.type.value == "lead_signal":
+                opportunity = create_revenue_opportunity(
+                    CerebroRevenueOpportunityCreate(
+                        title="Oportunidad comercial defensiva sanitizada",
+                        description=(
+                            "Oportunidad interna para diagnostico de riesgo defensivo. "
+                            "No revela fuentes, no publica y no contacta clientes sin aprobacion CEO."
+                        ),
+                        department="PLUMA/MARKETING",
+                        risk="controlled",
+                        recommendation="Preparar borrador y esperar aprobacion CEO.",
+                        requires_ceo_approval=True,
+                    ),
+                    actor,
+                )
+                actions.append({"type": "revenue_opportunity_created", "id": opportunity.id, "target": "cerebro"})
+            if protocol.get("commercial_draft_ready"):
+                draft = create_cerebro_commercial_draft(
+                    CerebroCommercialDraftCreate(
+                        source="sombra_inbox",
+                        source_message_id=message.message_id,
+                        title=message.title,
+                        summary=str(protocol.get("commercial_summary") or message.summary),
+                        client_context=message.client_context,
+                        safe_for_commercial_use=True,
+                    ),
+                    actor,
+                )
+                actions.append({"type": "commercial_draft_created", "id": draft.id, "target": "pluma_marketing"})
+        except Exception as exc:
+            actions.append({"type": "lead_signal_route_failed", "id": "unavailable", "target": str(exc)[:120]})
+
+    return [action for action in actions if action.get("target") in routed_to or action["type"].endswith("created") or action["type"].endswith("failed")]
 
 
 def actor_name(user: AuthenticatedUser) -> str:
@@ -1577,6 +2175,30 @@ def cerebro_chat_intent(request: CerebroChatRequest) -> str:
         return "centinela"
     if office == "forja":
         return "forja"
+    if any(
+        token in message
+        for token in (
+            "revisa inteligencia",
+            "revisa inteligencia externa",
+            "alertas externas",
+            "alertas de sombra",
+            "mensajes de sombra",
+            "inteligencia entrante",
+            "inteligencia externa",
+            "resume briefing",
+            "briefing",
+            "sombra",
+        )
+    ):
+        return "sombra_inbox"
+    if any(token in message for token in ("amenaza", "cliente en riesgo", "consulta centinela")):
+        return "centinela"
+    if any(token in message for token in ("implementa", "construye", "desarrolla", "parche")):
+        return "forja"
+    if any(token in message for token in ("organiza esto", "prepara mision", "crea mision")):
+        return "mission"
+    if any(token in message for token in ("linkedin", "publicacion", "venta", "mensaje", "campana", "cliente", "marketing", "pluma")):
+        return "commercial"
     if any(token in message for token in ("centinela", "sentinela", "seguridad", "riesgo", "alerta")):
         return "centinela"
     if any(token in message for token in ("forja", "codigo", "código", "implementar", "construir", "arreglar")):
@@ -1600,11 +2222,19 @@ def cerebro_chat_state() -> CerebroChatState:
         if task.destination == "forja" and not task.blocked and task.state != CerebroState.blocked
     ]
     centinela_status = get_centinela_status()
+    inbox_metrics = safe_call(get_sombra_inbox_metrics, {})
     return CerebroChatState(
         missions_active=len(missions),
         forja_tasks=len(forja_tasks),
         centinela_status=centinela_status.status,
         sombra_connected=centinela_status.sombra_connected,
+        external_intel_messages=int(inbox_metrics.get("external_intel_messages", 0) or 0),
+        critical_alerts=int(inbox_metrics.get("critical_alerts", 0) or 0),
+        high_alerts=int(inbox_metrics.get("high_alerts", 0) or 0),
+        lead_signals=int(inbox_metrics.get("lead_signals", 0) or 0),
+        commercial_drafts=len(safe_call(list_commercial_drafts, [])),
+        ceo_codes_pending=list(inbox_metrics.get("ceo_codes_pending", []) or []),
+        last_heartbeat_at=inbox_metrics.get("last_heartbeat_at"),
     )
 
 
@@ -1682,9 +2312,68 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
             )
         )
         reply = (
-            "Daniel, CENTINELA esta preparado en modo interno. "
-            "Estado: prepared. Puente externo no conectado; SOMBRA no fue consultado."
+            f"Daniel, CENTINELA esta en modo {centinela.status}. "
+            f"Nivel de amenaza: {centinela.threat_level}. Mensajes internos: {centinela.external_intel_messages}. "
+            "No consulte el servidor externo de SOMBRA ni expuse payload sensible."
         )
+    elif intent == "commercial":
+        draft = create_cerebro_commercial_draft(
+            CerebroCommercialDraftCreate(
+                source="cerebro_chat",
+                title=cerebro_chat_title(message, "Borrador comercial defensivo"),
+                summary=message,
+                safe_for_commercial_use=True,
+            ),
+            actor,
+        )
+        actions.append(
+            CerebroChatAction(
+                type="commercial_draft_created",
+                status="created",
+                id=draft.id,
+                label=draft.title,
+                detail="Borrador PLUMA/MARKETING sanitizado creado; no se publico ni se contacto a nadie.",
+            )
+        )
+        reply = (
+            "Daniel, prepare un borrador comercial defensivo para LinkedIn/PLUMA/MARKETING. "
+            "No menciona fuentes, no contiene secretos, no publica automaticamente y queda pendiente de aprobacion CEO."
+        )
+    elif intent == "sombra_inbox":
+        recent = list_sombra_inbox_messages(limit=5)
+        if recent:
+            latest = recent[0]
+            actions.append(
+                CerebroChatAction(
+                    type="sombra_inbox_reviewed",
+                    status="prepared",
+                    id=latest.message_id,
+                    label=latest.title,
+                    detail=f"{len(recent)} mensajes recientes sanitizados; payload sensible no expuesto.",
+                )
+            )
+            reply = (
+                "Daniel, recibi la inteligencia entrante en el inbox interno de CEREBRO. "
+                f"La ultima senal esta clasificada como {latest.type.value}/{latest.severity.value}. "
+                f"Codigo CEO pendiente: {latest.ceo_code or 'sin codigo inmediato'}. "
+                f"Resumen ejecutivo: {latest.executive_summary or latest.summary}. "
+                "CENTINELA puede convertirla en diagnostico de riesgo, FORJA queda preparada si requiere soporte tecnico "
+                "y PLUMA/MARKETING solo trabaja borradores sanitizados sin revelar fuente ni datos sensibles."
+            )
+        else:
+            actions.append(
+                CerebroChatAction(
+                    type="sombra_inbox_reviewed",
+                    status="prepared",
+                    id="sombra-inbox-empty",
+                    label="Inbox SOMBRA de CEREBRO",
+                    detail="No hay mensajes internos recientes.",
+                )
+            )
+            reply = (
+                "Daniel, el inbox interno de CEREBRO esta preparado. "
+                "Todavia no hay inteligencia entrante registrada y no consulte el servidor externo de SOMBRA."
+            )
     else:
         actions.append(
             CerebroChatAction(

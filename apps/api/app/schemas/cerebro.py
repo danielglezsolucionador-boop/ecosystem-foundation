@@ -91,12 +91,19 @@ class CerebroChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
     context: str = Field(default="control_center", max_length=120)
     office: str = Field(default="cerebro", max_length=120)
-    action: Literal["auto", "mission", "forja", "centinela", "info"] = "auto"
+    action: Literal["auto", "mission", "forja", "centinela", "commercial", "sombra_inbox", "info"] = "auto"
     priority: str = Field(default="p1", pattern="^p[0-3]$")
 
 
 class CerebroChatAction(BaseModel):
-    type: Literal["mission_created", "forja_task_created", "centinela_status", "info"]
+    type: Literal[
+        "mission_created",
+        "forja_task_created",
+        "centinela_status",
+        "commercial_draft_created",
+        "sombra_inbox_reviewed",
+        "info",
+    ]
     status: Literal["created", "prepared", "blocked", "failed"]
     id: str | None = None
     label: str | None = None
@@ -108,6 +115,13 @@ class CerebroChatState(BaseModel):
     forja_tasks: int = 0
     centinela_status: str = "prepared"
     sombra_connected: bool = False
+    external_intel_messages: int = 0
+    critical_alerts: int = 0
+    high_alerts: int = 0
+    lead_signals: int = 0
+    commercial_drafts: int = 0
+    ceo_codes_pending: list[str] = Field(default_factory=list)
+    last_heartbeat_at: str | None = None
 
 
 class CerebroChatResponse(BaseModel):
@@ -121,6 +135,7 @@ class CerebroChatResponse(BaseModel):
 class SombraInboxMessageType(StrEnum):
     alert = "alert"
     briefing = "briefing"
+    lead_signal = "lead_signal"
     scan_report = "scan_report"
     heartbeat = "heartbeat"
     order_result = "order_result"
@@ -134,11 +149,26 @@ class SombraInboxSeverity(StrEnum):
     critical = "critical"
 
 
-SombraInboxAudience = Literal["cerebro", "centinela", "bunker", "ceo"]
+SombraInboxAudience = Literal[
+    "cerebro",
+    "centinela",
+    "bunker",
+    "ceo",
+    "forja",
+    "pluma",
+    "marketing",
+]
+
+
+class SombraInboxClientContext(BaseModel):
+    company: str | None = Field(default=None, max_length=160)
+    domain: str | None = Field(default=None, max_length=160)
+    country: str | None = Field(default=None, max_length=80)
+    sector: str | None = Field(default=None, max_length=120)
 
 
 class SombraInboxMessageCreate(BaseModel):
-    message_id: str = Field(pattern=r"^sombra_[A-Za-z0-9_.:-]+$", max_length=160)
+    message_id: str = Field(min_length=1, max_length=160)
     source: Literal["sombra"]
     type: SombraInboxMessageType
     severity: SombraInboxSeverity
@@ -146,6 +176,9 @@ class SombraInboxMessageCreate(BaseModel):
     title: str = Field(min_length=1, max_length=240)
     summary: str = Field(min_length=1, max_length=2000)
     audience: list[SombraInboxAudience] = Field(min_length=1, max_length=8)
+    client_context: SombraInboxClientContext = Field(default_factory=SombraInboxClientContext)
+    safe_for_commercial_use: bool = False
+    sensitive: bool = True
     encrypted: bool = True
     payload: str | dict[str, Any] = Field(default="")
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -156,10 +189,17 @@ class SombraInboxMessageResponse(BaseModel):
     received: bool
     message_id: str = Field(min_length=1)
     stored: bool
+    severity: SombraInboxSeverity | None = None
+    ceo_code: str | None = None
+    immediate_ceo_attention: bool = False
     routed_to: list[str] = Field(default_factory=list)
+    executive_summary: str | None = None
+    commercial_draft_ready: bool = False
+    manual_review_required: bool = False
 
 
 class SombraInboxRecentMessage(BaseModel):
+    id: str = Field(min_length=1)
     message_id: str = Field(min_length=1)
     source: str = Field(min_length=1)
     type: SombraInboxMessageType
@@ -170,11 +210,54 @@ class SombraInboxRecentMessage(BaseModel):
     summary: str = Field(min_length=1)
     audience: list[str] = Field(default_factory=list)
     routed_to: list[str] = Field(default_factory=list)
+    ceo_code: str | None = None
+    immediate_ceo_attention: bool = False
+    top_points: list[str] = Field(default_factory=list)
+    executive_summary: str | None = None
+    commercial_summary: str | None = None
+    commercial_draft_ready: bool = False
+    manual_review_required: bool = False
+    client_context: SombraInboxClientContext = Field(default_factory=SombraInboxClientContext)
+    safe_for_commercial_use: bool = False
+    sensitive: bool = True
     encrypted: bool
     payload_redacted: bool = True
     payload_type: str = Field(min_length=1)
     metadata: dict[str, Any] = Field(default_factory=dict)
     status: str = Field(min_length=1)
+
+
+class CerebroCommercialDraftCreate(BaseModel):
+    source: str = Field(default="cerebro_chat", max_length=120)
+    source_message_id: str | None = Field(default=None, max_length=160)
+    title: str = Field(min_length=1, max_length=180)
+    summary: str = Field(min_length=1, max_length=1200)
+    client_context: SombraInboxClientContext = Field(default_factory=SombraInboxClientContext)
+    safe_for_commercial_use: bool = True
+    requested_channel: str = Field(default="linkedin", max_length=80)
+
+
+class CerebroCommercialDraft(BaseModel):
+    ok: bool = True
+    id: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+    source_message_id: str | None = None
+    title: str = Field(min_length=1)
+    draft_type: str = Field(default="linkedin_post", min_length=1)
+    draft: str = Field(default="", min_length=1)
+    linkedin_post_idea: str = Field(min_length=1)
+    private_message: str = Field(min_length=1)
+    centinela_angle: str = Field(min_length=1)
+    guardrails: list[str] = Field(default_factory=list)
+    client_context: SombraInboxClientContext = Field(default_factory=SombraInboxClientContext)
+    safe_for_commercial_use: bool
+    status: str = Field(default="prepared_pending_ceo_approval", min_length=1)
+    publish_allowed: bool = False
+    contact_allowed: bool = False
+    mentions_sombra: bool = False
+    safe_for_public_review: bool = True
+    requires_ceo_approval: bool = True
+    created_at: str = Field(min_length=1)
 
 
 class CerebroDailyBrief(BaseModel):

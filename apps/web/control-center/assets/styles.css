@@ -6110,6 +6110,16 @@ body {
   gap: 10px;
 }
 
+.cerebro-chat {
+  min-height: 0;
+  grid-template-rows: minmax(120px, 1fr) auto auto auto;
+}
+
+.cerebro-chat-log {
+  max-height: 260px;
+  padding-right: 2px;
+}
+
 .chat-line {
   border-radius: 8px;
   padding: 10px;
@@ -6121,6 +6131,37 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+}
+
+.chat-input-row textarea {
+  min-height: 48px;
+  max-height: 120px;
+  resize: vertical;
+  border: 1px solid rgba(240, 192, 64, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.34);
+  color: var(--text);
+  font: inherit;
+}
+
+.chat-input-row textarea:focus {
+  border-color: rgba(240, 192, 64, 0.56);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(240, 192, 64, 0.1);
+}
+
+.cerebro-chat-composer input[type="text"] {
+  display: none;
+}
+
+.cerebro-chat-composer,
+.cerebro-chat-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: 8px;
+  background: linear-gradient(180deg, rgba(8, 8, 8, 0), rgba(8, 8, 8, 0.9) 18%);
 }
 
 .cerebro-chat-actions {
@@ -7856,6 +7897,15 @@ body {
   backdrop-filter: blur(8px);
 }
 
+.office-action-panel.cerebro-chat-drawer {
+  width: min(400px, calc(100% - 28px));
+  max-width: 420px;
+  max-height: 72vh;
+  display: grid;
+  grid-template-rows: auto auto auto auto auto auto auto minmax(0, 1fr) auto auto auto;
+  overflow: hidden;
+}
+
 .office-action-close {
   float: right;
   border: 1px solid rgba(240, 192, 64, 0.28);
@@ -7919,6 +7969,89 @@ body {
   font-size: 12px !important;
 }
 
+.office-action-conversation,
+.cerebro-chat-log {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.office-action-conversation {
+  min-height: 120px;
+  max-height: 28vh;
+  padding: 8px 2px 10px;
+}
+
+.office-chat-bubble {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(246, 234, 209, 0.88);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.office-chat-bubble.user {
+  border-color: rgba(240, 192, 64, 0.28);
+  background: rgba(240, 192, 64, 0.09);
+}
+
+.office-chat-bubble.assistant {
+  border-color: rgba(100, 220, 148, 0.28);
+  background: rgba(100, 220, 148, 0.08);
+}
+
+.office-chat-bubble.loading {
+  color: #f7d272;
+}
+
+.office-chat-bubble.error {
+  border-color: rgba(255, 122, 122, 0.34);
+  background: rgba(255, 122, 122, 0.1);
+}
+
+.office-chat-bubble strong {
+  color: #fff7df;
+}
+
+.office-chat-bubble small {
+  color: rgba(246, 234, 209, 0.66);
+}
+
+.cerebro-chat-sections {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+}
+
+.cerebro-section-chip {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  min-width: 116px;
+  padding: 7px 9px;
+  border: 1px solid rgba(240, 192, 64, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.cerebro-section-chip strong,
+.cerebro-section-chip small {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.cerebro-section-chip small {
+  color: rgba(246, 234, 209, 0.66);
+}
+
 .office-action-panel dl {
   display: grid;
   gap: 10px;
@@ -7947,7 +8080,7 @@ body {
 .office-action-input {
   display: grid;
   gap: 6px;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   color: rgba(246, 234, 209, 0.78);
   font-size: 11px;
   font-weight: 800;
@@ -7968,6 +8101,14 @@ body {
 .office-action-input textarea:focus {
   border-color: rgba(240, 192, 64, 0.62);
   box-shadow: 0 0 0 3px rgba(240, 192, 64, 0.12);
+}
+
+.office-action-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: 8px;
+  background: linear-gradient(180deg, rgba(8, 8, 8, 0), rgba(8, 8, 8, 0.94) 18%);
 }
 
 .office-action-response {
@@ -8153,6 +8294,21 @@ body {
     max-height: min(38vh, 340px);
     padding: 12px;
     border-radius: 16px;
+  }
+
+  .office-action-panel.cerebro-chat-drawer {
+    width: auto;
+    max-width: none;
+    max-height: 45vh;
+  }
+
+  .office-action-panel.cerebro-chat-drawer:focus-within {
+    max-height: 70vh;
+  }
+
+  .office-action-conversation {
+    min-height: 90px;
+    max-height: 18vh;
   }
 
   .office-action-panel h3 {

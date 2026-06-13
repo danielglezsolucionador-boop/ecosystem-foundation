@@ -11,6 +11,8 @@ from app.schemas.cerebro import (
     CerebroChatResponse,
     CerebroCheckpoint,
     CerebroChiefOfStaffStatus,
+    CerebroCommercialDraft,
+    CerebroCommercialDraftCreate,
     CerebroCompanyGoal,
     CerebroCompanyGoalCreate,
     CerebroDailyBrief,
@@ -41,6 +43,7 @@ from app.services.cerebro import (
     create_alert,
     create_approval_request,
     create_cerebro_decision,
+    create_cerebro_commercial_draft,
     create_cerebro_task,
     create_company_goal,
     create_department_goal,
@@ -166,6 +169,15 @@ def write_cerebro_chat(
 ) -> CerebroChatResponse:
     require_cerebro_write(current_user)
     return run_cerebro_chat(request, current_user)
+
+
+@router.post("/commercial-draft", response_model=CerebroCommercialDraft)
+def write_commercial_draft(
+    request: CerebroCommercialDraftCreate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> CerebroCommercialDraft:
+    require_cerebro_write(current_user)
+    return create_cerebro_commercial_draft(request, current_user)
 
 
 @router.get("/inbox/sombra/recent", response_model=list[SombraInboxRecentMessage])

@@ -10,5 +10,13 @@ class CentinelaStatus(BaseModel):
         min_length=1,
     )
     sombra_connected: bool = False
+    external_intel_messages: int = 0
+    critical_alerts: int = 0
+    high_alerts: int = 0
+    lead_signals: int = 0
+    threat_level: str = Field(default="unknown", pattern="^(unknown|low|medium|high|critical)$")
+    last_intel_at: str | None = None
+    last_heartbeat_at: str | None = None
+    ceo_codes_pending: list[str] = Field(default_factory=list)
     source: str = Field(default="internal_control_center", min_length=1)
     generated_at: str = Field(min_length=1)

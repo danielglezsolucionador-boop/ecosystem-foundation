@@ -350,9 +350,9 @@ const OFFICE_HOTSPOTS = {
     hotspot("centinela-intel", "Inteligencia hoy", 5, 62, 18, 12, { panelTitle: "Inteligencia hoy", panelBody: "Senales internas preparadas. No revela fuentes ni activa SOMBRA desde CEO." }),
     hotspot("centinela-threats", "Amenazas detectadas", 24, 62, 18, 12, { panelTitle: "Amenazas detectadas", panelBody: "Amenazas visibles en modo preparado para revision tactica." }),
     hotspot("centinela-shields", "Escudos activos", 43, 62, 18, 12, { panelTitle: "Escudos activos", panelBody: "Escudos representados visualmente. No activa protecciones reales." }),
-    hotspot("centinela-sombra", "Estado SOMBRA", 62, 62, 18, 12, { panelTitle: "Coordinacion interna CENTINELA - SOMBRA", panelBody: "El CEO no habla directamente con SOMBRA. CEREBRO y CENTINELA gestionan la coordinacion interna.", primaryAction: "Enviar a CEREBRO" }),
-    hotspot("centinela-coordination", "Coordinacion tactica interna", 70, 49, 24, 28, { panelTitle: "Coordinacion interna CENTINELA - SOMBRA", panelBody: "El CEO no habla directamente con SOMBRA. CEREBRO y CENTINELA gestionan la coordinacion interna.", primaryAction: "Preparar senal tactica" }),
-    hotspot("centinela-cerebro", "Hablar con CEREBRO", 39, 76, 17, 8, { panelTitle: "Hablar con CEREBRO sobre seguridad", panelBody: "Canal del CEO hacia CEREBRO para coordinar seguridad sin hablar directo con SOMBRA.", placeholder: "Escribe la instruccion para CEREBRO..." }),
+    hotspot("centinela-sombra", "Estado inteligencia externa", 62, 62, 18, 12, { panelTitle: "Coordinacion interna de inteligencia", panelBody: "El CEO consulta a CEREBRO. CEREBRO entrega senales internas a CENTINELA sin canal externo directo.", primaryAction: "Enviar a CEREBRO" }),
+    hotspot("centinela-coordination", "Coordinacion tactica interna", 70, 49, 24, 28, { panelTitle: "Coordinacion interna de inteligencia", panelBody: "CEREBRO y CENTINELA gestionan la coordinacion interna sin exponer fuentes ni payload sensible.", primaryAction: "Preparar senal tactica" }),
+    hotspot("centinela-cerebro", "Hablar con CEREBRO", 39, 76, 17, 8, { panelTitle: "Hablar con CEREBRO sobre seguridad", panelBody: "Canal del CEO hacia CEREBRO para coordinar seguridad sin hablar directo con fuentes externas.", placeholder: "Escribe la instruccion para CEREBRO..." }),
     hotspot("centinela-report", "Ver reporte del dia", 58, 76, 18, 8, { panelTitle: "Reporte del dia CENTINELA", panelBody: "Reporte tactico preparado para revision local." })
   ],
   auditoria: [
@@ -380,13 +380,13 @@ const OFFICE_HOTSPOTS = {
     hotspot("bunker-codes", "Codigos CEO sin leer", 3, 43, 20, 12, { panelTitle: "Codigos CEO sin leer", panelBody: "Codigos ejecutivos pendientes de revision local." }),
     hotspot("bunker-personal-risk", "Riesgo personal", 24, 43, 19, 12, { panelTitle: "Riesgo personal", panelBody: "Riesgo personal representado en modo local/preparado." }),
     hotspot("bunker-threats", "Amenazas activas", 44, 43, 18, 12, { panelTitle: "Amenazas activas", panelBody: "Amenazas visibles para PEOC, sin conexion externa." }),
-    hotspot("bunker-sombra-status", "Estado SOMBRA", 63, 43, 18, 12, { panelTitle: "Canal CEREBRO - SOMBRA", panelBody: "CEO no habla directo con SOMBRA. CEO habla con CEREBRO; CEREBRO coordina con SOMBRA.", placeholder: "Escribe instruccion para CEREBRO..." }),
+    hotspot("bunker-sombra-status", "Estado inteligencia externa", 63, 43, 18, 12, { panelTitle: "Canal CEREBRO - inteligencia", panelBody: "CEO habla con CEREBRO; CEREBRO coordina internamente sin canal externo directo.", placeholder: "Escribe instruccion para CEREBRO..." }),
     hotspot("bunker-intel", "Inteligencia hoy", 3, 56, 20, 12, { panelTitle: "Inteligencia hoy", panelBody: "Inteligencia preparada para revision. Sin fuentes externas activas." }),
     hotspot("bunker-ai-cost", "Costo IA", 24, 56, 19, 12, { panelTitle: "Costo IA", panelBody: "Control local de costos; no ejecuta pagos ni consumo real." }),
     hotspot("bunker-decisions", "Decisiones pendientes", 44, 56, 18, 12, { panelTitle: "Decisiones pendientes PEOC", panelBody: "Decisiones que requieren criterio CEO antes de mover capacidades." }),
     hotspot("bunker-clients", "Clientes en riesgo", 66, 8, 14, 35, { panelTitle: "Clientes en riesgo", panelBody: "Lista visual preparada, sin datos reales conectados." }),
     hotspot("bunker-cerebro-messages", "Mensajes de CEREBRO", 68, 69, 25, 16, { panelTitle: "Mensajes de CEREBRO", panelBody: "Mensajes internos preparados para PEOC." }),
-    hotspot("bunker-cerebro-channel", "Canal con CEREBRO", 2, 68, 70, 18, { panelTitle: "Canal CEREBRO - SOMBRA", panelBody: "CEO escribe a CEREBRO. CEREBRO coordina con SOMBRA cuando corresponda.", placeholder: "Escribe instruccion para CEREBRO...", primaryAction: "Enviar a CEREBRO" })
+    hotspot("bunker-cerebro-channel", "Canal con CEREBRO", 2, 68, 70, 18, { panelTitle: "Canal CEREBRO - inteligencia", panelBody: "CEO escribe a CEREBRO. CEREBRO coordina inteligencia cuando corresponda.", placeholder: "Escribe instruccion para CEREBRO...", primaryAction: "Enviar a CEREBRO" })
   ]
 };
 
@@ -1563,10 +1563,98 @@ function officeRealityFacts(action) {
     return [
       `Readiness: ${internalStatus.readiness || readiness.readiness_status || readiness.status || status.sentinela_status || "requires_validation"}`,
       `Owner venta: ${readiness.sales_owner || "MARKETING"}`,
-      `SOMBRA conectado: ${internalStatus.sombra_connected ? "si" : "no"}`
+      `Inbox externo: ${internalStatus.sombra_connected ? "activo" : "preparado"}`
     ];
   }
   return ["Preparado local", "Sin puente operativo conectado", "Sin acciones externas"];
+}
+
+function renderCerebroChatSections() {
+  const inbox = Array.isArray(state.data.cerebroExternalInbox) ? state.data.cerebroExternalInbox : [];
+  const tasks = Array.isArray(state.data.cerebroTasks) ? state.data.cerebroTasks : [];
+  const forjaTasks = tasks.filter((task) => String(task.destination || "").toLowerCase() === "forja");
+  const centinela = state.data.centinelaStatus || {};
+  return [
+    ["Conversacion", "activa"],
+    ["Acciones creadas", number(tasks.length)],
+    ["Inteligencia entrante", number(inbox.length)],
+    ["Tareas FORJA", number(forjaTasks.length)],
+    ["Estado CENTINELA", centinela.threat_level || centinela.status || "prepared"],
+    ["Borradores PLUMA/MARKETING", "preparados"]
+  ].map(([title, value]) => `
+    <span class="cerebro-section-chip">
+      <strong>${escapeHtml(title)}</strong>
+      <small>${escapeHtml(value)}</small>
+    </span>
+  `).join("");
+}
+
+function cyberIntelSnapshot() {
+  const inbox = Array.isArray(state.data.cerebroExternalInbox) ? state.data.cerebroExternalInbox : [];
+  const tasks = Array.isArray(state.data.cerebroTasks) ? state.data.cerebroTasks : [];
+  const centinela = state.data.centinelaStatus || {};
+  const pendingCodes = Array.isArray(centinela.ceo_codes_pending)
+    ? centinela.ceo_codes_pending
+    : inbox.filter((item) => item.immediate_ceo_attention && item.ceo_code).map((item) => item.ceo_code);
+  const heartbeat = centinela.last_heartbeat_at
+    || inbox.find((item) => String(item.type || "").toLowerCase() === "heartbeat")?.received_at
+    || null;
+  const latest = inbox.slice(0, 4);
+  const forjaTasks = tasks.filter((task) => String(task.destination || "").toLowerCase() === "forja");
+  return {
+    inbox,
+    latest,
+    centinela,
+    pendingCodes: Array.from(new Set(pendingCodes.filter(Boolean))),
+    heartbeat,
+    critical: Number(centinela.critical_alerts || inbox.filter((item) => item.severity === "critical").length || 0),
+    high: Number(centinela.high_alerts || inbox.filter((item) => item.severity === "high").length || 0),
+    threat: centinela.threat_level || "unknown",
+    connected: Boolean(centinela.sombra_connected),
+    commercialReady: inbox.filter((item) => item.commercial_draft_ready).length,
+    forjaTasks: forjaTasks.length
+  };
+}
+
+function renderCyberIntelPanel(context = "cerebro") {
+  const intel = cyberIntelSnapshot();
+  const status = intel.connected ? "activo" : intel.inbox.length ? "preparado" : "preparado";
+  const codeCopy = intel.pendingCodes.length ? intel.pendingCodes.join(", ") : "sin codigos pendientes";
+  const latestItems = intel.latest.length
+    ? intel.latest.map((item) => `
+      <li>
+        <strong>${escapeHtml(item.ceo_code || item.severity || "info")}</strong>
+        <span>${escapeHtml(item.title || "Inteligencia recibida")}</span>
+        <small>${escapeHtml(item.received_at || item.created_at || "sin fecha")}</small>
+      </li>
+    `).join("")
+    : `<li><span>Sin mensajes recientes de inteligencia.</span></li>`;
+  const title = context === "bunker"
+    ? "Inteligencia critica PEOC"
+    : context === "centinela"
+      ? "Inteligencia externa recibida"
+      : "Inteligencia de ciberseguridad";
+  return `
+    <section class="cyber-intel-panel ${escapeHtml(context)}" aria-label="${escapeHtml(title)}">
+      <div class="cyber-intel-head">
+        <span>${escapeHtml(title)}</span>
+        <strong>${escapeHtml(status)}</strong>
+      </div>
+      <div class="cyber-intel-grid">
+        <article><span>Inbox externo</span><strong>${escapeHtml(status)}</strong></article>
+        <article><span>Ultimo heartbeat</span><strong>${escapeHtml(intel.heartbeat || "pendiente")}</strong></article>
+        <article><span>Alertas CEO</span><strong>${escapeHtml(codeCopy)}</strong></article>
+        <article><span>A1-PARA-1</span><strong>${escapeHtml(number(intel.pendingCodes.filter((code) => code === "A1-PARA-1").length))}</strong></article>
+        <article><span>A2-PARA-1</span><strong>${escapeHtml(number(intel.pendingCodes.filter((code) => code === "A2-PARA-1").length))}</strong></article>
+        <article><span>Nivel amenaza</span><strong>${escapeHtml(intel.threat)}</strong></article>
+        <article><span>Borradores PLUMA/LinkedIn</span><strong>${escapeHtml(number(intel.commercialReady))}</strong></article>
+        <article><span>Tareas FORJA</span><strong>${escapeHtml(number(intel.forjaTasks))}</strong></article>
+      </div>
+      <ul class="cyber-intel-list">
+        ${latestItems}
+      </ul>
+    </section>
+  `;
 }
 
 function renderOfficeActionPanel(action) {
@@ -1574,8 +1662,10 @@ function renderOfficeActionPanel(action) {
   const status = action.status || "Puente operativo no conectado todavia";
   const facts = officeRealityFacts(action);
   const cerebroButtons = String(action.office || "").toLowerCase() === "cerebro" || action.operation === "cerebro_chat";
+  const primaryLabel = cerebroButtons ? "Enviar" : action.primaryAction || "Enviar";
+  const secondaryLabel = cerebroButtons ? "Crear mision" : action.secondaryAction || "Crear mision";
   return `
-    <aside class="office-action-panel command-drawer" role="dialog" aria-modal="false" aria-label="${escapeHtml(action.panelTitle || action.label)}">
+    <aside class="office-action-panel command-drawer${cerebroButtons ? " cerebro-chat-drawer" : ""}" role="dialog" aria-modal="false" aria-label="${escapeHtml(action.panelTitle || action.label)}">
       <button class="office-action-close" data-office-panel-close type="button" aria-label="Cerrar panel">Cerrar</button>
       <span class="office-action-origin">${escapeHtml(action.office || "Oficina")}</span>
       <h3>${escapeHtml(action.panelTitle || action.label)}</h3>
@@ -1585,18 +1675,30 @@ function renderOfficeActionPanel(action) {
         ${facts.map((fact) => `<li>${escapeHtml(fact)}</li>`).join("")}
       </ul>
       <p class="office-action-note">${escapeHtml(action.note || OFFICE_ACTION_DEFAULT_NOTE)}</p>
-      <label class="office-action-input">
-        <span>${escapeHtml(placeholder)}</span>
-        <textarea rows="3" data-office-panel-input spellcheck="false" placeholder="${escapeHtml(placeholder)}"></textarea>
-      </label>
+      ${cerebroButtons ? `
+        <div class="office-action-conversation" data-office-panel-log aria-live="polite">
+          <div class="office-chat-bubble system">
+            <strong>Conversacion</strong>
+            <span>CEREBRO listo para seguir instrucciones sin acciones externas automaticas.</span>
+          </div>
+        </div>
+        <div class="cerebro-chat-sections">${renderCerebroChatSections()}</div>
+      ` : ""}
       <div class="office-action-response" data-office-panel-response hidden></div>
-      <div class="office-action-buttons">
-        <button class="primary-action" data-office-panel-submit type="button">${escapeHtml(action.primaryAction || "Enviar")}</button>
-        <button class="mini-action" data-office-panel-create type="button">${escapeHtml(action.secondaryAction || "Crear mision")}</button>
-        ${cerebroButtons ? `
-          <button class="mini-action" data-office-panel-forja type="button">Enviar a FORJA</button>
-          <button class="mini-action" data-office-panel-centinela type="button">Consultar CENTINELA</button>
-        ` : ""}
+      <div class="office-action-dock">
+        <label class="office-action-input">
+          <span>${escapeHtml(placeholder)}</span>
+          <textarea rows="3" data-office-panel-input spellcheck="false" placeholder="${escapeHtml(placeholder)}"></textarea>
+        </label>
+        <div class="office-action-buttons">
+          <button class="primary-action" data-office-panel-submit type="button">${escapeHtml(primaryLabel)}</button>
+          <button class="mini-action" data-office-panel-create type="button">${escapeHtml(secondaryLabel)}</button>
+          ${cerebroButtons ? `
+            <button class="mini-action" data-office-panel-forja type="button">Enviar a FORJA</button>
+            <button class="mini-action" data-office-panel-centinela type="button">Consultar CENTINELA</button>
+            <button class="mini-action" data-office-panel-linkedin type="button">Preparar borrador LinkedIn</button>
+          ` : ""}
+        </div>
       </div>
     </aside>
   `;
@@ -1626,6 +1728,7 @@ function cerebroChatActionForMode(mode, action = {}) {
   if (mode === "mission" || mode === "create") return office === "centinela" ? "centinela" : "mission";
   if (mode === "forja") return "forja";
   if (mode === "centinela") return "centinela";
+  if (mode === "linkedin" || mode === "commercial") return "commercial";
   if (action.operation === "create_forja_task" || office === "forja") return "forja";
   if (action.operation === "read_centinela_readiness" || office === "centinela") return "centinela";
   return "auto";
@@ -1635,6 +1738,7 @@ function cerebroChatDefaultMessage(actionMode, action = {}) {
   if (actionMode === "mission") return `${action.panelTitle || action.label || "CEREBRO"}: crea una mision interna trazable.`;
   if (actionMode === "forja") return `${action.panelTitle || action.label || "FORJA"}: prepara trabajo interno para FORJA.`;
   if (actionMode === "centinela") return "Consulta estado interno de CENTINELA y riesgos preparados sin tocar SOMBRA.";
+  if (actionMode === "commercial") return "Prepara un borrador LinkedIn defensivo y sanitizado para PLUMA/MARKETING.";
   return `${action.panelTitle || action.label || "CEREBRO"}: responde como centro de mando interno.`;
 }
 
@@ -1650,6 +1754,30 @@ async function sendCerebroChat(action, text, mode = "send") {
   });
 }
 
+function appendCerebroBubble(log, role, html) {
+  if (!log) return null;
+  log.insertAdjacentHTML("beforeend", `<div class="office-chat-bubble ${escapeHtml(role)}">${html}</div>`);
+  const bubble = log.lastElementChild;
+  log.scrollTop = log.scrollHeight;
+  return bubble;
+}
+
+function renderCerebroUserMessage(text, mode) {
+  const labelText = mode === "forja"
+    ? "CEO -> FORJA via CEREBRO"
+    : mode === "centinela"
+      ? "CEO -> CENTINELA via CEREBRO"
+      : mode === "mission"
+        ? "CEO -> Mision CEREBRO"
+        : mode === "commercial"
+          ? "CEO -> PLUMA/MARKETING via CEREBRO"
+          : "CEO";
+  return `
+    <strong>${escapeHtml(labelText)}</strong>
+    <span>${escapeHtml(text)}</span>
+  `;
+}
+
 function renderCerebroChatResponse(result) {
   const actions = Array.isArray(result.actions) ? result.actions : [];
   const stateInfo = result.state || {};
@@ -1658,7 +1786,7 @@ function renderCerebroChatResponse(result) {
     const actionId = item.id || item.status || "preparada";
     const detail = item.detail ? `<small>${escapeHtml(item.detail)}</small>` : "";
     return `
-      <span>${escapeHtml(labelText)}: ${escapeHtml(actionId)}</span>
+      <span>Accion creada: ${escapeHtml(labelText)} | ID: ${escapeHtml(actionId)}</span>
       ${detail}
     `;
   }).join("");
@@ -1666,7 +1794,7 @@ function renderCerebroChatResponse(result) {
     <strong>CEREBRO respondio</strong>
     <span>${escapeHtml(result.reply || "Accion interna preparada.")}</span>
     ${renderedActions}
-    <small>Estado: misiones ${escapeHtml(number(stateInfo.missions_active))} | FORJA ${escapeHtml(number(stateInfo.forja_tasks))} | SOMBRA conectado: ${stateInfo.sombra_connected ? "si" : "no"}</small>
+    <small>Estado: misiones ${escapeHtml(number(stateInfo.missions_active))} | FORJA ${escapeHtml(number(stateInfo.forja_tasks))} | Intel ${escapeHtml(number(stateInfo.external_intel_messages))} | SOMBRA conectado: ${stateInfo.sombra_connected ? "si" : "no"}</small>
   `;
 }
 
@@ -1719,12 +1847,45 @@ async function submitOfficeAction(mode = "send") {
   const action = findOfficeAction(panel.dataset.actionId);
   const input = panel.querySelector("[data-office-panel-input]");
   const response = panel.querySelector("[data-office-panel-response]");
+  const log = panel.querySelector("[data-office-panel-log]");
   const text = input?.value.trim();
   if (!response || !action) return;
+  const isCerebroChat = action.operation === "cerebro_chat" || String(action.office || "").toLowerCase() === "cerebro";
+  if (isCerebroChat && log) {
+    const chatAction = cerebroChatActionForMode(mode, action);
+    const displayText = text || cerebroChatDefaultMessage(chatAction, action);
+    appendCerebroBubble(log, "user", renderCerebroUserMessage(displayText, chatAction));
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    const loading = appendCerebroBubble(log, "loading", `<span>CEREBRO procesando...</span>`);
+    try {
+      const result = await sendCerebroChat(action, text, mode);
+      loading?.remove();
+      appendCerebroBubble(log, "assistant", renderCerebroChatResponse(result));
+      showOfficeToast("CEREBRO respondio");
+    } catch (error) {
+      loading?.remove();
+      appendCerebroBubble(
+        log,
+        "error",
+        `
+          <strong>CEREBRO no completo la accion</strong>
+          <span>${escapeHtml(error.message || "Error desconocido")}</span>
+          <small>No se ejecuto accion externa.</small>
+        `
+      );
+      showOfficeToast("CEREBRO bloqueado");
+    } finally {
+      input?.focus();
+    }
+    return;
+  }
   response.hidden = false;
   response.innerHTML = `<span>Procesando accion interna...</span>`;
   try {
-    if (action.operation === "cerebro_chat" || String(action.office || "").toLowerCase() === "cerebro") {
+    if (isCerebroChat) {
       const result = await sendCerebroChat(action, text, mode);
       response.innerHTML = renderCerebroChatResponse(result);
       showOfficeToast("CEREBRO respondio");
@@ -1777,26 +1938,44 @@ async function submitCerebroOfficeChat(mode = "send") {
   if (!chat) return;
   const input = chat.querySelector("[data-cerebro-office-input]") || chat.querySelector("input[type='text']");
   const response = chat.querySelector("[data-cerebro-office-response]");
+  const log = chat.querySelector("[data-cerebro-office-log]");
   const text = input?.value.trim();
   if (!response) return;
-  response.hidden = false;
-  response.innerHTML = `<span>CEREBRO procesando instruccion...</span>`;
+  const action = { office: "CEREBRO", panelTitle: "Oficina CEREBRO", label: "Hablar con CEREBRO" };
+  const chatAction = cerebroChatActionForMode(mode, action);
+  const displayText = text || cerebroChatDefaultMessage(chatAction, action);
+  if (log) {
+    appendCerebroBubble(log, "user", renderCerebroUserMessage(displayText, chatAction));
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+  }
+  response.hidden = !log;
+  response.innerHTML = `<span>CEREBRO procesando...</span>`;
+  const loading = log ? appendCerebroBubble(log, "loading", `<span>CEREBRO procesando...</span>`) : null;
   try {
     const result = await sendCerebroChat(
-      { office: "CEREBRO", panelTitle: "Oficina CEREBRO", label: "Hablar con CEREBRO" },
+      action,
       text,
       mode
     );
-    response.innerHTML = renderCerebroChatResponse(result);
-    if (input) input.value = "";
+    loading?.remove();
+    if (log) appendCerebroBubble(log, "assistant", renderCerebroChatResponse(result));
+    else response.innerHTML = renderCerebroChatResponse(result);
     showOfficeToast("CEREBRO respondio");
   } catch (error) {
-    response.innerHTML = `
+    loading?.remove();
+    const errorHtml = `
       <strong>CEREBRO no completo la accion</strong>
       <span>${escapeHtml(error.message || "Error desconocido")}</span>
       <small>No se ejecuto accion externa.</small>
     `;
+    if (log) appendCerebroBubble(log, "error", errorHtml);
+    else response.innerHTML = errorHtml;
     showOfficeToast("CEREBRO bloqueado");
+  } finally {
+    input?.focus();
   }
 }
 
@@ -1916,12 +2095,16 @@ function renderCerebroOffice() {
             <small>CEO, esto requiere tu decisión.</small>
           </div>
           <div class="cerebro-chat">
+            <div class="cerebro-chat-log" data-cerebro-office-log aria-live="polite">
             <div class="chat-line system">Estado del ecosistema: local, protegido, sin acciones externas.</div>
             <div class="chat-line user">Prioridad ejecutiva: revisar oficinas internas y PEOC.</div>
+            </div>
+            <div class="cerebro-chat-sections">${renderCerebroChatSections()}</div>
             <div class="cerebro-chat-response" data-cerebro-office-response hidden></div>
-            <label>
+            <label class="cerebro-chat-composer">
               <span>Hablar con CEREBRO</span>
               <div class="chat-input-row">
+                <textarea rows="2" data-cerebro-office-input spellcheck="false" placeholder="Pregunta sobre decision, riesgo, inteligencia o tarea..."></textarea>
                 <input type="text" placeholder="Pregunta sobre decisión, riesgo o tarea..." />
                 <button class="primary-action" data-cerebro-office-send type="button">Enviar</button>
               </div>
@@ -1930,6 +2113,7 @@ function renderCerebroOffice() {
               <button class="mini-action" data-cerebro-office-mission type="button">Crear mision</button>
               <button class="mini-action" data-cerebro-office-forja type="button">Enviar a FORJA</button>
               <button class="mini-action" data-cerebro-office-centinela type="button">Consultar CENTINELA</button>
+              <button class="mini-action" data-cerebro-office-linkedin type="button">Preparar borrador LinkedIn</button>
             </div>
           </div>
         </section>
@@ -4702,6 +4886,11 @@ function bindEvents() {
       submitOfficeAction("centinela");
       return;
     }
+    if (event.target.closest("[data-office-panel-linkedin]")) {
+      event.preventDefault();
+      submitOfficeAction("linkedin");
+      return;
+    }
     if (event.target.closest("[data-cerebro-office-send]")) {
       event.preventDefault();
       submitCerebroOfficeChat("send");
@@ -4720,6 +4909,11 @@ function bindEvents() {
     if (event.target.closest("[data-cerebro-office-centinela]")) {
       event.preventDefault();
       submitCerebroOfficeChat("centinela");
+      return;
+    }
+    if (event.target.closest("[data-cerebro-office-linkedin]")) {
+      event.preventDefault();
+      submitCerebroOfficeChat("linkedin");
       return;
     }
     const officeButton = event.target.closest("[data-office-nav]");
@@ -4744,6 +4938,16 @@ function bindEvents() {
     scrollToSection(target);
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey && event.target.matches("[data-office-panel-input]")) {
+      event.preventDefault();
+      submitOfficeAction("send");
+      return;
+    }
+    if (event.key === "Enter" && !event.shiftKey && event.target.matches("[data-cerebro-office-input]")) {
+      event.preventDefault();
+      submitCerebroOfficeChat("send");
+      return;
+    }
     if (!["Enter", " "].includes(event.key)) return;
     const officeAction = event.target.closest("[data-office-action]");
     if (officeAction) {
