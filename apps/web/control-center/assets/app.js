@@ -183,7 +183,17 @@ const state = {
   restoreAttempted: Boolean(initialSession.token),
   restoredNoticePending: false,
   sessionRemembered: initialSession.remembered,
-  officeView: "main"
+  officeView: "main",
+  cerebroChatHistory: [
+    {
+      id: "cerebro-ready",
+      role: "assistant",
+      title: "CEREBRO",
+      text: "CEO, estoy listo. Escribe una instruccion y mantenemos esta conversacion abierta.",
+      meta: "chat operativo"
+    }
+  ],
+  cerebroChatSending: false
 };
 
 const MAIN_OFFICES = [
@@ -1066,6 +1076,10 @@ function nextDecision() {
 }
 
 function scrollToSection(targetId) {
+  if (String(targetId || "").toLowerCase() === "cerebro") {
+    openRealCerebroChat();
+    return;
+  }
   const targetMap = {
     cerebro: "cerebro-chief-of-staff",
     workday: "workday-os",
@@ -1104,6 +1118,206 @@ function scrollToSection(targetId) {
   const target = document.getElementById(targetMap[targetId] || targetId);
   if (!target) return;
   target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function chatTextHtml(value) {
+  return escapeHtml(value).replace(/\n/g, "<br>");
+}
+
+function newChatId(prefix = "chat") {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function detectRealCerebroMode(text) {
+  const normalized = String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (/\b(mision|misiones)\b/.test(normalized) || /\b(crea|crear|registra|prepara)\b.*\bmision\b/.test(normalized)) {
+    return "mission";
+  }
+  if (/\b(forja|construye|implementa|codigo|parche)\b/.test(normalized)) return "forja";
+  if (/\b(centinela|sentinela|seguridad|riesgo|alerta)\b/.test(normalized)) return "centinela";
+  return "send";
+}
+
+function addCerebroChatMessage(message) {
+  state.cerebroChatHistory.push({
+    id: newChatId(message.role || "message"),
+    ...message
+  });
+}
+
+function replaceCerebroChatMessage(id, message) {
+  const index = state.cerebroChatHistory.findIndex((item) => item.id === id);
+  if (index < 0) return;
+  state.cerebroChatHistory[index] = { ...state.cerebroChatHistory[index], ...message };
+}
+
+function renderRealCerebroActions(actions = []) {
+  if (!Array.isArray(actions) || !actions.length) return "";
+  return `
+    <div class="real-cerebro-actions" aria-label="Acciones registradas">
+      ${actions.map((action) => `
+        <small>
+          <strong>${escapeHtml(label(action.type || "accion"))}</strong>
+          ${escapeHtml(action.status || "registrada")}
+          ${action.id ? ` &middot; ${escapeHtml(action.id)}` : ""}
+        </small>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderRealCerebroMessage(message) {
+  const role = message.role === "user" ? "user" : message.role === "loading" ? "loading" : message.role === "error" ? "error" : "assistant";
+  return `
+    <article class="real-cerebro-message ${escapeHtml(role)}" data-message-id="${escapeHtml(message.id)}">
+      <strong>${escapeHtml(message.title || (role === "user" ? "CEO" : "CEREBRO"))}</strong>
+      <p>${chatTextHtml(message.text || "")}</p>
+      ${message.meta ? `<span>${escapeHtml(message.meta)}</span>` : ""}
+      ${renderRealCerebroActions(message.actions)}
+    </article>
+  `;
+}
+
+function renderRealCerebroHistory() {
+  return state.cerebroChatHistory.map(renderRealCerebroMessage).join("");
+}
+
+function focusRealCerebroInput() {
+  const input = $("[data-real-cerebro-input]");
+  if (!input) return;
+  input.focus({ preventScroll: true });
+  const length = input.value.length;
+  input.setSelectionRange(length, length);
+}
+
+function scrollRealCerebroLog() {
+  const log = $("[data-real-cerebro-log]");
+  if (log) log.scrollTop = log.scrollHeight;
+}
+
+function renderRealCerebroChat() {
+  const stage = $("#ceo-office-stage");
+  if (!stage || state.officeView !== "cerebro") return;
+  stage.innerHTML = renderRealCerebroChatView();
+  window.requestAnimationFrame(() => {
+    scrollRealCerebroLog();
+    focusRealCerebroInput();
+  });
+}
+
+function openRealCerebroChat() {
+  state.officeView = "cerebro";
+  renderLivingOffice();
+  renderOfficeNavigation();
+  $("#ceo-office-stage")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.requestAnimationFrame(() => {
+    scrollRealCerebroLog();
+    focusRealCerebroInput();
+  });
+  window.setTimeout(focusRealCerebroInput, 120);
+}
+
+function renderRealCerebroChatView() {
+  const sentMessages = state.cerebroChatHistory.filter((item) => item.role === "user").length;
+  const status = state.cerebroChatSending ? "CEREBRO procesando..." : "Chat operativo continuo";
+  return `
+    <div class="office-view real-cerebro-chat-screen" data-office="cerebro" aria-label="Chat real de CEREBRO">
+      <header class="real-cerebro-header">
+        <button class="mini-action" data-office-nav="main" type="button">Volver</button>
+        <div>
+          <span class="eyebrow">CEREBRO operativo</span>
+          <h2>Chat real de CEREBRO</h2>
+          <p>Conversacion grande, continua y directa entre CEO y CEREBRO.</p>
+        </div>
+        <strong>${escapeHtml(status)}</strong>
+      </header>
+      <main class="real-cerebro-chat-layout">
+        <section class="real-cerebro-thread" aria-label="Historial de conversacion con CEREBRO">
+          <div class="real-cerebro-thread-head">
+            <span>Historial de conversacion</span>
+            <small>${number(sentMessages)} mensajes del CEO en esta sesion</small>
+          </div>
+          <div class="real-cerebro-log" data-real-cerebro-log aria-live="polite">
+            ${renderRealCerebroHistory()}
+          </div>
+        </section>
+        <form class="real-cerebro-composer" data-real-cerebro-form>
+          <label>
+            <span>Mensaje para CEREBRO</span>
+            <textarea
+              rows="5"
+              data-real-cerebro-input
+              autofocus
+              spellcheck="false"
+              placeholder="Escribe aqui. Enter envia. Shift+Enter agrega salto de linea."
+            ></textarea>
+          </label>
+          <div class="real-cerebro-composer-actions">
+            <small>Enter envia &middot; Shift+Enter salto de linea &middot; el chat permanece abierto.</small>
+            <button class="primary-action" data-real-cerebro-send type="submit">
+              ${state.cerebroChatSending ? "Enviando..." : "Enviar"}
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
+  `;
+}
+
+async function submitRealCerebroChat() {
+  if (state.cerebroChatSending) return;
+  const input = $("[data-real-cerebro-input]");
+  const text = input?.value.trim() || "";
+  if (!text) {
+    focusRealCerebroInput();
+    return;
+  }
+
+  const mode = detectRealCerebroMode(text);
+  const action = { office: "CEREBRO", panelTitle: "Chat real de CEREBRO", label: "Hablar con CEREBRO" };
+  addCerebroChatMessage({
+    role: "user",
+    title: "CEO",
+    text,
+    meta: mode === "mission" ? "solicitud de mision" : "mensaje enviado"
+  });
+  if (input) input.value = "";
+  const loadingId = newChatId("loading");
+  state.cerebroChatHistory.push({
+    id: loadingId,
+    role: "loading",
+    title: "CEREBRO",
+    text: "Procesando instruccion..."
+  });
+  state.cerebroChatSending = true;
+  renderRealCerebroChat();
+
+  try {
+    const result = await sendCerebroChat(action, text, mode);
+    replaceCerebroChatMessage(loadingId, {
+      role: "assistant",
+      title: "CEREBRO",
+      text: humanizeCabinText(result.reply || "Accion interna preparada."),
+      meta: result.provider ? `provider: ${result.provider}` : "respuesta recibida",
+      actions: result.actions || []
+    });
+    showOfficeToast("CEREBRO respondio");
+  } catch (error) {
+    console.error("Real CEREBRO chat failed", error);
+    replaceCerebroChatMessage(loadingId, {
+      role: "error",
+      title: "CEREBRO",
+      text: "No pude completar la accion ahora. La conversacion sigue abierta; intenta de nuevo.",
+      meta: "error de API"
+    });
+    showOfficeToast("CEREBRO bloqueado");
+  } finally {
+    state.cerebroChatSending = false;
+    renderRealCerebroChat();
+  }
 }
 
 function emptyState(text, detail = "") {
@@ -2230,6 +2444,7 @@ function renderOfficeCard(office) {
 }
 
 function renderCerebroOffice() {
+  return renderRealCerebroChatView();
   return `
     <div class="office-view cerebro-office" data-office="cerebro">
       ${renderOfficeReferenceImage("cerebro")}
@@ -5023,9 +5238,18 @@ function bindEvents() {
     });
   });
   document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-real-cerebro-send]")) {
+      event.preventDefault();
+      submitRealCerebroChat();
+      return;
+    }
     const officeAction = event.target.closest("[data-office-action]");
     if (officeAction) {
       event.preventDefault();
+      if (officeAction.dataset.officeAction === "cerebro-chat") {
+        openRealCerebroChat();
+        return;
+      }
       openOfficeActionPanel(officeAction.dataset.officeAction);
       return;
     }
@@ -5095,7 +5319,17 @@ function bindEvents() {
     }
     scrollToSection(target);
   });
+  document.addEventListener("submit", (event) => {
+    if (!event.target.matches("[data-real-cerebro-form]")) return;
+    event.preventDefault();
+    submitRealCerebroChat();
+  });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey && event.target.matches("[data-real-cerebro-input]")) {
+      event.preventDefault();
+      submitRealCerebroChat();
+      return;
+    }
     if (event.key === "Enter" && !event.shiftKey && event.target.matches("[data-office-panel-input]")) {
       event.preventDefault();
       submitOfficeAction("send");

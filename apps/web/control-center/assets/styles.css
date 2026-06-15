@@ -9042,3 +9042,290 @@ body {
     min-height: 98px;
   }
 }
+
+/* Real CEREBRO chat acceptance surface */
+.ceo-office-stage .office-view.real-cerebro-chat-screen[data-office="cerebro"] {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 18px;
+  padding: clamp(18px, 3vw, 36px) !important;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(240, 192, 64, 0.14), transparent 32%),
+    linear-gradient(180deg, #080b10 0%, #050607 100%) !important;
+  color: #f6ead1;
+}
+
+.ceo-office-stage .office-view.real-cerebro-chat-screen[data-office="cerebro"] > .real-cerebro-header,
+.ceo-office-stage .office-view.real-cerebro-chat-screen[data-office="cerebro"] > .real-cerebro-chat-layout {
+  display: grid !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+#ceo-office-stage.ceo-office-stage .office-view.real-cerebro-chat-screen[data-office="cerebro"] > .real-cerebro-header,
+#ceo-office-stage.ceo-office-stage .office-view.real-cerebro-chat-screen[data-office="cerebro"] > .real-cerebro-chat-layout {
+  display: grid !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.real-cerebro-header {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid rgba(240, 192, 64, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.real-cerebro-header h2 {
+  margin: 4px 0 4px;
+  color: #fff7df;
+  font-size: clamp(30px, 3.4vw, 52px);
+  line-height: 1.02;
+}
+
+.real-cerebro-header p {
+  margin: 0;
+  color: rgba(246, 234, 209, 0.74);
+  font-size: 15px;
+}
+
+.real-cerebro-header > strong {
+  justify-self: end;
+  padding: 10px 12px;
+  border: 1px solid rgba(89, 210, 155, 0.28);
+  border-radius: 8px;
+  color: #9ff0c8;
+  background: rgba(89, 210, 155, 0.08);
+  font-size: 13px;
+}
+
+.real-cerebro-chat-layout {
+  position: relative;
+  z-index: 3;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 14px;
+}
+
+.real-cerebro-thread {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid rgba(240, 192, 64, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.real-cerebro-thread-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(240, 192, 64, 0.14);
+  color: #f0c040;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.real-cerebro-thread-head small {
+  color: rgba(246, 234, 209, 0.64);
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.real-cerebro-log {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: clamp(16px, 2vw, 24px);
+  overscroll-behavior: contain;
+}
+
+.real-cerebro-message {
+  width: min(78ch, 86%);
+  display: grid;
+  gap: 7px;
+  padding: 15px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+  color: rgba(246, 234, 209, 0.9);
+  line-height: 1.52;
+}
+
+.real-cerebro-message.user {
+  align-self: flex-end;
+  border-color: rgba(240, 192, 64, 0.32);
+  background: rgba(240, 192, 64, 0.1);
+}
+
+.real-cerebro-message.assistant {
+  align-self: flex-start;
+  border-color: rgba(89, 210, 155, 0.28);
+  background: rgba(89, 210, 155, 0.08);
+}
+
+.real-cerebro-message.loading {
+  align-self: flex-start;
+  color: #f7d272;
+}
+
+.real-cerebro-message.error {
+  align-self: flex-start;
+  border-color: rgba(255, 107, 107, 0.38);
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.real-cerebro-message strong {
+  color: #fff7df;
+  font-size: 14px;
+}
+
+.real-cerebro-message p {
+  margin: 0;
+  color: inherit;
+  font-size: 15px;
+}
+
+.real-cerebro-message span,
+.real-cerebro-message small {
+  color: rgba(246, 234, 209, 0.66);
+  font-size: 12px;
+}
+
+.real-cerebro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.real-cerebro-actions small {
+  padding: 6px 8px;
+  border: 1px solid rgba(89, 210, 155, 0.22);
+  border-radius: 999px;
+  background: rgba(89, 210, 155, 0.08);
+}
+
+.real-cerebro-composer {
+  display: grid;
+  gap: 12px;
+  padding: clamp(16px, 2vw, 22px);
+  border: 1px solid rgba(240, 192, 64, 0.28);
+  border-radius: 8px;
+  background: rgba(8, 9, 11, 0.94);
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.28);
+}
+
+.real-cerebro-composer label {
+  display: grid;
+  gap: 8px;
+  color: rgba(246, 234, 209, 0.78);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.real-cerebro-composer textarea {
+  width: 100%;
+  min-height: 142px;
+  resize: vertical;
+  border: 1px solid rgba(240, 192, 64, 0.28);
+  border-radius: 8px;
+  padding: 15px 16px;
+  background: rgba(0, 0, 0, 0.52);
+  color: #fff7df;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.real-cerebro-composer textarea:focus {
+  border-color: rgba(240, 192, 64, 0.72);
+  box-shadow: 0 0 0 3px rgba(240, 192, 64, 0.14);
+}
+
+.real-cerebro-composer-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.real-cerebro-composer-actions small {
+  color: rgba(246, 234, 209, 0.62);
+}
+
+.real-cerebro-composer-actions .primary-action {
+  min-width: 160px;
+  min-height: 48px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+@media (max-width: 720px) {
+  .ceo-office-stage .office-view.real-cerebro-chat-screen[data-office="cerebro"] {
+    min-height: 100dvh;
+    padding: 12px !important;
+    gap: 10px;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(240, 192, 64, 0.12), transparent 34%),
+      #050607 !important;
+  }
+
+  .real-cerebro-header {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .real-cerebro-header > strong {
+    justify-self: start;
+  }
+
+  .real-cerebro-header h2 {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+
+  .real-cerebro-thread-head {
+    display: grid;
+    gap: 5px;
+  }
+
+  .real-cerebro-message {
+    width: 100%;
+  }
+
+  .real-cerebro-composer {
+    padding: 12px;
+  }
+
+  .real-cerebro-composer textarea {
+    min-height: 132px;
+  }
+
+  .real-cerebro-composer-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .real-cerebro-composer-actions .primary-action {
+    width: 100%;
+  }
+}
