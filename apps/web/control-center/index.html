@@ -394,8 +394,8 @@
     <div class="app-card" data-app="FORJA">
       <div class="card-header"><h3>⚙️ FORJA</h3><span class="badge-gold">🔨</span></div>
       <div class="kpi-row">
-        <div class="kpi" data-explica="Tareas activas: 24 en ejecución, 5 bloqueos técnicos"><span>tareas activas</span><strong>24</strong></div>
-        <div class="kpi" data-explica="Entregas pendientes: panel administración + motor IA"><span>entregas pend</span><strong>5</strong></div>
+        <div class="kpi" data-explica="Tareas activas en FORJA — datos reales del backend"><span>tareas activas</span><strong id="forjaActiveTasks">—</strong></div>
+        <div class="kpi" data-explica="Tareas pendientes de entrega en FORJA"><span>entregas pend</span><strong id="forjaPendingTasks">—</strong></div>
       </div>
       <div class="btn-group">
         <button class="btn-mini" data-accion="crearTarea">➕ Crear tarea</button>
@@ -473,8 +473,8 @@
     <div class="app-card" data-app="CENTINELA">
       <div class="card-header"><h3>🛡️ CENTINELA</h3><span class="badge-gold">⚠️</span></div>
       <div class="kpi-row">
-        <div class="kpi" data-explica="Nivel de amenaza ALTO, 3 críticas activas"><span>nivel amenaza</span><strong>ALTO</strong></div>
-        <div class="kpi" data-explica="Alertas críticas: 3 vectores"><span>críticas</span><strong>3</strong></div>
+        <div class="kpi" data-explica="Nivel de amenaza — cargando datos reales de CENTINELA"><span>nivel amenaza</span><strong id="centinelaThreat">—</strong></div>
+        <div class="kpi" data-explica="Alertas críticas — cargando desde SOMBRA"><span>críticas</span><strong id="centinelaAlerts">—</strong></div>
       </div>
       <div class="btn-group">
         <button class="btn-mini" data-accion="verAlertas">🚨 Ver alertas</button>
@@ -639,6 +639,7 @@
       const data = await res.json();
       setToken(data.token);
       hideLoginOverlay();
+      loadDashboardData();
     } catch (e) {
       errDiv.innerText = 'Sin conexión con el servidor. Verifica que el backend esté activo.';
     } finally {
@@ -738,7 +739,24 @@
         case 'pedirGuion': feedback = 'Guion solicitado a PLUMA, se entregará en 48h.'; break;
         case 'verBitacora': feedback = 'Bitácora: 1.160 verificaciones, sin anomalías en últimos cambios.'; break;
         case 'auditarForja': feedback = 'Auditoría FORJA: 98% de tareas con trazabilidad. 2 bloqueos pendientes.'; break;
-        case 'verAlertas': feedback = 'Alertas CENTINELA: 3 críticas (phishing, escaneo, intento de acceso). Defensas activas.'; break;
+        case 'verAlertas':
+          (async () => {
+            const intel = await apiGet('/api/v1/cerebro/inbox/sombra/recent?limit=5');
+            let msg;
+            if (!intel || !intel.length) {
+              msg = '📡 Sin mensajes en inbox SOMBRA. Canal monitoreado.';
+            } else {
+              msg = '📡 Intel SOMBRA (' + intel.length + ' mensajes):\n' +
+                intel.map(m => `[${(m.severity || '?').toUpperCase()}] ${m.title || m.type}: ${m.summary || '—'}`).join('\n');
+            }
+            const toast = document.createElement('div');
+            toast.className = 'explain-toast';
+            toast.style.cssText += ';max-width:360px;white-space:pre-line;pointer-events:auto;';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 6000);
+          })();
+          return;
         case 'defensaRecomendada': feedback = 'Aislar segmento de red y rotar credenciales de acceso crítico.'; break;
         case 'planLinkedIn': feedback = 'Plan LinkedIn: 3 posts/semana + artículo de liderazgo. Engagement estimado +22%.'; break;
         case 'planTikTok': feedback = 'TikTok: 4 reels semanales, meta 1M seguidores en 6 meses. Contenido en progreso.'; break;
@@ -808,6 +826,95 @@
   document.getElementById('btnArchivo').onclick = () => alert('📁 Archivo ejecutivo: reportes de auditoría, logs CENTINELA y bitácora estratégica.');
 
   console.log('Cabina Humana · Lujo Oscuro | CEREBRO central');
+
+  // ===== INTEGRACIÓN REAL: CENTINELA + FORJA =====
+
+  async function apiGet(path) {
+    const token = getToken();
+    if (!token) return null;
+    try {
+      const res = await fetch(path, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.status === 401) { clearToken(); showLoginOverlay(); return null; }
+      if (!res.ok) return null;
+      return await res.json();
+    } catch(e) { return null; }
+  }
+
+  async function apiPost(path, body) {
+    const token = getToken();
+    if (!token) { showLoginOverlay(); return null; }
+    try {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(body)
+      });
+      if (res.status === 401) { clearToken(); showLoginOverlay(); return null; }
+      return { ok: res.ok, status: res.status, data: res.ok ? await res.json() : null };
+    } catch(e) { return null; }
+  }
+
+  async function loadCentinelaStatus() {
+    const data = await apiGet('/api/v1/centinela/status');
+    if (!data) return;
+    const threat = document.getElementById('centinelaThreat');
+    const alerts = document.getElementById('centinelaAlerts');
+    if (threat) threat.innerText = (data.threat_level || data.risk_level || 'N/A').toUpperCase();
+    if (alerts) alerts.innerText = data.critical_alerts ?? '—';
+  }
+
+  async function loadForjaTasks() {
+    const data = await apiGet('/api/v1/cerebro/tasks');
+    if (!data || !Array.isArray(data)) return;
+    const forja = data.filter(t => (t.destination || '').toLowerCase() === 'forja');
+    const active = forja.filter(t => !['completed', 'blocked', 'cancelled'].includes(t.state));
+    const pending = forja.filter(t => ['pending', 'planned', 'created'].includes(t.state));
+    const el1 = document.getElementById('forjaActiveTasks');
+    const el2 = document.getElementById('forjaPendingTasks');
+    if (el1) el1.innerText = active.length;
+    if (el2) el2.innerText = pending.length;
+  }
+
+  async function loadDashboardData() {
+    await Promise.all([loadCentinelaStatus(), loadForjaTasks()]);
+  }
+
+  // Override FORJA chat: crear tarea real en el backend
+  (function() {
+    const input = document.getElementById('forjaInput');
+    const btn = document.getElementById('sendForja');
+    if (!input || !btn) return;
+    btn.onclick = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      addMessage('chatForjaLog', 'FORJA', text, true);
+      input.value = '';
+      addMessage('chatForjaLog', 'FORJA', '⏳ Creando tarea...', false);
+      const result = await apiPost('/api/v1/cerebro/tasks', {
+        title: text,
+        description: text,
+        destination: 'forja',
+        priority: 'p2',
+        reason: 'Creada desde Cabina Humana CEO',
+        requires_ceo_approval: false
+      });
+      // remove loading message
+      const log = document.getElementById('chatForjaLog');
+      if (log && log.lastChild) log.removeChild(log.lastChild);
+      if (result && result.ok && result.data) {
+        const t = result.data;
+        addMessage('chatForjaLog', 'FORJA', `✅ Tarea creada · ID: ${t.id} · estado: ${t.state} · prioridad: ${t.priority}`, false);
+        loadForjaTasks();
+      } else {
+        addMessage('chatForjaLog', 'FORJA', '⚠️ Error al crear tarea. Verifica autenticación y backend.', false);
+      }
+      input.focus();
+    };
+    input.onkeypress = e => { if (e.key === 'Enter') { e.preventDefault(); btn.click(); } };
+  })();
+
+  // Cargar datos reales si ya hay sesión activa
+  if (getToken()) { loadDashboardData(); }
 </script>
 </body>
 </html>
