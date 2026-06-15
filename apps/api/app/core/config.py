@@ -19,6 +19,8 @@ class Settings:
     anthropic_api_key: str | None
     cerebro_llm_model: str
     cerebro_llm_enabled: bool
+    openrouter_api_key: str | None
+    cerebro_openrouter_models: tuple[str, ...]
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str] | None = None) -> "Settings":
@@ -52,6 +54,12 @@ class Settings:
             anthropic_api_key=optional_env_value(source, "ANTHROPIC_API_KEY"),
             cerebro_llm_model=env_value(source, "CEREBRO_LLM_MODEL", "claude-sonnet-4-6"),
             cerebro_llm_enabled=parse_bool(env_value(source, "CEREBRO_LLM_ENABLED", "true")),
+            openrouter_api_key=optional_env_value(source, "OPENROUTER_API_KEY"),
+            cerebro_openrouter_models=parse_csv(env_value(
+                source,
+                "CEREBRO_OPENROUTER_MODELS",
+                "deepseek/deepseek-chat,google/gemini-flash-1.5,meta-llama/llama-3.1-8b-instruct,anthropic/claude-sonnet-4-6",
+            )),
         )
 
 

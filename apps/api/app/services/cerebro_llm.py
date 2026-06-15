@@ -1,19 +1,18 @@
 """Real LLM reply layer for the CEREBRO chat.
 
-This module ONLY generates the conversational ``reply`` text. The deterministic
-intent engine and all governed side effects (missions, FORJA tasks, commercial
-drafts, SOMBRA inbox reads) stay in ``services.cerebro`` and are passed in here
-as already-executed facts. The model never executes actions; it narrates what
-CEREBRO already did, grounded in real state.
+Primary path  : OpenRouter cascade - DeepSeek -> Gemini Flash -> Groq/Llama -> Claude Sonnet.
+                Uses OpenRouter's native ``models`` fallback list so a single HTTP call
+                handles the full cascade server-side.
+Fallback path : Anthropic SDK direct (used when OpenRouter is unavailable).
 
-Fail-safe by design: if the ``anthropic`` package is not installed, no API key
-is configured, the feature is disabled, or the call errors, ``generate_reply``
-returns ``None`` and the caller keeps the existing internal canned reply.
+Fail-safe by design: any network/auth/parse error returns None and the caller
+keeps the existing internal canned reply. No exception ever propagates outward.
 """
 
 from __future__ import annotations
 
 import json
+import urllib.request
 from typing import Any
 
 from app.core.config import get_settings
@@ -56,15 +55,83 @@ def _build_user_prompt(
     )
 
 
+def _call_openrouter(
+    api_key: str,
+    models: tuple[str, ...],
+    user_prompt: str,
+    max_tokens: int = 1024,
+    timeout: int = 30,
+) -> str:
+    """POST to OpenRouter with a native model fallback list.
+
+    OpenRouter tries each model in order and returns the first successful response,
+    so a single HTTP call handles DeepSeek -> Gemini Flash -> Groq/Llama -> Claude.
+    """
+    payload = json.dumps(
+        {
+            "models": list(models),
+            "max_tokens": max_tokens,
+            "messages": [
+                {"role": "system", "content": CEREBRO_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        },
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://ecosystem-foundation.vercel.app",
+            "X-Title": "CEREBRO · Ecosistema CEO",
+        },
+        method="POST",
+    )
+
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        data = json.loads(response.read().decode("utf-8"))
+
+    return data["choices"][0]["message"]["content"].strip()
+
+
 def generate_reply(
     message: str,
     intent: str,
     actions: list[dict[str, Any]],
     state: dict[str, Any],
 ) -> str | None:
-    """Return a Claude-generated reply, or ``None`` to fall back to the canned reply."""
+    """Return an LLM-generated reply, or None to fall back to the canned reply.
+
+    Precedence:
+    1. OpenRouter cascade  (OPENROUTER_API_KEY present)
+       DeepSeek -> Gemini Flash -> Groq/Llama -> Claude Sonnet  (server-side fallback)
+    2. Anthropic SDK direct  (ANTHROPIC_API_KEY present, OpenRouter absent or failed)
+    """
     settings = get_settings()
-    if not settings.cerebro_llm_enabled or not settings.anthropic_api_key:
+
+    if not settings.cerebro_llm_enabled:
+        return None
+
+    user_prompt = _build_user_prompt(message, intent, actions, state)
+
+    # --- Primary: OpenRouter cascade ---
+    if settings.openrouter_api_key:
+        try:
+            reply = _call_openrouter(
+                api_key=settings.openrouter_api_key,
+                models=settings.cerebro_openrouter_models,
+                user_prompt=user_prompt,
+            )
+            return reply or None
+        except Exception:
+            # Network / auth / quota error — fall through to Anthropic
+            pass
+
+    # --- Fallback: Anthropic SDK direct ---
+    if not settings.anthropic_api_key:
         return None
 
     try:
@@ -78,19 +145,17 @@ def generate_reply(
             model=settings.cerebro_llm_model,
             max_tokens=1024,
             system=CEREBRO_SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": _build_user_prompt(message, intent, actions, state),
-                }
-            ],
+            messages=[{"role": "user", "content": user_prompt}],
         )
     except Exception:
-        # Any SDK/network/auth error must degrade silently to the internal reply.
         return None
 
     reply = next(
-        (block.text for block in response.content if getattr(block, "type", None) == "text"),
+        (
+            block.text
+            for block in response.content
+            if getattr(block, "type", None) == "text"
+        ),
         "",
     ).strip()
     return reply or None
