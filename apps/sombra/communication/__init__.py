@@ -4,6 +4,7 @@ from .inbound import InboundOrderProcessor
 from .models import InboundOrder, OutboundMessage
 from .outbound import OutboundTransmissionEngine
 from .queue_manager import MessageQueueManager
+from .telegram_channel import TelegramCEOChannel
 
 __all__ = [
     "CEOAlertCodeSystem",
@@ -13,4 +14,5 @@ __all__ = [
     "MessageQueueManager",
     "OutboundMessage",
     "OutboundTransmissionEngine",
+    "TelegramCEOChannel",
 ]

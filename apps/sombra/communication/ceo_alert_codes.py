@@ -10,6 +10,7 @@ from apps.sombra.memory.database import DatabaseConnection
 
 from .emergency_channel import CEOEmergencyChannel
 from .outbound import OutboundTransmissionEngine
+from .telegram_channel import TelegramCEOChannel
 
 
 CEO_ID = "1"
@@ -108,6 +109,7 @@ class CEOAlertCodeSystem:
         self.blackbox = blackbox if blackbox is not None else BlackBoxAuditCore(self.database)
         self.outbound = OutboundTransmissionEngine(self.database, self.blackbox)
         self.emergency_channel = CEOEmergencyChannel(self.database, self.blackbox)
+        self.telegram_channel = TelegramCEOChannel()
         self._schema_ready = False
         self._owns_connection = database is None
 
@@ -155,7 +157,22 @@ class CEOAlertCodeSystem:
             },
             order_origin="CEO_ALERT_CODES",
         )
-        await self.outbound.transmit_to_cerebro(alert_package, priority)
+        telegram_configured = await self.telegram_channel.is_configured()
+        telegram_delivered = False
+        if telegram_configured:
+            telegram_delivered = await self.telegram_channel.send_alert(normalized_code, str(message))
+            await self.blackbox.log(
+                "CEO_ALERT_TELEGRAM_ATTEMPT",
+                alert_package["alert_id"],
+                {
+                    "alert_code": normalized_code,
+                    "configured": telegram_configured,
+                    "delivered": telegram_delivered,
+                },
+                order_origin="CEO_ALERT_CODES",
+            )
+        if not telegram_delivered:
+            await self.outbound.transmit_to_cerebro(alert_package, priority)
         if normalized_code == "A1-PARA-1":
             await self.emergency_channel.activate(
                 "CRITICAL_COMPROMISE",

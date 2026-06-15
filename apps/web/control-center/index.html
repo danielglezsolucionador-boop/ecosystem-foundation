@@ -1,801 +1,813 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <title>Control Center | Ecosystem Foundation</title>
-    <link rel="icon" href="/control-center/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/control-center/assets/styles.css" />
-  </head>
-  <body>
-    <section id="login-screen" class="login-screen" aria-label="Acceso Control Center">
-      <div class="login-card">
-        <div class="login-brand">
-          <span class="brand-mark ecosystem-mark" aria-label="Mundo del ecosistema"><span class="globe-core"></span></span>
-          <div>
-            <span class="eyebrow">Control Center</span>
-            <h1>Acceso ejecutivo</h1>
-            <p>Entra con tu usuario autorizado para operar la cabina del ecosistema.</p>
-          </div>
-        </div>
-        <form id="login-form" class="login-form">
-          <label>
-            <span>Email</span>
-            <input id="login-email" type="email" autocomplete="username" required />
-          </label>
-          <label>
-            <span>Contraseña</span>
-            <input id="login-password" type="password" autocomplete="current-password" required />
-          </label>
-          <label class="remember-session">
-            <input id="login-remember" type="checkbox" />
-            <span>
-              <strong>Recordar sesión en este dispositivo</strong>
-              <small>Activa una sesión extendida sin guardar tu contraseña.</small>
-            </span>
-          </label>
-          <p id="login-session-status" class="login-session-status hidden"></p>
-          <p id="login-error" class="login-error hidden"></p>
-          <button id="login-submit" class="primary-action" type="submit">Entrar al Control Center</button>
-        </form>
-        <small>El usuario CEO inicial se crea solo si Vercel tiene las variables CONTROL_CENTER_ADMIN_* configuradas.</small>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Cabina Humana · Ecosistema CEO | Lujo Oscuro</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: radial-gradient(ellipse at 30% 20%, #0a0a0c, #000000);
+      font-family: 'Inter', -apple-system, 'SF Pro Display', system-ui, 'Helvetica Neue', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    /* contenedor principal con grid centrado */
+    .cabin {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* grid 3x3 con centro destacado */
+    .orbit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      align-items: center;
+      justify-items: center;
+    }
+
+    /* estilo tarjetas alrededor (lujo oscuro) */
+    .app-card {
+      background: rgba(8, 8, 12, 0.75);
+      backdrop-filter: blur(12px);
+      border-radius: 32px;
+      border: 1px solid rgba(200, 164, 94, 0.4);
+      width: 100%;
+      padding: 1.2rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 20px 30px -15px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    /* imagen de fondo sutil para cada tarjeta */
+    .app-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: radial-gradient(circle at 10% 20%, rgba(200,164,94,0.08) 2%, transparent 2.5%);
+      background-size: 28px 28px;
+      pointer-events: none;
+    }
+    .app-card:hover {
+      border-color: rgba(200, 164, 94, 0.9);
+      background: rgba(12, 12, 18, 0.9);
+      transform: translateY(-3px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(200, 164, 94, 0.3);
+      padding-bottom: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .card-header h3 {
+      font-size: 1.3rem;
+      font-weight: 500;
+      letter-spacing: -0.2px;
+      background: linear-gradient(135deg, #f5e7c8, #c8a45e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .badge-gold {
+      font-size: 1.1rem;
+    }
+
+    /* indicadores tipo kpi */
+    .kpi-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin: 0.8rem 0;
+      flex-wrap: wrap;
+    }
+    .kpi {
+      background: rgba(0,0,0,0.5);
+      border-radius: 20px;
+      padding: 0.4rem 0.8rem;
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.1s;
+      border-left: 1px solid #c8a45e;
+    }
+    .kpi span:first-child {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: #aaa;
+    }
+    .kpi strong {
+      font-size: 1.1rem;
+      display: block;
+      color: #f0e6d2;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0.9rem 0 0.7rem;
+    }
+    .btn-mini {
+      background: transparent;
+      border: 1px solid rgba(200,164,94,0.5);
+      padding: 0.3rem 0.8rem;
+      border-radius: 40px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: #ddd;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-mini:hover {
+      background: #c8a45e;
+      color: #0a0a0c;
+      border-color: #c8a45e;
+    }
+
+    /* chat interno pequeño */
+    .mini-chat {
+      margin-top: 0.8rem;
+      border-top: 1px solid rgba(200,164,94,0.2);
+      padding-top: 0.7rem;
+    }
+    .chat-log {
+      max-height: 80px;
+      overflow-y: auto;
+      font-size: 0.7rem;
+      color: #bcbcbc;
+      margin-bottom: 0.4rem;
+    }
+    .chat-input-flex {
+      display: flex;
+      gap: 0.4rem;
+    }
+    .chat-input-flex input {
+      flex: 1;
+      background: #0f0f12;
+      border: 1px solid #2c2c30;
+      border-radius: 30px;
+      padding: 0.4rem 0.8rem;
+      color: white;
+      font-size: 0.7rem;
+      outline: none;
+    }
+    .chat-input-flex input:focus {
+      border-color: #c8a45e;
+    }
+    .chat-input-flex button {
+      background: none;
+      border: 1px solid #c8a45e;
+      border-radius: 30px;
+      padding: 0 0.7rem;
+      font-size: 0.7rem;
+      color: #c8a45e;
+      cursor: pointer;
+    }
+
+    /* CEREBRO CENTRAL — esfera dorada animada */
+    .cerebro-central {
+      background: radial-gradient(ellipse at 30% 40%, #141418, #050508);
+      border-radius: 48px;
+      border: 1px solid rgba(200,164,94,0.7);
+      box-shadow: 0 0 35px rgba(200,164,94,0.2);
+      padding: 1.3rem;
+      text-align: center;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .golden-sphere {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 0.8rem auto;
+      background: radial-gradient(circle at 35% 30%, #f5e7b2, #b8860b);
+      border-radius: 50%;
+      box-shadow: 0 0 25px rgba(200,164,94,0.8), inset 0 2px 8px rgba(255,245,200,0.6);
+      animation: pulseGlow 2s infinite alternate ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 15px rgba(200,164,94,0.4), inset 0 1px 4px rgba(255,245,200,0.3); transform: scale(1);}
+      100% { box-shadow: 0 0 40px rgba(200,164,94,0.9), inset 0 3px 12px rgba(255,235,170,0.8); transform: scale(1.02);}
+    }
+    .cerebro-stats {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .stat-cerebro {
+      background: rgba(0,0,0,0.5);
+      border-radius: 60px;
+      padding: 0.3rem 1rem;
+    }
+    .chat-cerebro-global {
+      margin-top: 1rem;
+      background: rgba(0,0,0,0.5);
+      border-radius: 28px;
+      padding: 0.6rem;
+    }
+    .global-chat-log {
+      max-height: 110px;
+      overflow-y: auto;
+      font-size: 0.75rem;
+      text-align: left;
+      margin-bottom: 0.5rem;
+    }
+    /* firma */
+    .signature {
+      text-align: center;
+      margin-top: 2.2rem;
+      font-size: 0.8rem;
+      color: #7a6a4a;
+      border-top: 1px dashed rgba(200,164,94,0.3);
+      padding-top: 1rem;
+    }
+    .daniel-link {
+      color: #c8a45e;
+      cursor: pointer;
+      font-weight: 500;
+      transition: 0.1s;
+      display: inline-block;
+      padding: 0.2rem 1rem;
+      border-radius: 30px;
+    }
+    .daniel-link:hover {
+      background: rgba(200,164,94,0.15);
+    }
+
+    /* MODAL BUNKER */
+    .modal-bunker {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      backdrop-filter: blur(12px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    .bunker-card {
+      background: #0b0b10;
+      border: 1px solid #c8a45e;
+      border-radius: 48px;
+      max-width: 520px;
+      width: 90%;
+      padding: 2rem;
+    }
+    .status-led {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .verde { background: #2ecc2e; box-shadow: 0 0 6px #2ecc2e; }
+    .amarillo { background: #e6b422; box-shadow: 0 0 6px #e6b422; }
+    .rojo { background: #e63e2e; box-shadow: 0 0 6px #e63e2e; }
+    .botones-bunker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 1.5rem 0 1rem;
+    }
+    .close-bunker {
+      float: right;
+      font-size: 1.6rem;
+      cursor: pointer;
+      color: #c8a45e;
+    }
+
+    /* responsive: en móvil el grid se vuelve 2 columnas y cerebro se adapta */
+    @media (max-width: 780px) {
+      .orbit-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      .cerebro-central {
+        grid-column: span 2;
+        order: -1;
+      }
+      body { padding: 1rem; }
+    }
+    @media (min-width: 781px) {
+      .cerebro-central {
+        grid-row: 2;
+        grid-column: 2;
+      }
+    }
+    .explain-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #15151be6;
+      backdrop-filter: blur(16px);
+      border-left: 3px solid #c8a45e;
+      padding: 0.7rem 1.2rem;
+      border-radius: 28px;
+      font-size: 0.8rem;
+      z-index: 1100;
+      color: #efefef;
+      max-width: 260px;
+      pointer-events: none;
+    }
+
+    /* Login overlay CEO */
+    .login-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.93);
+      backdrop-filter: blur(20px);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      background: #0c0c10;
+      border: 1px solid rgba(200,164,94,0.6);
+      border-radius: 48px;
+      padding: 2.5rem;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 30px 50px rgba(0,0,0,0.7);
+      text-align: center;
+    }
+    .login-input {
+      width: 100%;
+      background: #0f0f14;
+      border: 1px solid #2c2c30;
+      border-radius: 30px;
+      padding: 0.8rem 1.2rem;
+      color: white;
+      font-size: 0.85rem;
+      outline: none;
+      margin: 0.4rem 0;
+      display: block;
+    }
+    .login-input:focus { border-color: #c8a45e; }
+    .btn-login {
+      width: 100%;
+      background: rgba(200,164,94,0.15);
+      border: 1px solid #c8a45e;
+      border-radius: 40px;
+      padding: 0.75rem;
+      color: #c8a45e;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: 0.2s;
+    }
+    .btn-login:hover { background: #c8a45e; color: #0a0a0c; }
+    .btn-login:disabled { opacity: 0.5; cursor: default; }
+    .login-error { color: #e63e2e; font-size: 0.78rem; margin-top: 0.6rem; min-height: 1.2em; }
+    .cerebro-thinking { color: #c8a45e; font-style: italic; font-size: 0.72rem; opacity: 0.8; }
+  </style>
+</head>
+<body>
+<div class="cabin">
+  <div class="orbit-grid" id="appGrid">
+    <!-- FORJA -->
+    <div class="app-card" data-app="FORJA">
+      <div class="card-header"><h3>⚙️ FORJA</h3><span class="badge-gold">🔨</span></div>
+      <div class="kpi-row">
+        <div class="kpi" data-explica="Tareas activas: 24 en ejecución, 5 bloqueos técnicos"><span>tareas activas</span><strong>24</strong></div>
+        <div class="kpi" data-explica="Entregas pendientes: panel administración + motor IA"><span>entregas pend</span><strong>5</strong></div>
       </div>
-    </section>
-
-    <div id="app" class="shell hidden" aria-live="polite">
-      <aside class="sidebar" aria-label="Navegacion principal">
-        <a class="brand" href="#top" aria-label="Control Center inicio">
-          <span class="brand-mark ecosystem-mark" aria-label="Mundo del ecosistema"><span class="globe-core"></span></span>
-          <span>
-            <strong>ECOSISTEMA IA</strong>
-            <small>Centro de Dirección</small>
-          </span>
-        </a>
-
-        <section class="role-card" id="profile">
-          <span>Sesión activa</span>
-          <strong id="active-user-name">Usuario</strong>
-          <small id="active-user-email">email</small>
-          <strong id="active-user-role">Rol</strong>
-          <small id="role-boundary-copy">Cargando permisos del rol.</small>
-          <button id="logout" class="ghost-action" type="button">Cerrar sesión</button>
-        </section>
-
-        <nav class="nav" id="view-tabs" aria-label="Vistas">
-          <button class="active" data-view="ceo" type="button">Inicio CEO</button>
-          <button data-view="governance" type="button">Gobierno</button>
-          <button data-view="operator" type="button">Operación</button>
-          <button data-view="auditor" type="button">Auditoría</button>
-          <button data-view="system" type="button">Sistema</button>
-        </nav>
-
-        <div class="sidebar-card">
-          <span>Readiness</span>
-          <strong id="sidebar-readiness">Cargando</strong>
-          <small id="sidebar-db">Conectando con la API</small>
-        </div>
-      </aside>
-
-      <main class="main" id="top">
-        <header class="topbar executive-hero">
-          <div>
-            <span class="eyebrow">Centro de Dirección Empresarial</span>
-            <h1>Decisión CEO</h1>
-            <p>Prioridad, semáforo y datos separados: real, preparado y protegido.</p>
-          </div>
-          <div class="topbar-actions">
-            <label class="search-box">
-              <span>Buscar</span>
-              <input id="search" type="search" placeholder="Apps, riesgos, decisiones..." autocomplete="off" />
-            </label>
-            <button id="refresh" class="primary-action" type="button">Actualizar</button>
-          </div>
-        </header>
-
-        <section id="state-banner" class="state-banner loading">
-          <span class="pulse"></span>
-          <strong>Conectando con backbone...</strong>
-          <small>Health, readiness, governance, memoria, eventos y observabilidad.</small>
-        </section>
-
-        <section class="hero-grid">
-          <article class="hero-card">
-            <span class="eyebrow">Estado global</span>
-            <h2 id="global-status">Cargando</h2>
-            <p id="global-summary">Leyendo datos reales del backbone.</p>
-            <div id="next-decision" class="decision-strip">
-              <span>Próxima decisión CEO</span>
-              <strong>Cargando prioridades</strong>
-            </div>
-            <div class="hero-actions">
-              <button class="ghost-action" data-quick="cerebro" type="button">Hablar con CEREBRO</button>
-              <button class="ghost-action" data-quick="forja" type="button">Ver estado FORJA</button>
-              <button class="ghost-action" data-view-jump="alerts" type="button">Ver riesgos</button>
-            </div>
-          </article>
-          <article class="score-card">
-            <span>Apps conectadas reales</span>
-            <strong id="service-score">--</strong>
-            <small id="service-score-copy">Calculando conexiones reales y perfiles preparados</small>
-          </article>
-        </section>
-
-        <section class="ceo-daily-center-band" id="ceo-daily-center" aria-label="Centro Diario del CEO">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Centro Diario del CEO</span>
-              <h2>Decisiones, tareas y riesgos</h2>
-            </div>
-          </div>
-          <div id="ceo-daily-center-summary" class="dashboard-grid ceo-daily-grid"></div>
-          <div id="ceo-daily-center-actions" class="quick-actions compact-map"></div>
-        </section>
-
-        <section class="workday-os-band" id="workday-os" aria-label="Workday OS">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Workday OS</span>
-              <h2>Mañana, mediodía y tarde</h2>
-            </div>
-          </div>
-          <div id="workday-os-grid" class="workday-os-grid">
-            <article class="workday-os-card skeleton"></article>
-            <article class="workday-os-card skeleton"></article>
-            <article class="workday-os-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="cerebro-chief-band" id="cerebro-chief-of-staff" aria-label="CEREBRO Chief of Staff">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">CEREBRO Chief of Staff</span>
-              <h2>El tiempo es dinero</h2>
-            </div>
-          </div>
-          <div id="cerebro-chief-grid" class="cerebro-chief-grid">
-            <article class="cerebro-chief-card skeleton"></article>
-            <article class="cerebro-chief-card skeleton"></article>
-            <article class="cerebro-chief-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="mission-loop-band" id="mission-execution-loop" aria-label="Mission Execution Loop">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Mission Execution Loop</span>
-              <h2>Misiones, auditoría y FORJA</h2>
-            </div>
-          </div>
-          <div id="mission-loop-grid" class="mission-loop-grid">
-            <article class="mission-loop-card skeleton"></article>
-            <article class="mission-loop-card skeleton"></article>
-            <article class="mission-loop-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="revenue-sprint-band" id="revenue-execution-sprint" aria-label="Revenue Sprint 30 días">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Revenue Sprint 30 días</span>
-              <h2>Ejecución sin ventas falsas</h2>
-            </div>
-          </div>
-          <div id="revenue-sprint-grid" class="revenue-sprint-grid">
-            <article class="revenue-sprint-card skeleton"></article>
-            <article class="revenue-sprint-card skeleton"></article>
-            <article class="revenue-sprint-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="ecommerce-amazon-band" id="ecommerce-amazon-readiness" aria-label="E-Commerce & Amazon Readiness">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">E-Commerce & Amazon Readiness</span>
-              <h2>Meta separada, sin venta real</h2>
-            </div>
-          </div>
-          <div id="ecommerce-amazon-grid" class="ecommerce-amazon-grid">
-            <article class="ecommerce-amazon-card skeleton"></article>
-            <article class="ecommerce-amazon-card skeleton"></article>
-            <article class="ecommerce-amazon-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="publishing-growth-band" id="publishing-growth-engine" aria-label="Publishing & Growth">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Publishing & Growth</span>
-              <h2>Contenido organico preparado</h2>
-            </div>
-          </div>
-          <div id="publishing-growth-grid" class="publishing-growth-grid">
-            <article class="publishing-growth-card skeleton"></article>
-            <article class="publishing-growth-card skeleton"></article>
-            <article class="publishing-growth-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="publishing-growth-band" id="publishing-prepared" aria-label="Publishing Prepared">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">S3 Publishing Prepared</span>
-              <h2>Organico preparado, sin publicar real</h2>
-            </div>
-          </div>
-          <div id="publishing-prepared-grid" class="publishing-growth-grid">
-            <article class="publishing-growth-card skeleton"></article>
-            <article class="publishing-growth-card skeleton"></article>
-            <article class="publishing-growth-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="publishing-growth-band" id="marketing-approval-gate" aria-label="Marketing Approval Gate">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">S4 Marketing Approval Gate</span>
-              <h2>Pagado solo con ROI y CEO</h2>
-            </div>
-          </div>
-          <div id="marketing-approval-grid" class="publishing-growth-grid">
-            <article class="publishing-growth-card skeleton"></article>
-            <article class="publishing-growth-card skeleton"></article>
-            <article class="publishing-growth-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="product-readiness-band" id="product-readiness-dcft-sentinela" aria-label="Product Readiness DCFT/SENTINELA">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Product Readiness DCFT/SENTINELA</span>
-              <h2>Marketing vende, productos validan</h2>
-            </div>
-          </div>
-          <div id="product-readiness-grid" class="product-readiness-grid">
-            <article class="product-readiness-card skeleton"></article>
-            <article class="product-readiness-card skeleton"></article>
-            <article class="product-readiness-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="product-readiness-band" id="commercial-readiness" aria-label="DCFT SENTINELA Commercial Readiness">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">S6 DCFT/SENTINELA Commercial Readiness</span>
-              <h2>Marketing conecta, productos no venden solos</h2>
-            </div>
-          </div>
-          <div id="commercial-readiness-grid" class="product-readiness-grid">
-            <article class="product-readiness-card skeleton"></article>
-            <article class="product-readiness-card skeleton"></article>
-            <article class="product-readiness-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="real-world-band" id="real-world-connections" aria-label="Real World Connections">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Real World Connections</span>
-              <h2>Preparar sin conectar</h2>
-            </div>
-          </div>
-          <div id="real-world-grid" class="real-world-grid">
-            <article class="real-world-card skeleton"></article>
-            <article class="real-world-card skeleton"></article>
-            <article class="real-world-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="real-world-band" id="analytics-readiness" aria-label="Analytics Metrics Readiness">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">S7 Analytics & Metrics Readiness</span>
-              <h2>Metricas preparadas, no inventadas</h2>
-            </div>
-          </div>
-          <div id="analytics-readiness-grid" class="real-world-grid">
-            <article class="real-world-card skeleton"></article>
-            <article class="real-world-card skeleton"></article>
-            <article class="real-world-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="execution-queue-band" id="real-world-execution-queue" aria-label="Real World Execution Queue">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Real World Execution Queue</span>
-              <h2>Cola preparada, sin ejecutar real</h2>
-            </div>
-          </div>
-          <div id="real-world-execution-grid" class="execution-queue-grid">
-            <article class="execution-queue-card skeleton"></article>
-            <article class="execution-queue-card skeleton"></article>
-            <article class="execution-queue-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="social-identity-band" id="social-identity-map" aria-label="Social Identity Map">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Social Identity Map</span>
-              <h2>Cuentas, marcas y canales</h2>
-            </div>
-          </div>
-          <div id="social-identity-grid" class="social-identity-grid">
-            <article class="social-identity-card skeleton"></article>
-            <article class="social-identity-card skeleton"></article>
-            <article class="social-identity-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="upgrade-pipeline-band" id="department-upgrade-pipeline" aria-label="Department Upgrade Pipeline">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Department Upgrade Pipeline</span>
-              <h2>Brechas, FORJA y revisión</h2>
-            </div>
-          </div>
-          <div id="department-upgrade-grid" class="upgrade-pipeline-grid">
-            <article class="upgrade-pipeline-card skeleton"></article>
-            <article class="upgrade-pipeline-card skeleton"></article>
-            <article class="upgrade-pipeline-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="revenue-os-band" id="revenue-os" aria-label="Revenue OS">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Revenue OS</span>
-              <h2>Ingresos, metas y ROI</h2>
-            </div>
-          </div>
-          <div id="revenue-os-grid" class="revenue-os-grid">
-            <article class="revenue-os-card skeleton"></article>
-            <article class="revenue-os-card skeleton"></article>
-            <article class="revenue-os-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="arsenal-blueprint-band" id="arsenal-blueprint" aria-label="ARSENAL capacidades">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">ARSENAL / Capacidades</span>
-              <h2>Blueprint gobernado</h2>
-            </div>
-          </div>
-          <div id="arsenal-blueprint-grid" class="arsenal-blueprint-grid">
-            <article class="arsenal-blueprint-card skeleton"></article>
-            <article class="arsenal-blueprint-card skeleton"></article>
-            <article class="arsenal-blueprint-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="cerebro-meeting-panel" id="cerebro-meeting" aria-label="Reunión diaria con CEREBRO">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Reunión con CEREBRO</span>
-              <h2>Mañana y tarde</h2>
-            </div>
-            <div class="meeting-switch" role="group" aria-label="Elegir reunión">
-              <button class="active" data-meeting="morning" type="button">Reunión de Mañana</button>
-              <button data-meeting="evening" type="button">Reunión de Tarde</button>
-            </div>
-          </div>
-          <div id="daily-meeting-content" class="daily-meeting-content"></div>
-        </section>
-
-        <section class="department-audit-band" id="department-audits" aria-label="Auditoría de Departamentos">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Auditoría de Departamentos</span>
-              <h2>Cabinas, brechas y FORJA</h2>
-            </div>
-          </div>
-          <div id="department-audit-grid" class="department-audit-grid">
-            <article class="department-audit-card skeleton"></article>
-            <article class="department-audit-card skeleton"></article>
-            <article class="department-audit-card skeleton"></article>
-          </div>
-        </section>
-
-        <section class="cerebro-operational-band" aria-label="CEREBRO operativo interno">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">CEREBRO operativo interno</span>
-              <h2>Coordinación real sin runtimes externos</h2>
-            </div>
-          </div>
-          <p class="cerebro-operational-copy">
-            CEREBRO ya coordina internamente, pero no ejecuta apps protegidas ni runtimes externos.
-          </p>
-          <div id="cerebro-operational-grid" class="cerebro-operational-grid">
-            <article class="panel skeleton"></article>
-            <article class="panel skeleton"></article>
-            <article class="panel skeleton"></article>
-          </div>
-        </section>
-
-        <section class="command-cockpit" aria-label="Resumen ejecutivo premium">
-          <div>
-            <div class="section-title compact">
-              <div>
-                <span class="eyebrow">Semáforo principal</span>
-                <h2>Cuatro señales para decidir</h2>
-              </div>
-            </div>
-            <div id="traffic-grid" class="traffic-grid" aria-label="Semáforo principal">
-              <article class="traffic-card skeleton"></article>
-              <article class="traffic-card skeleton"></article>
-              <article class="traffic-card skeleton"></article>
-              <article class="traffic-card skeleton"></article>
-            </div>
-          </div>
-          <div>
-            <div class="section-title compact">
-              <div>
-                <span class="eyebrow">Lectura rapida</span>
-                <h2>Numeros clave</h2>
-              </div>
-            </div>
-            <div class="metric-grid" id="metric-grid" aria-label="Metricas principales">
-              <article class="metric skeleton"></article>
-              <article class="metric skeleton"></article>
-              <article class="metric skeleton"></article>
-              <article class="metric skeleton"></article>
-            </div>
-          </div>
-        </section>
-
-        <section class="quick-actions-band premium-action-rail" aria-label="Accesos rapidos">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Accesos compactos</span>
-              <h2>Mapa rapido</h2>
-            </div>
-          </div>
-          <div id="quick-actions-map" class="quick-actions compact-map"></div>
-        </section>
-
-        <section class="priority-apps-band" aria-label="Apps prioritarias">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Apps prioritarias</span>
-              <h2>Lo que el CEO debe entender primero</h2>
-            </div>
-          </div>
-          <div id="priority-apps" class="priority-apps"></div>
-        </section>
-
-        <section class="departmental-simulation-band" aria-label="Flujos de Empresa IA">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Simulación departamental</span>
-              <h2>Flujos de Empresa IA</h2>
-            </div>
-          </div>
-          <div id="departmental-flows" class="status-lanes simulation-flows">
-            <article class="status-lane simulated-flow">
-              <div class="lane-head">
-                <span class="eyebrow">Oportunidad IA / Video</span>
-                <p>Simulación departamental. Sin ejecución externa.</p>
-              </div>
-            </article>
-            <article class="status-lane simulated-flow">
-              <div class="lane-head">
-                <span class="eyebrow">Ciberseguridad para SENTINELA</span>
-                <p>SENTINELA no productivo. Sin runtime.</p>
-              </div>
-            </article>
-            <article class="status-lane simulated-flow">
-              <div class="lane-head">
-                <span class="eyebrow">Regulación DCFT</span>
-                <p>DCFT protected_no_touch. Sin SUNAT real.</p>
-              </div>
-            </article>
-            <article class="status-lane simulated-flow">
-              <div class="lane-head">
-                <span class="eyebrow">API / Skill vendible</span>
-                <p>ARSENAL no runtime. Sin ruta interna activa hacia ARSENAL.</p>
-              </div>
-            </article>
-            <article class="status-lane simulated-flow">
-              <div class="lane-head">
-                <span class="eyebrow">Producto Amazon / Comercio</span>
-                <p>Sin operación comercial real. Sin Local Agent.</p>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section class="status-lanes-band" aria-label="Estados operativos del ecosistema">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Estado por tipo</span>
-              <h2>Preparadas, pendientes y protegidas</h2>
-            </div>
-          </div>
-          <div id="status-lanes" class="status-lanes"></div>
-        </section>
-
-        <section class="workspace">
-          <article class="panel wide" id="ecosystem">
-            <div class="panel-head">
-              <div>
-                <span class="eyebrow">Mapa del ecosistema</span>
-                <h2>Apps, estados y fuente del dato</h2>
-              </div>
-              <select id="status-filter" aria-label="Filtrar aplicaciones por estado">
-                <option value="all">Todos los estados</option>
-                <option value="external">Externas</option>
-                <option value="planned">Planeadas</option>
-                <option value="unknown">Desconocidas</option>
-                <option value="blocked">En revisión CEO</option>
-                <option value="internal">Internas</option>
-              </select>
-            </div>
-            <div id="apps-grid" class="apps-grid loading-grid"></div>
-          </article>
-
-          <aside class="panel" id="alerts">
-            <div class="panel-head">
-              <div>
-                <span class="eyebrow">Operación</span>
-                <h2>Alertas e incidentes</h2>
-              </div>
-            </div>
-            <div id="alerts-list" class="stack-list"></div>
-          </aside>
-        </section>
-
-        <section class="view-panel active" data-panel="ceo">
-          <div class="section-title">
-            <span class="eyebrow">Inicio CEO</span>
-            <h2>Decisiones y riesgos</h2>
-          </div>
-          <div class="dashboard-grid">
-            <article class="panel">
-              <h3>Decisiones pendientes</h3>
-              <div id="ceo-decisions" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>Riesgos críticos</h3>
-              <div id="ceo-risks" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>Salud del ecosistema</h3>
-              <div id="timeline" class="timeline"></div>
-            </article>
-          </div>
-        </section>
-
-        <section class="view-panel" data-panel="governance">
-          <div class="section-title">
-            <span class="eyebrow">Gobierno</span>
-            <h2>Control humano de decisiones e integraciones</h2>
-          </div>
-
-          <article class="panel command-panel">
-            <div class="panel-head">
-              <div>
-                <span class="eyebrow">Governance Overview</span>
-                <h3>Acciones disponibles para el rol activo</h3>
-              </div>
-              <button class="primary-action" data-action="create_decision" type="button">Nueva decisión</button>
-            </div>
-            <div id="action-matrix" class="action-matrix"></div>
-            <div id="action-feedback" class="feedback" role="status">Selecciona una acción para ejecutarla con confirmación visual.</div>
-          </article>
-
-          <div class="governance-sections">
-            <article class="panel" data-section="Decision Center">
-              <div class="panel-head">
-                <div>
-                  <span class="eyebrow">Decision Center</span>
-                  <h3>Decisiones</h3>
-                </div>
-                <button class="ghost-action" data-action="create_decision" type="button">Crear</button>
-              </div>
-              <div id="governance-decisions" class="stack-list"></div>
-            </article>
-
-            <article class="panel" data-section="Approval Center">
-              <div class="panel-head">
-                <div>
-                  <span class="eyebrow">Approval Center</span>
-                  <h3>Solicitudes</h3>
-                </div>
-                <button class="ghost-action" data-action="create_approval" type="button">Crear solicitud</button>
-              </div>
-              <div id="governance-approvals" class="stack-list"></div>
-            </article>
-
-            <article class="panel" data-section="Integration Gates">
-              <div class="panel-head">
-                <div>
-                  <span class="eyebrow">Integration Gates</span>
-                  <h3>Apps protegidas y discovery</h3>
-                </div>
-              </div>
-              <div id="governance-gates" class="stack-list"></div>
-            </article>
-
-            <article class="panel" data-section="Policy Center">
-              <div class="panel-head">
-                <div>
-                  <span class="eyebrow">Policy Center</span>
-                  <h3>Politicas</h3>
-                </div>
-                <button class="ghost-action" data-action="evaluate_policy" type="button">Evaluar</button>
-              </div>
-              <div id="governance-policies" class="stack-list"></div>
-            </article>
-
-            <article class="panel" data-section="Risk Center">
-              <div class="panel-head">
-                <div>
-                  <span class="eyebrow">Risk Center</span>
-                  <h3>Riesgos</h3>
-                </div>
-                <button class="ghost-action" data-action="create_risk" type="button">Crear riesgo</button>
-              </div>
-              <div id="governance-risks" class="stack-list"></div>
-            </article>
-
-            <article class="panel" data-section="Governance Audit">
-              <div class="panel-head">
-                <div>
-                  <span class="eyebrow">Governance Audit</span>
-                  <h3>Trazabilidad</h3>
-                </div>
-              </div>
-              <div id="governance-history" class="stack-list"></div>
-            </article>
-
-            <article class="panel" data-section="Governance Reports">
-              <div class="panel-head">
-                <div>
-                  <span class="eyebrow">Governance Reports</span>
-                  <h3>Reporte ejecutivo</h3>
-                </div>
-              </div>
-              <div id="governance-report" class="stack-list"></div>
-            </article>
-          </div>
-        </section>
-
-        <section class="view-panel" data-panel="operator">
-          <div class="section-title">
-            <span class="eyebrow">Operación</span>
-            <h2>Servicios, eventos y memoria</h2>
-          </div>
-          <div class="dashboard-grid">
-            <article class="panel">
-              <h3>Salud de servicios</h3>
-              <div id="services-list" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>Eventos internos</h3>
-              <div id="events-list" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>Memoria compartida</h3>
-              <div id="memory-list" class="stack-list"></div>
-            </article>
-          </div>
-        </section>
-
-        <section class="view-panel" data-panel="auditor">
-          <div class="section-title">
-            <span class="eyebrow">Auditoría</span>
-            <h2>Contratos, auditoría y permisos</h2>
-          </div>
-          <div class="dashboard-grid">
-            <article class="panel">
-              <h3>Contratos</h3>
-              <div id="contracts-list" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>AUDITORÍA operativa</h3>
-              <div id="auditoria-operational-list" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>Auditoría</h3>
-              <div id="audit-list" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>Roles y permisos</h3>
-              <div id="roles-list" class="stack-list"></div>
-            </article>
-          </div>
-        </section>
-
-        <section class="view-panel" data-panel="system">
-          <div class="section-title">
-            <span class="eyebrow">Sistema</span>
-            <h2>Readiness y observabilidad</h2>
-          </div>
-          <div class="dashboard-grid">
-            <article class="panel">
-              <h3>Readiness</h3>
-              <div id="readiness-list" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>Observabilidad</h3>
-              <div id="observability-list" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>Integration Bus</h3>
-              <div id="integration-list" class="stack-list"></div>
-            </article>
-            <article class="panel">
-              <h3>NUBE / Torre Cloud</h3>
-              <div id="nube-control-tower-list" class="stack-list"></div>
-            </article>
-          </div>
-        </section>
-      </main>
-
-      <aside class="decision-rail" aria-label="Panel derecho de decisiones CEO">
-        <section class="rail-panel rail-primary-actions">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Acciones ejecutivas del CEO</span>
-              <h2>Mando rapido</h2>
-            </div>
-          </div>
-          <div id="quick-actions" class="quick-actions rail-actions"></div>
-        </section>
-
-        <section class="rail-panel">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Apps clave</span>
-              <h2>Prioridad CEO</h2>
-            </div>
-          </div>
-          <div id="rail-priority-apps" class="rail-priority-apps"></div>
-        </section>
-
-        <section class="rail-panel">
-          <div class="section-title compact">
-            <div>
-              <span class="eyebrow">Riesgos y decisiones</span>
-              <h2>Control humano</h2>
-            </div>
-          </div>
-          <div id="rail-decisions" class="rail-stack"></div>
-        </section>
-      </aside>
-
-      <nav class="bottom-nav" id="bottom-nav" aria-label="Navegacion mobile">
-        <button class="active" data-bottom-target="top" type="button">Inicio</button>
-        <button data-bottom-target="ecosystem" type="button">Apps</button>
-        <button data-bottom-target="cerebro" type="button">Cerebro</button>
-        <button data-bottom-target="alerts" type="button">Riesgos</button>
-        <button data-bottom-target="profile" type="button">Perfil</button>
-      </nav>
+      <div class="btn-group">
+        <button class="btn-mini" data-accion="crearTarea">➕ Crear tarea</button>
+        <button class="btn-mini" data-accion="verBloqueos">🚧 Bloqueos</button>
+        <button class="btn-mini" data-accion="consultarCerebro" data-contexto="FORJA: estado ejecución">🧠 Preguntar a CEREBRO</button>
+      </div>
+      <div class="mini-chat">
+        <div class="chat-log" id="chatForjaLog"></div>
+        <div class="chat-input-flex"><input type="text" placeholder="Hablar con FORJA..." id="forjaInput"><button id="sendForja">Enviar</button></div>
+      </div>
     </div>
 
-    <dialog id="action-dialog" class="action-dialog">
-      <form method="dialog">
-        <span class="eyebrow" id="dialog-section">Governance Action</span>
-        <h2 id="dialog-title">Confirmar acción</h2>
-        <p id="dialog-copy">La acción se ejecutará contra la API real del backbone.</p>
-        <label id="reason-field">
-          <span>Razón</span>
-          <textarea id="action-reason" rows="3" placeholder="Explica la decisión humana."></textarea>
-        </label>
-        <label id="evidence-field">
-          <span>Evidencia</span>
-          <textarea id="action-evidence" rows="3" placeholder="Describe la evidencia verificada."></textarea>
-        </label>
-        <div class="dialog-actions">
-          <button class="ghost-action" value="cancel" type="submit">Cancelar</button>
-          <button id="confirm-action" class="primary-action" value="confirm" type="button">Ejecutar accion</button>
-        </div>
-      </form>
-    </dialog>
+    <!-- PLUMA -->
+    <div class="app-card" data-app="PLUMA">
+      <div class="card-header"><h3>✒️ PLUMA</h3><span class="badge-gold">📜</span></div>
+      <div class="kpi-row">
+        <div class="kpi" data-explica="Borradores activos: 5 piezas estratégicas"><span>borradores</span><strong>5</strong></div>
+        <div class="kpi" data-explica="Mensajes pendientes de revisión"><span>pendientes</span><strong>3</strong></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn-mini" data-accion="crearBorrador">📝 Crear borrador</button>
+        <button class="btn-mini" data-accion="enviarMarca">📤 Enviar a Marca</button>
+        <button class="btn-mini" data-accion="consultarCerebro" data-contexto="PLUMA: ideas para narrativa">🤖 Consultar CEREBRO</button>
+      </div>
+      <div class="mini-chat"><div class="chat-log" id="chatPlumaLog"></div><div class="chat-input-flex"><input id="plumaInput"><button id="sendPluma">Enviar</button></div></div>
+    </div>
 
-    <script type="module" src="/control-center/assets/app.js"></script>
-  </body>
+    <!-- LENTE -->
+    <div class="app-card" data-app="LENTE">
+      <div class="card-header"><h3>🎥 LENTE</h3><span class="badge-gold">🎬</span></div>
+      <div class="kpi-row">
+        <div class="kpi" data-explica="Videos en producción: 3 proyectos activos"><span>producciones</span><strong>3</strong></div>
+        <div class="kpi" data-explica="Piezas listas para editar"><span>postproducción</span><strong>4</strong></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn-mini" data-accion="ideaVideo">🎞️ Idea de video</button>
+        <button class="btn-mini" data-accion="pedirGuion">📄 Pedir guion</button>
+        <button class="btn-mini" data-accion="consultarCerebro" data-contexto="LENTE: recursos visuales">✨ Ayuda CEREBRO</button>
+      </div>
+      <div class="mini-chat"><div class="chat-log" id="chatLenteLog"></div><div class="chat-input-flex"><input id="lenteInput"><button id="sendLente">Enviar</button></div></div>
+    </div>
+
+    <!-- AUDITORÍA -->
+    <div class="app-card" data-app="AUDITORÍA">
+      <div class="card-header"><h3>🔍 AUDITORÍA</h3><span class="badge-gold">📊</span></div>
+      <div class="kpi-row">
+        <div class="kpi" data-explica="Evidencias verificadas: 1.160 de 1.248"><span>trazabilidad</span><strong>93%</strong></div>
+        <div class="kpi" data-explica="Hallazgos activos: 3 riesgos altos"><span>hallazgos</span><strong>5</strong></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn-mini" data-accion="verBitacora">📜 Ver bitácora</button>
+        <button class="btn-mini" data-accion="auditarForja">⚙️ Auditar FORJA</button>
+        <button class="btn-mini" data-accion="consultarCerebro" data-contexto="AUDITORÍA: verificaciones">🧠 Preguntar</button>
+      </div>
+      <div class="mini-chat"><div class="chat-log" id="chatAuditLog"></div><div class="chat-input-flex"><input id="auditInput"><button id="sendAudit">Enviar</button></div></div>
+    </div>
+
+    <!-- CEREBRO CENTRAL (esfera dorada) -->
+    <div class="cerebro-central" id="cerebroModule">
+      <div class="golden-sphere">🧠</div>
+      <h2 style="color:#c8a45e; font-weight: 500;">CEREBRO</h2>
+      <p style="font-size:0.75rem; margin-bottom: 0.8rem;">asistente estratégico · centro de decisiones</p>
+      <div class="cerebro-stats">
+        <div class="stat-cerebro"><span style="font-size:0.7rem;">misiones</span><br><strong>4</strong></div>
+        <div class="stat-cerebro"><span style="font-size:0.7rem;">decisiones</span><br><strong>2</strong></div>
+        <div class="stat-cerebro"><span style="font-size:0.7rem;">alertas</span><br><strong>3</strong></div>
+      </div>
+      <div class="chat-cerebro-global">
+        <div class="global-chat-log" id="cerebroChatLog"><div class="chat-msg"><span style="color:#c8a45e;">CEREBRO:</span> Conectado. Pregúntame sobre cualquier oficina o estrategia.</div></div>
+        <div class="chat-input-flex"><input type="text" id="cerebroInput" placeholder="Consulta global a CEREBRO..."><button id="sendCerebro">Enviar</button></div>
+      </div>
+    </div>
+
+    <!-- CENTINELA -->
+    <div class="app-card" data-app="CENTINELA">
+      <div class="card-header"><h3>🛡️ CENTINELA</h3><span class="badge-gold">⚠️</span></div>
+      <div class="kpi-row">
+        <div class="kpi" data-explica="Nivel de amenaza ALTO, 3 críticas activas"><span>nivel amenaza</span><strong>ALTO</strong></div>
+        <div class="kpi" data-explica="Alertas críticas: 3 vectores"><span>críticas</span><strong>3</strong></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn-mini" data-accion="verAlertas">🚨 Ver alertas</button>
+        <button class="btn-mini" data-accion="defensaRecomendada">🛡️ Recomendar defensa</button>
+        <button class="btn-mini" data-accion="consultarCerebro" data-contexto="CENTINELA: estado de riesgo">🤖 Preguntar a CEREBRO</button>
+      </div>
+      <div class="mini-chat"><div class="chat-log" id="chatCentinelaLog"></div><div class="chat-input-flex"><input id="centinelaInput"><button id="sendCentinela">Enviar</button></div></div>
+    </div>
+
+    <!-- MARKETING (MARCA PERSONAL) -->
+    <div class="app-card" data-app="MARKETING">
+      <div class="card-header"><h3>📈 MARKETING</h3><span class="badge-gold">🚀</span></div>
+      <div class="kpi-row">
+        <div class="kpi" data-explica="Crecimiento total +27% en redes"><span>crecimiento</span><strong>+27%</strong></div>
+        <div class="kpi" data-explica="Reputación CEO 4.8/5"><span>reputación</span><strong>4.8</strong></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn-mini" data-accion="planLinkedIn">📱 Plan LinkedIn</button>
+        <button class="btn-mini" data-accion="planTikTok">🎵 Plan TikTok</button>
+        <button class="btn-mini" data-accion="consultarCerebro" data-contexto="MARKETING: estrategia audiencia">📣 Consultar CEREBRO</button>
+      </div>
+      <div class="mini-chat"><div class="chat-log" id="chatMarketingLog"></div><div class="chat-input-flex"><input id="marketingInput"><button id="sendMarketing">Enviar</button></div></div>
+    </div>
+
+    <!-- TENDENCIAS -->
+    <div class="app-card" data-app="TENDENCIAS">
+      <div class="card-header"><h3>📡 TENDENCIAS</h3><span class="badge-gold">🌍</span></div>
+      <div class="kpi-row">
+        <div class="kpi" data-explica="Señales fuertes: IA generativa, chips neuromórficos"><span>oportunidades</span><strong>4</strong></div>
+        <div class="kpi" data-explica="Cambios de demanda en retail físico"><span>alertas mercado</span><strong>2</strong></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn-mini" data-accion="verSenales">📡 Ver señales</button>
+        <button class="btn-mini" data-accion="enviarOportunidad">⚡ Enviar a FORJA</button>
+        <button class="btn-mini" data-accion="consultarCerebro" data-contexto="TENDENCIAS: oportunidades tech">🔮 Preguntar a CEREBRO</button>
+      </div>
+      <div class="mini-chat"><div class="chat-log" id="chatTendenciasLog"></div><div class="chat-input-flex"><input id="tendenciasInput"><button id="sendTendencias">Enviar</button></div></div>
+    </div>
+  </div>
+
+  <div class="signature">
+    <span class="daniel-link" id="bunkerButton">Daniel · ✦</span>
+    <div style="font-size:0.7rem; margin-top: 5px;">No lidero para ser el mejor. Lidero para dejar huella.</div>
+  </div>
+</div>
+
+<!-- LOGIN OVERLAY CEO -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-card">
+    <div style="font-size:2.5rem; margin-bottom:0.5rem;">🧠</div>
+    <h2 style="color:#c8a45e; font-weight:500; margin-bottom:0.3rem;">Cabina CEO</h2>
+    <p style="color:#888; font-size:0.78rem; margin-bottom:1.5rem;">Acceso restringido · Ecosistema</p>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email CEO" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Contraseña" autocomplete="current-password">
+    <button id="loginBtn" class="btn-login">Ingresar</button>
+    <div id="loginError" class="login-error"></div>
+  </div>
+</div>
+
+<!-- MODAL BÚNKER -->
+<div id="bunkerModal" class="modal-bunker">
+  <div class="bunker-card">
+    <span class="close-bunker" id="closeBunker">&times;</span>
+    <h3 style="color:#c8a45e;">🪖 BÚNKER · Acceso CEO</h3>
+    <div style="margin: 1rem 0;"><span class="status-led" id="ledEstado"></span> <strong id="textoEstado">Estado operacional</strong></div>
+    <div id="reporteTexto" style="background:#101014; padding: 12px; border-radius: 24px; margin: 10px 0;">Último reporte: Inteligencia externa verificada. Sin brechas activas. Riesgo contenido.</div>
+    <div><strong>🚨 Alertas críticas:</strong> <span id="alertasBunker">1 anomalía en heartbeat de inteligencia (mitigada).</span></div>
+    <div class="botones-bunker">
+      <button class="btn-mini" id="btnVerInteligencia" style="background:#1e1a10;">🔍 VER INTELIGENCIA</button>
+      <button class="btn-mini" id="btnBugBounty">🐞 BUG BOUNTY</button>
+      <button class="btn-mini" id="btnAutorizar">⚡ AUTORIZAR</button>
+      <button class="btn-mini" id="btnArchivo">📁 ARCHIVO</button>
+    </div>
+    <hr style="border-color:#2a2a2e;">
+    <p style="font-size:0.7rem; color:#888;">Sistema interno · protocolo de vigilancia</p>
+  </div>
+</div>
+
+<script>
+  // -------- inicialización de logs y chats dinámicos ----------
+  const appsChats = {
+    forja: { logId: 'chatForjaLog', inputId: 'forjaInput', btnId: 'sendForja', name: 'FORJA' },
+    pluma: { logId: 'chatPlumaLog', inputId: 'plumaInput', btnId: 'sendPluma', name: 'PLUMA' },
+    lente: { logId: 'chatLenteLog', inputId: 'lenteInput', btnId: 'sendLente', name: 'LENTE' },
+    audit: { logId: 'chatAuditLog', inputId: 'auditInput', btnId: 'sendAudit', name: 'AUDITORÍA' },
+    centinela: { logId: 'chatCentinelaLog', inputId: 'centinelaInput', btnId: 'sendCentinela', name: 'CENTINELA' },
+    marketing: { logId: 'chatMarketingLog', inputId: 'marketingInput', btnId: 'sendMarketing', name: 'MARKETING' },
+    tendencias: { logId: 'chatTendenciasLog', inputId: 'tendenciasInput', btnId: 'sendTendencias', name: 'TENDENCIAS' }
+  };
+
+  function addMessage(chatLogId, sender, message, isUser = true) {
+    const container = document.getElementById(chatLogId);
+    if (!container) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.style.margin = '3px 0';
+    if (isUser) {
+      msgDiv.innerHTML = `<span style="color:#c8a45e;">TÚ (${sender}):</span> <span style="color:#ccc;">${message}</span>`;
+    } else {
+      msgDiv.innerHTML = `<span style="color:#d4af6a;">${sender}:</span> <span style="color:#aaa;">${message}</span>`;
+    }
+    container.appendChild(msgDiv);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  // configurar chats de aplicaciones
+  Object.values(appsChats).forEach(app => {
+    const input = document.getElementById(app.inputId);
+    const btn = document.getElementById(app.btnId);
+    if (!input || !btn) return;
+    const send = () => {
+      const text = input.value.trim();
+      if (!text) return;
+      addMessage(app.logId, app.name, text, true);
+      setTimeout(() => {
+        addMessage(app.logId, app.name, `✅ ${app.name} registra: "${text.substring(0, 50)}". Acción en curso.`, false);
+      }, 100);
+      input.value = '';
+      input.focus();
+    };
+    btn.onclick = send;
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+    // mensaje inicial
+    addMessage(app.logId, app.name, `Conectado. ¿En qué puedo asistir?`, false);
+  });
+
+  // ---- Auth management ----
+  const TOKEN_KEY = 'cerebro_ceo_token';
+  const getToken = () => localStorage.getItem(TOKEN_KEY);
+  const setToken = t => localStorage.setItem(TOKEN_KEY, t);
+  const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+
+  function showLoginOverlay() {
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+  function hideLoginOverlay() {
+    document.getElementById('loginOverlay').style.display = 'none';
+  }
+
+  if (getToken()) {
+    hideLoginOverlay();
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errDiv = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
+    errDiv.innerText = '';
+    if (!email || !password) { errDiv.innerText = 'Ingresa email y contraseña.'; return; }
+    btn.disabled = true;
+    btn.innerText = 'Verificando...';
+    try {
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, remember_me: true })
+      });
+      if (!res.ok) {
+        errDiv.innerText = res.status === 401 ? 'Credenciales incorrectas.' : `Error del servidor (${res.status}).`;
+        return;
+      }
+      const data = await res.json();
+      setToken(data.token);
+      hideLoginOverlay();
+    } catch (e) {
+      errDiv.innerText = 'Sin conexión con el servidor. Verifica que el backend esté activo.';
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Ingresar';
+    }
+  });
+  document.getElementById('loginPassword').addEventListener('keypress', e => {
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
+  });
+
+  // ---- CEREBRO real LLM chat ----
+  const cerebroLog = document.getElementById('cerebroChatLog');
+  const cerebroInput = document.getElementById('cerebroInput');
+  const sendCerebro = document.getElementById('sendCerebro');
+
+  function addCerebroMessage(sender, msg, isUser = false) {
+    const div = document.createElement('div');
+    div.style.margin = '5px 0';
+    div.innerHTML = isUser
+      ? `<span style="color:#c8a45e;">TÚ (CEO):</span> <span style="color:#ddd;">${msg}</span>`
+      : `<span style="color:#d4af6a;">CEREBRO:</span> <span style="color:#bbb;">${msg}</span>`;
+    cerebroLog.appendChild(div);
+    cerebroLog.scrollTop = cerebroLog.scrollHeight;
+  }
+
+  sendCerebro.onclick = async () => {
+    const txt = cerebroInput.value.trim();
+    if (!txt) return;
+    const token = getToken();
+    if (!token) { showLoginOverlay(); return; }
+
+    addCerebroMessage('CEO', txt, true);
+    cerebroInput.value = '';
+
+    const thinking = document.createElement('div');
+    thinking.className = 'cerebro-thinking';
+    thinking.id = 'cerebroThinking';
+    thinking.innerText = '● CEREBRO pensando...';
+    cerebroLog.appendChild(thinking);
+    cerebroLog.scrollTop = cerebroLog.scrollHeight;
+
+    try {
+      const res = await fetch('/api/v1/cerebro/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message: txt })
+      });
+
+      document.getElementById('cerebroThinking')?.remove();
+
+      if (res.status === 401) {
+        clearToken();
+        showLoginOverlay();
+        return;
+      }
+      if (!res.ok) {
+        addCerebroMessage('CEREBRO', `⚠️ Error del servidor (${res.status}).`, false);
+        return;
+      }
+      const data = await res.json();
+      addCerebroMessage('CEREBRO', data.reply, false);
+
+    } catch (e) {
+      document.getElementById('cerebroThinking')?.remove();
+      addCerebroMessage('CEREBRO', '⚠️ Sin conexión con el backend. En Vercel estará disponible.', false);
+    }
+    cerebroInput.focus();
+  };
+
+  cerebroInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') { e.preventDefault(); sendCerebro.click(); }
+  });
+
+  addCerebroMessage('CEREBRO', 'Conectado. Escribe para recibir respuesta con IA real.', false);
+
+  // Botones de acciones en tarjetas + consulta a CEREBRO desde cada app
+  document.querySelectorAll('.btn-mini').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const accion = btn.getAttribute('data-accion');
+      if (accion === 'consultarCerebro') {
+        const contexto = btn.getAttribute('data-contexto') || 'consulta general';
+        addCerebroMessage('CEREBRO', `Recibí tu consulta desde ${contexto}. Analizando métricas asociadas...`, false);
+        addCerebroMessage('CEREBRO', `✅ Contexto integrado. Recomiendo revisar dashboard central para más detalle.`, false);
+        return;
+      }
+      let feedback = '';
+      switch(accion) {
+        case 'crearTarea': feedback = 'Nueva tarea técnica creada en FORJA. Se asignó prioridad media.'; break;
+        case 'verBloqueos': feedback = 'Bloqueos: dependencia API externa y falta de recursos QA.'; break;
+        case 'crearBorrador': feedback = 'Borrador iniciado. PLUMA sugiere título: "Decisión y legado".'; break;
+        case 'enviarMarca': feedback = 'Contenido transferido a MARKETING para calendarización.'; break;
+        case 'ideaVideo': feedback = 'Idea de video registrada: "Detrás del liderazgo". LENTE prepara storyboard.'; break;
+        case 'pedirGuion': feedback = 'Guion solicitado a PLUMA, se entregará en 48h.'; break;
+        case 'verBitacora': feedback = 'Bitácora: 1.160 verificaciones, sin anomalías en últimos cambios.'; break;
+        case 'auditarForja': feedback = 'Auditoría FORJA: 98% de tareas con trazabilidad. 2 bloqueos pendientes.'; break;
+        case 'verAlertas': feedback = 'Alertas CENTINELA: 3 críticas (phishing, escaneo, intento de acceso). Defensas activas.'; break;
+        case 'defensaRecomendada': feedback = 'Aislar segmento de red y rotar credenciales de acceso crítico.'; break;
+        case 'planLinkedIn': feedback = 'Plan LinkedIn: 3 posts/semana + artículo de liderazgo. Engagement estimado +22%.'; break;
+        case 'planTikTok': feedback = 'TikTok: 4 reels semanales, meta 1M seguidores en 6 meses. Contenido en progreso.'; break;
+        case 'verSenales': feedback = 'Señales: chips neuromórficos, consumo experiencial, longevidad. Oportunidad en bienestar.'; break;
+        case 'enviarOportunidad': feedback = 'Oportunidad enviada a FORJA para evaluar desarrollo de producto.'; break;
+        default: feedback = `Acción ejecutada: ${accion}. Ecosistema actualizado.`;
+      }
+      const toast = document.createElement('div');
+      toast.className = 'explain-toast';
+      toast.innerText = feedback;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    });
+  });
+
+  // explicación de kpis
+  document.querySelectorAll('.kpi').forEach(kpi => {
+    kpi.addEventListener('click', (e) => {
+      const explicacion = kpi.getAttribute('data-explica') || 'Información estratégica disponible en CEREBRO.';
+      const toast = document.createElement('div');
+      toast.className = 'explain-toast';
+      toast.innerText = explicacion;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2800);
+    });
+  });
+
+  // ----- BÚNKER (firma Daniel) -----
+  const modal = document.getElementById('bunkerModal');
+  const openBtn = document.getElementById('bunkerButton');
+  const closeBtn = document.getElementById('closeBunker');
+  const ledSpan = document.getElementById('ledEstado');
+  const estadoSpan = document.getElementById('textoEstado');
+  const reporteDiv = document.getElementById('reporteTexto');
+  const alertasSpan = document.getElementById('alertasBunker');
+
+  function actualizarEstadoBunker() {
+    const rand = Math.random();
+    if (rand < 0.6) {
+      ledSpan.className = 'status-led verde';
+      estadoSpan.innerText = 'ESTADO: VERDE · Seguro';
+      reporteDiv.innerHTML = '📋 Último reporte: Inteligencia externa integrada. Sin alertas. Riesgo personal bajo (12/100).';
+      alertasSpan.innerText = 'Ninguna alerta crítica activa. Vigilancia nominal.';
+    } else if (rand < 0.85) {
+      ledSpan.className = 'status-led amarillo';
+      estadoSpan.innerText = 'ESTADO: AMARILLO · Vigilancia reforzada';
+      reporteDiv.innerHTML = '⚠️ Reporte: 1 intento de escaneo perimetral mitigado. Revisar configuraciones.';
+      alertasSpan.innerText = 'Alerta media: anomalía en heartbeat de inteligencia externa.';
+    } else {
+      ledSpan.className = 'status-led rojo';
+      estadoSpan.innerText = 'ESTADO: ROJO · Acción inmediata';
+      reporteDiv.innerHTML = '🔴 Intrusión detectada en capa de datos. Vector aislado. Requiere autorización.';
+      alertasSpan.innerText = '2 alertas críticas: brecha de información potencial + código malicioso detectado.';
+    }
+  }
+
+  openBtn.onclick = () => {
+    actualizarEstadoBunker();
+    modal.style.display = 'flex';
+  };
+  closeBtn.onclick = () => modal.style.display = 'none';
+  window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+
+  document.getElementById('btnVerInteligencia').onclick = () => alert('📡 Inteligencia externa: patrones de amenaza en tiempo real. Matriz de riesgo actualizada.');
+  document.getElementById('btnBugBounty').onclick = () => alert('🐞 Bug Bounty activo: reportes anónimos recompensados. Último cierre de brecha hace 4h.');
+  document.getElementById('btnAutorizar').onclick = () => alert('✅ Autorización registrada: protocolos de acceso ejecutivo validados.');
+  document.getElementById('btnArchivo').onclick = () => alert('📁 Archivo ejecutivo: reportes de auditoría, logs CENTINELA y bitácora estratégica.');
+
+  console.log('Cabina Humana · Lujo Oscuro | CEREBRO central');
+</script>
+</body>
 </html>

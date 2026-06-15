@@ -16,6 +16,9 @@ class Settings:
     debug: bool
     database_url: str
     database_url_source: str
+    anthropic_api_key: str | None
+    cerebro_llm_model: str
+    cerebro_llm_enabled: bool
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str] | None = None) -> "Settings":
@@ -46,6 +49,9 @@ class Settings:
             debug=parse_bool(env_value(source, "ECOSYSTEM_API_DEBUG", "false")),
             database_url=database_url,
             database_url_source=database_url_source,
+            anthropic_api_key=optional_env_value(source, "ANTHROPIC_API_KEY"),
+            cerebro_llm_model=env_value(source, "CEREBRO_LLM_MODEL", "claude-sonnet-4-6"),
+            cerebro_llm_enabled=parse_bool(env_value(source, "CEREBRO_LLM_ENABLED", "true")),
         )
 
 

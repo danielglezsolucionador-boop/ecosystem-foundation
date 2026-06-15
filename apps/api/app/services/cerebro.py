@@ -57,6 +57,7 @@ from app.schemas.cerebro import (
 from app.schemas.integration_bus import IntegrationDispatchRequest
 from app.services.audit import create_audit_event
 from app.services.centinela import get_centinela_status
+from app.services.cerebro_llm import generate_reply as generate_cerebro_reply
 from app.services.integration_bus import dispatch_message, route_id_for_cerebro_target
 
 CEREBRO_DECISIONS_TABLE = "cerebro_decisions"
@@ -2389,12 +2390,24 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
             "en misiones, tareas para FORJA o lecturas de CENTINELA sin acciones externas."
         )
 
+    state = cerebro_chat_state()
+    provider = "internal"
+    llm_reply = generate_cerebro_reply(
+        message=message,
+        intent=intent,
+        actions=[action.model_dump() for action in actions],
+        state=state.model_dump(),
+    )
+    if llm_reply:
+        reply = llm_reply
+        provider = "anthropic"
+
     return CerebroChatResponse(
         ok=True,
         reply=reply,
         actions=actions,
-        state=cerebro_chat_state(),
-        provider="internal",
+        state=state,
+        provider=provider,
     )
 
 

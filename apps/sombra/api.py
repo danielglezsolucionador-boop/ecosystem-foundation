@@ -12,6 +12,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 
 from apps.sombra.core import SombraCore
 from apps.sombra.memory.database import LOG_DIR
+from apps.sombra.products import DarkWebScanProduct
 
 
 API_LOG = LOG_DIR / "api.log"
@@ -92,6 +93,31 @@ async def create_client(client_data: dict[str, Any]) -> dict[str, str]:
         order_origin="SOMBRA_API",
     )
     return {"client_id": client_id}
+
+
+@app.post("/scan")
+async def generate_dark_web_scan(
+    scan_request: dict[str, Any],
+    x_sombra_key: str | None = Header(default=None, alias="X-Sombra-Key"),
+) -> dict[str, Any]:
+    expected = os.getenv("SOMBRA_API_KEY")
+    if not expected:
+        raise HTTPException(status_code=503, detail="SOMBRA_API_KEY is not configured")
+    supplied_key = x_sombra_key or scan_request.get("api_key")
+    if supplied_key != expected:
+        await _log_auth_failure("invalid_scan_api_key")
+        raise HTTPException(status_code=401, detail="invalid SOMBRA API key")
+    try:
+        company_name = str(scan_request["company_name"])
+        domain = str(scan_request["domain"])
+        email_patterns = scan_request["email_patterns"]
+    except KeyError as error:
+        raise HTTPException(status_code=422, detail=f"missing required field: {error.args[0]}") from error
+    product = DarkWebScanProduct(sombra_core.database, sombra_core.blackbox)
+    try:
+        return await product.generate_scan(company_name, domain, email_patterns)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 def _append_api_log(row: dict[str, Any]) -> None:

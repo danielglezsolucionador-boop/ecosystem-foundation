@@ -1,0 +1,57 @@
+{
+  "company": "Empresa de Prueba",
+  "domain": "test-company.com",
+  "executive_summary": "Empresa de Prueba presenta un nivel de riesgo BAJO con una puntuación de 20/100. No se confirmó exposición directa de credenciales para Empresa de Prueba durante este análisis. La amenaza principal observada en su entorno es vulnerabilidad publicada; revisa accesos y contraseñas esta semana.",
+  "exposures_found": [
+    {
+      "domain": "test-company.com",
+      "note": "Clave HIBP no configurada; se usó el catálogo público solo como señal indicativa.",
+      "source": "Monitoreo Avanzado de Amenazas",
+      "title": "No se confirmó exposición directa de credenciales durante este análisis.",
+      "type": "sin exposición directa confirmada"
+    }
+  ],
+  "footer": "Este reporte es confidencial y fue generado exclusivamente para Empresa de Prueba. Centinela — Protegemos lo que importa. Fecha: 2026-06-11",
+  "metadata": {
+    "breaches_found_count": 0,
+    "credential_matches_count": 0,
+    "email_patterns_checked": [
+      "*@test-company.com",
+      "admin@test-company.com"
+    ],
+    "hibp_mode": "demostración pública",
+    "hibp_note": "Clave HIBP no configurada; se usó el catálogo público solo como señal indicativa.",
+    "product": "Análisis de Exposición Digital",
+    "sector": "empresa general",
+    "sector_threat_level": 100
+  },
+  "recommendations": [
+    "Revisa cuentas ejecutivas, financieras y administrativas para descartar credenciales expuestas.",
+    "Activa autenticación multifactor en todos los accesos externos y cuentas privilegiadas.",
+    "Configura alertas para el dominio, nombres ejecutivos y patrones de correo de alto riesgo.",
+    "Revisa campañas recientes del sector y corrige los sistemas vinculados a las amenazas principales.",
+    "Agenda un nuevo análisis en 30 días y comparte el avance de mitigación con la dirección."
+  ],
+  "risk_level": "BAJO",
+  "risk_level_description": "Tu empresa tiene exposición mínima detectada. Mantén las medidas actuales y monitorea continuamente.",
+  "risk_score": 20,
+  "scan_date": "2026-06-11",
+  "sector_threats": [
+    {
+      "executive_explanation": "Se detectaron 81 vulnerabilidades publicadas que afectan sistemas similares al tuyo. Nivel de riesgo: CRÍTICO. Acción recomendada: revisar y aplicar parches de seguridad esta semana.",
+      "observed_records": 81,
+      "sector": "empresa general",
+      "threat_level": "CRÍTICO",
+      "threat_name": "Vulnerabilidad publicada",
+      "threat_type": "Vulnerabilidad publicada"
+    },
+    {
+      "executive_explanation": "Se observaron 19 señales de campañas de ransomware contra organizaciones comparables. Nivel de riesgo: CRÍTICO. Acción recomendada: validar respaldos, accesos críticos y plan de respuesta esta semana.",
+      "observed_records": 19,
+      "sector": "empresa general",
+      "threat_level": "CRÍTICO",
+      "threat_name": "Campaña de ransomware",
+      "threat_type": "Campaña de ransomware"
+    }
+  ]
+}

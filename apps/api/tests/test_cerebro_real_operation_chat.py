@@ -1,5 +1,7 @@
+import pytest
 from fastapi.testclient import TestClient
 
+import app.services.cerebro as cerebro_service
 from app.main import app
 from app.schemas.auth import ControlCenterRole
 from auth_helpers import auth_headers
@@ -7,6 +9,18 @@ from auth_helpers import auth_headers
 
 client = TestClient(app)
 CEO_HEADERS = auth_headers(client, ControlCenterRole.ceo)
+
+
+@pytest.fixture(autouse=True)
+def _force_internal_cerebro_reply(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the deterministic internal reply for existing assertions.
+
+    Guarantees these tests never depend on an ambient ANTHROPIC_API_KEY and never
+    make a real LLM call. The LLM path is exercised explicitly in its own tests.
+    """
+    monkeypatch.setattr(
+        cerebro_service, "generate_cerebro_reply", lambda **_kwargs: None
+    )
 
 
 def test_cerebro_chat_requires_auth() -> None:
@@ -160,6 +174,71 @@ def test_centinela_status_endpoint_is_internal_only() -> None:
     assert payload["status"] == "prepared"
     assert payload["sombra_connected"] is False
     assert payload["source"] == "internal_control_center"
+
+
+def test_cerebro_chat_uses_llm_reply_when_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_reply(**kwargs: object) -> str:
+        captured.update(kwargs)
+        return "Daniel, respuesta generada por IA grounded."
+
+    monkeypatch.setattr(cerebro_service, "generate_cerebro_reply", fake_reply)
+
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": "Dame el estado interno del ecosistema."},
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "anthropic"
+    assert payload["reply"] == "Daniel, respuesta generada por IA grounded."
+    # The grounded prompt receives the real turn data.
+    assert captured["intent"]
+    assert "state" in captured
+
+
+def test_cerebro_chat_llm_path_still_creates_real_actions(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        cerebro_service,
+        "generate_cerebro_reply",
+        lambda **_kwargs: "Daniel, mision registrada por CEREBRO.",
+    )
+
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={
+            "message": "Crea una mision interna de auditoria.",
+            "action": "mission",
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "anthropic"
+    action = payload["actions"][0]
+    assert action["type"] == "mission_created"
+    assert action["status"] == "created"
+    assert action["id"].startswith("cerebro_mission_")
+
+
+def test_cerebro_llm_layer_falls_back_without_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.core import config
+    from app.services import cerebro_llm
+
+    settings = config.Settings.from_mapping(
+        {"CEREBRO_LLM_ENABLED": "true"}  # no ANTHROPIC_API_KEY
+    )
+    monkeypatch.setattr(cerebro_llm, "get_settings", lambda: settings)
+
+    reply = cerebro_llm.generate_reply(
+        message="hola", intent="info", actions=[], state={}
+    )
+
+    assert reply is None
 
 
 def test_control_center_uses_operational_cerebro_chat_copy() -> None:
