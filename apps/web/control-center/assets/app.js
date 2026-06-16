@@ -37,6 +37,7 @@ const endpoints = {
   cerebroDecisions: "/api/v1/cerebro/decisions",
   cerebroTasks: "/api/v1/cerebro/tasks",
   cerebroExternalInbox: "/api/v1/cerebro/inbox/sombra/recent",
+  cerebroConversations: "/api/v1/cerebro/conversations",
   centinelaStatus: "/api/v1/centinela/status",
   ceoDailyCenter: "/api/v1/ceo/daily-center",
   ceoMorning: "/api/v1/ceo/morning",
@@ -183,7 +184,9 @@ const state = {
   restoreAttempted: Boolean(initialSession.token),
   restoredNoticePending: false,
   sessionRemembered: initialSession.remembered,
-  officeView: "main"
+  officeView: "main",
+  cerebroConversationId: "",
+  cerebroConversationDetail: null
 };
 
 const MAIN_OFFICES = [
@@ -1376,6 +1379,9 @@ function navigateTo(view) {
   state.officeView = view || "main";
   renderLivingOffice();
   renderOfficeNavigation();
+  if (state.officeView === "cerebro") {
+    hydrateCerebroOfficeHistory().catch(() => {});
+  }
   const stage = $("#ceo-office-stage");
   if (stage) stage.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1745,13 +1751,20 @@ function cerebroChatDefaultMessage(actionMode, action = {}) {
 async function sendCerebroChat(action, text, mode = "send") {
   const chatAction = cerebroChatActionForMode(mode, action);
   const message = text || cerebroChatDefaultMessage(chatAction, action);
-  return postJson("hablar con CEREBRO", CEREBRO_CHAT_ENDPOINT, {
+  const result = await postJson("hablar con CEREBRO", CEREBRO_CHAT_ENDPOINT, {
     message,
+    conversation_id: state.cerebroConversationId || null,
     context: "control_center",
+    app_context: {
+      office_view: state.officeView,
+      meeting: state.meeting
+    },
     office: String(action.office || "cerebro").toLowerCase(),
     action: chatAction,
     priority: "p1"
   });
+  if (result.conversation_id) state.cerebroConversationId = result.conversation_id;
+  return result;
 }
 
 function appendCerebroBubble(log, role, html) {
@@ -1781,6 +1794,7 @@ function renderCerebroUserMessage(text, mode) {
 function renderCerebroChatResponse(result) {
   const actions = Array.isArray(result.actions) ? result.actions : [];
   const stateInfo = result.state || {};
+  const usedContext = result.used_context || {};
   const renderedActions = actions.map((item) => {
     const labelText = item.label || item.type || "accion";
     const actionId = item.id || item.status || "preparada";
@@ -1792,10 +1806,124 @@ function renderCerebroChatResponse(result) {
   }).join("");
   return `
     <strong>CEREBRO respondio</strong>
-    <span>${escapeHtml(result.reply || "Accion interna preparada.")}</span>
+    <span>${escapeHtml(result.response || result.reply || "Accion interna preparada.")}</span>
     ${renderedActions}
+    <small>Conversacion: ${escapeHtml(result.conversation_id || state.cerebroConversationId || "nueva")} | Contexto SOMBRA: ${usedContext.used_sombra_context ? "real" : "no usado"}</small>
     <small>Estado: misiones ${escapeHtml(number(stateInfo.missions_active))} | FORJA ${escapeHtml(number(stateInfo.forja_tasks))} | Intel ${escapeHtml(number(stateInfo.external_intel_messages))} | SOMBRA conectado: ${stateInfo.sombra_connected ? "si" : "no"}</small>
   `;
+}
+
+function formatConversationTime(value) {
+  if (!value) return "sin fecha";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("es", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function renderCerebroConversationList() {
+  const conversations = Array.isArray(state.data.cerebroConversations)
+    ? state.data.cerebroConversations
+    : [];
+  if (!conversations.length) {
+    return `
+      <article class="conversation-empty">
+        <strong>Sin conversaciones guardadas</strong>
+        <p>El siguiente mensaje creara memoria en PostgreSQL.</p>
+      </article>
+    `;
+  }
+  return conversations.map((conversation) => {
+    const active = conversation.id && conversation.id === state.cerebroConversationId;
+    return `
+      <button type="button" class="${active ? "active" : ""}" data-cerebro-conversation-id="${escapeHtml(conversation.id)}">
+        <strong>${escapeHtml(conversation.title || "Conversacion CEREBRO")}</strong>
+        <small>${escapeHtml(formatConversationTime(conversation.updated_at || conversation.created_at))} | ${escapeHtml(number(conversation.message_count || 0))} mensajes</small>
+        <p>${escapeHtml(conversation.latest_message || "Abrir historial guardado en PostgreSQL.")}</p>
+      </button>
+    `;
+  }).join("");
+}
+
+function renderCerebroStoredMessage(message) {
+  const role = String(message.role || "assistant").toLowerCase();
+  const labelText = role === "user" ? "CEO" : role === "assistant" ? "CEREBRO" : label(role);
+  return `
+    <div class="office-chat-bubble ${escapeHtml(role)}">
+      <strong>${escapeHtml(labelText)}</strong>
+      <span>${escapeHtml(message.content || "")}</span>
+      <small>${escapeHtml(formatConversationTime(message.created_at))}</small>
+    </div>
+  `;
+}
+
+function renderCerebroConversationMessages(messages = []) {
+  if (!messages.length) {
+    return `
+      <div class="chat-line system">Conversacion lista. Escribe al CEO staff para crear memoria real.</div>
+    `;
+  }
+  return messages.map(renderCerebroStoredMessage).join("");
+}
+
+function renderActiveCerebroConversationLog() {
+  const detail = state.cerebroConversationDetail;
+  if (
+    detail
+    && detail.id
+    && detail.id === state.cerebroConversationId
+    && Array.isArray(detail.messages)
+  ) {
+    return renderCerebroConversationMessages(detail.messages);
+  }
+  return `
+    <div class="chat-line system">Estado del ecosistema: local, protegido, sin acciones externas.</div>
+    <div class="chat-line user">Prioridad ejecutiva: revisar oficinas internas y PEOC.</div>
+  `;
+}
+
+async function refreshCerebroConversations() {
+  const conversations = await fetchJson("conversaciones CEREBRO", endpoints.cerebroConversations);
+  state.data.cerebroConversations = conversations;
+  const list = $(".cerebro-office .conversation-list");
+  if (list) list.innerHTML = renderCerebroConversationList();
+}
+
+async function loadCerebroConversation(conversationId) {
+  if (!conversationId) return;
+  const detail = await fetchJson(
+    "conversacion CEREBRO",
+    `${endpoints.cerebroConversations}/${encodeURIComponent(conversationId)}`
+  );
+  state.cerebroConversationId = detail.id;
+  state.cerebroConversationDetail = detail;
+  const list = $(".cerebro-office .conversation-list");
+  if (list) list.innerHTML = renderCerebroConversationList();
+  const log = $(".cerebro-office [data-cerebro-office-log]");
+  if (log) {
+    log.innerHTML = renderCerebroConversationMessages(detail.messages || []);
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+async function hydrateCerebroOfficeHistory() {
+  await refreshCerebroConversations();
+  const conversations = Array.isArray(state.data.cerebroConversations)
+    ? state.data.cerebroConversations
+    : [];
+  const activeId = state.cerebroConversationId || conversations[0]?.id || "";
+  if (activeId) await loadCerebroConversation(activeId);
+}
+
+async function syncCerebroConversationAfterSend() {
+  await refreshCerebroConversations();
+  if (state.cerebroConversationId) {
+    await loadCerebroConversation(state.cerebroConversationId);
+  }
 }
 
 async function createCerebroInternalMission(action, text) {
@@ -1864,6 +1992,7 @@ async function submitOfficeAction(mode = "send") {
       const result = await sendCerebroChat(action, text, mode);
       loading?.remove();
       appendCerebroBubble(log, "assistant", renderCerebroChatResponse(result));
+      syncCerebroConversationAfterSend().catch(() => {});
       showOfficeToast("CEREBRO respondio");
     } catch (error) {
       loading?.remove();
@@ -1888,12 +2017,14 @@ async function submitOfficeAction(mode = "send") {
     if (isCerebroChat) {
       const result = await sendCerebroChat(action, text, mode);
       response.innerHTML = renderCerebroChatResponse(result);
+      syncCerebroConversationAfterSend().catch(() => {});
       showOfficeToast("CEREBRO respondio");
       return;
     }
     if (action.operation === "create_cerebro_mission") {
       const result = await sendCerebroChat(action, text, "mission");
       response.innerHTML = renderCerebroChatResponse(result);
+      syncCerebroConversationAfterSend().catch(() => {});
       showOfficeToast("Mision CEREBRO creada");
       return;
     }
@@ -1963,6 +2094,7 @@ async function submitCerebroOfficeChat(mode = "send") {
     loading?.remove();
     if (log) appendCerebroBubble(log, "assistant", renderCerebroChatResponse(result));
     else response.innerHTML = renderCerebroChatResponse(result);
+    syncCerebroConversationAfterSend().catch(() => {});
     showOfficeToast("CEREBRO respondio");
   } catch (error) {
     loading?.remove();
@@ -2079,13 +2211,7 @@ function renderCerebroOffice() {
             <input type="search" placeholder="Buscar conversaciones..." aria-label="Buscar conversaciones" />
           </label>
           <div class="conversation-list">
-            ${CONVERSATION_HISTORY.map(([title, time, summary]) => `
-              <button type="button">
-                <strong>${escapeHtml(title)}</strong>
-                <small>${escapeHtml(time)}</small>
-                <p>${escapeHtml(summary)}</p>
-              </button>
-            `).join("")}
+            ${renderCerebroConversationList()}
           </div>
         </aside>
         <section class="cerebro-command-core">
@@ -2096,8 +2222,7 @@ function renderCerebroOffice() {
           </div>
           <div class="cerebro-chat">
             <div class="cerebro-chat-log" data-cerebro-office-log aria-live="polite">
-            <div class="chat-line system">Estado del ecosistema: local, protegido, sin acciones externas.</div>
-            <div class="chat-line user">Prioridad ejecutiva: revisar oficinas internas y PEOC.</div>
+            ${renderActiveCerebroConversationLog()}
             </div>
             <div class="cerebro-chat-sections">${renderCerebroChatSections()}</div>
             <div class="cerebro-chat-response" data-cerebro-office-response hidden></div>
@@ -4914,6 +5039,14 @@ function bindEvents() {
     if (event.target.closest("[data-cerebro-office-linkedin]")) {
       event.preventDefault();
       submitCerebroOfficeChat("linkedin");
+      return;
+    }
+    const conversationButton = event.target.closest("[data-cerebro-conversation-id]");
+    if (conversationButton) {
+      event.preventDefault();
+      loadCerebroConversation(conversationButton.dataset.cerebroConversationId).catch((error) => {
+        showFeedback(`No se pudo cargar conversacion CEREBRO: ${error.message}`, "error");
+      });
       return;
     }
     const officeButton = event.target.closest("[data-office-nav]");

@@ -89,7 +89,9 @@ class CerebroTask(BaseModel):
 
 class CerebroChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
+    conversation_id: str | None = Field(default=None, max_length=160)
     context: str = Field(default="control_center", max_length=120)
+    app_context: dict[str, Any] = Field(default_factory=dict)
     office: str = Field(default="cerebro", max_length=120)
     action: Literal["auto", "mission", "forja", "centinela", "commercial", "sombra_inbox", "info"] = "auto"
     priority: str = Field(default="p1", pattern="^p[0-3]$")
@@ -126,10 +128,42 @@ class CerebroChatState(BaseModel):
 
 class CerebroChatResponse(BaseModel):
     ok: bool = True
+    conversation_id: str = Field(min_length=1)
+    message_id: str = Field(min_length=1)
+    assistant_message_id: str = Field(min_length=1)
     reply: str = Field(min_length=1)
+    response: str = Field(min_length=1)
     actions: list[CerebroChatAction] = Field(default_factory=list)
     state: CerebroChatState
     provider: str = "internal"
+    used_context: dict[str, Any] = Field(default_factory=dict)
+    created_at: str = Field(min_length=1)
+
+
+class CerebroConversationMessage(BaseModel):
+    id: str = Field(min_length=1)
+    conversation_id: str = Field(min_length=1)
+    role: Literal["user", "assistant", "system", "tool"]
+    content: str = Field(min_length=1)
+    source: str = Field(default="cerebro", min_length=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str = Field(min_length=1)
+
+
+class CerebroConversationSummary(BaseModel):
+    id: str = Field(min_length=1)
+    owner: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    context: str = Field(min_length=1)
+    message_count: int = 0
+    latest_message: str | None = None
+    created_at: str = Field(min_length=1)
+    updated_at: str = Field(min_length=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CerebroConversationDetail(CerebroConversationSummary):
+    messages: list[CerebroConversationMessage] = Field(default_factory=list)
 
 
 class SombraInboxMessageType(StrEnum):

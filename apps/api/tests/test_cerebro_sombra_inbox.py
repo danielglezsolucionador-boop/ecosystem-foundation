@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+import app.services.cerebro as cerebro_service
 from app.main import app
 from app.schemas.auth import ControlCenterRole
 from auth_helpers import auth_headers
@@ -195,3 +196,89 @@ def test_sombra_lead_signal_creates_sanitized_commercial_route(monkeypatch) -> N
     assert stored["metadata"]["api_key"] == "[redacted]"
     assert stored["metadata"]["nested"]["password"] == "[redacted]"
     assert "payload" not in stored
+
+
+def test_sombra_bug_bounty_report_is_idempotent_and_used_by_cerebro(monkeypatch) -> None:
+    monkeypatch.setattr(cerebro_service, "generate_cerebro_reply", lambda **_kwargs: None)
+    token = enable_sombra_inbox(monkeypatch)
+    message = sample_message(
+        type="scan_report",
+        severity="medium",
+        title="Bug bounty passive scope scan",
+        summary=(
+            "SOMBRA detecto programas pagados y senales locales; "
+            "sin coincidencias confirmadas ni oportunidades reportables."
+        ),
+        audience=["cerebro", "centinela"],
+        payload={
+            "scan_summary": {
+                "programs_analyzed": 4,
+                "local_signal_count": 3,
+                "matches": 0,
+                "reportable_opportunities": 0,
+                "program_names": ["Bitso", "HostGator LATAM", "Nubank", "QuintoAndar"],
+                "local_signals": [
+                    "cabecera desactualizada en activo local",
+                    "subdominio historico sin match de scope",
+                ],
+                "scope_signal_matches": [],
+                "next_step": (
+                    "Cruzar senales con scope autorizado de Bitso, HostGator LATAM, "
+                    "Nubank y QuintoAndar."
+                ),
+            }
+        },
+        metadata={"case": "bug-bounty-context"},
+    )
+
+    first = client.post(
+        "/api/v1/cerebro/inbox/sombra",
+        json=message,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    duplicate = client.post(
+        "/api/v1/cerebro/inbox/sombra",
+        json=message,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert first.status_code == 200
+    assert duplicate.status_code == 200
+    assert first.json()["stored"] is True
+    assert duplicate.json()["stored"] is True
+
+    recent = client.get("/api/v1/cerebro/inbox/sombra/recent?limit=100", headers=CEO_HEADERS)
+    assert recent.status_code == 200
+    stored = [item for item in recent.json() if item["message_id"] == message["message_id"]]
+    assert len(stored) == 1
+
+    latest_report = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": "CEREBRO, que dice el ultimo reporte de SOMBRA?"},
+        headers=CEO_HEADERS,
+    )
+    assert latest_report.status_code == 200
+    report_payload = latest_report.json()
+    reply = report_payload["reply"].lower()
+    assert report_payload["used_context"]["used_sombra_context"] is True
+    assert report_payload["used_context"]["sombra_latest_message_id"] == message["message_id"]
+    assert "bitso" in reply
+    assert "hostgator latam" in reply
+    assert "nubank" in reply
+    assert "quintoandar" in reply
+    assert "programas analizados: 4" in reply
+    assert "senales detectadas: 3" in reply
+    assert "coincidencias: 0" in reply
+    assert "oportunidades reportables: 0" in reply
+    assert "no hay plata reclamable todavia" in reply
+    assert "puedo ayudarte a revisar reportes si me los envias" not in reply
+
+    bounty_question = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": "Hay plata para reclamar por bug bounty?"},
+        headers=CEO_HEADERS,
+    )
+    assert bounty_question.status_code == 200
+    bounty_reply = bounty_question.json()["reply"].lower()
+    assert "no hay plata reclamable todavia" in bounty_reply
+    assert "no registra oportunidades reportables confirmadas" in bounty_reply

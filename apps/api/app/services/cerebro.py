@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 from os import environ
+import re
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -29,6 +30,9 @@ from app.schemas.cerebro import (
     CerebroCommercialDraftCreate,
     CerebroCompanyGoal,
     CerebroCompanyGoalCreate,
+    CerebroConversationDetail,
+    CerebroConversationMessage,
+    CerebroConversationSummary,
     CerebroDailyBrief,
     CerebroDafo,
     CerebroDecision,
@@ -74,6 +78,8 @@ CEREBRO_PRIORITY_CHANGES_TABLE = "cerebro_priority_changes"
 CEREBRO_CEO_CHECKPOINTS_TABLE = "cerebro_ceo_checkpoints"
 CEREBRO_SOMBRA_INBOX_TABLE = "cerebro_sombra_inbox"
 CEREBRO_COMMERCIAL_DRAFTS_TABLE = "cerebro_commercial_drafts"
+CEREBRO_CONVERSATIONS_TABLE = "cerebro_conversations"
+CEREBRO_MESSAGES_TABLE = "cerebro_messages"
 
 PERU_TZ = ZoneInfo("America/Lima")
 GLOBAL_MONTHLY_GOAL_USD = 6000.0
@@ -252,6 +258,39 @@ def ensure_cerebro_schema() -> None:
                 )
                 """
             )
+        connection.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {CEREBRO_CONVERSATIONS_TABLE} (
+                id TEXT PRIMARY KEY,
+                owner_id TEXT NOT NULL,
+                owner TEXT NOT NULL,
+                title TEXT NOT NULL,
+                context TEXT NOT NULL,
+                metadata_json TEXT NOT NULL DEFAULT '{{}}',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {CEREBRO_MESSAGES_TABLE} (
+                id TEXT PRIMARY KEY,
+                conversation_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                source TEXT NOT NULL,
+                metadata_json TEXT NOT NULL DEFAULT '{{}}',
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            f"CREATE INDEX IF NOT EXISTS idx_cerebro_conversations_owner_updated ON {CEREBRO_CONVERSATIONS_TABLE} (owner_id, updated_at)"
+        )
+        connection.execute(
+            f"CREATE INDEX IF NOT EXISTS idx_cerebro_messages_conversation_created ON {CEREBRO_MESSAGES_TABLE} (conversation_id, created_at)"
+        )
         connection.commit()
 
 
@@ -959,6 +998,647 @@ def get_sombra_inbox_metrics() -> dict[str, object]:
 
 def list_sombra_recent(limit: int = 20) -> list[SombraInboxRecentMessage]:
     return list_sombra_inbox_messages(limit=limit)
+
+
+def _row_to_sombra_context(row: object) -> dict[str, object]:
+    metadata = _json_load(get_row_value(row, "metadata_json", default="{}"), {})
+    payload = _json_load(get_row_value(row, "payload_json", default='""'), "")
+    routed_to = _json_load(get_row_value(row, "routed_to_json", default="[]"), [])
+    return {
+        "message_id": get_row_value(row, "message_id"),
+        "source": get_row_value(row, "source"),
+        "type": get_row_value(row, "message_type"),
+        "severity": get_row_value(row, "severity"),
+        "created_at": get_row_value(row, "source_created_at"),
+        "received_at": get_row_value(row, "received_at"),
+        "title": get_row_value(row, "title"),
+        "summary": get_row_value(row, "summary"),
+        "routed_to": list(routed_to) if isinstance(routed_to, list) else [],
+        "ceo_code": get_row_value(row, "ceo_code", default=None),
+        "executive_summary": get_row_value(row, "executive_summary", default=None),
+        "payload": payload,
+        "metadata": sanitize_metadata(metadata) if isinstance(metadata, dict) else {},
+    }
+
+
+def list_sombra_inbox_context(limit: int = 5) -> list[dict[str, object]]:
+    ensure_sombra_inbox_schema()
+    safe_limit = max(1, min(int(limit or 5), 20))
+    with connect() as connection:
+        rows = connection.execute(
+            f"""
+            SELECT *
+            FROM {CEREBRO_SOMBRA_INBOX_TABLE}
+            ORDER BY received_at DESC
+            LIMIT {safe_limit}
+            """
+        ).fetchall()
+    return [_row_to_sombra_context(row) for row in rows]
+
+
+def _safe_int(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str):
+        match = re.search(r"-?\d+", value)
+        if match:
+            return int(match.group(0))
+    return None
+
+
+def _normalized_metric_text(value: object) -> str:
+    text = str(value or "").lower()
+    replacements = {
+        "á": "a",
+        "é": "e",
+        "í": "i",
+        "ó": "o",
+        "ú": "u",
+        "ñ": "n",
+    }
+    for original, replacement in replacements.items():
+        text = text.replace(original, replacement)
+    return text
+
+
+SOMBRA_SCAN_METRIC_ALIASES = {
+    "programs_analyzed": (
+        "programs",
+        "program_count",
+        "programs_count",
+        "programs_fetched",
+        "programs_analyzed",
+        "programas",
+        "programas analizados",
+    ),
+    "local_signal_count": (
+        "signals",
+        "signal_count",
+        "signals_loaded",
+        "local_signals",
+        "local_signal_count",
+        "local_signals_loaded",
+        "senales",
+        "senales detectadas",
+    ),
+    "matches": (
+        "matches",
+        "matches_found",
+        "scope_matches",
+        "scope_signal_matches",
+        "coincidencias",
+    ),
+    "reportable_opportunities": (
+        "reportable",
+        "reportable_count",
+        "reportable_findings",
+        "reportable_opportunities",
+        "reportable_opportunity_count",
+        "oportunidades reportables",
+    ),
+    "passive_findings": (
+        "passive_findings",
+        "passive_scope_findings",
+        "hallazgos pasivos",
+    ),
+}
+
+
+def _iter_metric_sources(value: object) -> list[dict[str, object]]:
+    sources: list[dict[str, object]] = []
+    if not isinstance(value, dict):
+        return sources
+    sources.append(value)
+    for key in ("summary", "metrics", "scan_summary", "report", "result", "counts"):
+        nested = value.get(key)
+        if isinstance(nested, dict):
+            sources.extend(_iter_metric_sources(nested))
+    return sources
+
+
+def _metric_from_dict(sources: list[dict[str, object]], aliases: tuple[str, ...]) -> int | None:
+    normalized_aliases = {alias.lower() for alias in aliases}
+    for source in sources:
+        for key, value in source.items():
+            if str(key).lower() in normalized_aliases:
+                parsed = _safe_int(value)
+                if parsed is not None:
+                    return parsed
+    return None
+
+
+def _metric_from_text(text: object, aliases: tuple[str, ...]) -> int | None:
+    normalized = _normalized_metric_text(text)
+    for alias in aliases:
+        token = re.escape(_normalized_metric_text(alias))
+        patterns = (
+            rf"\b{token}\b\s*[:=]\s*(-?\d+)",
+            rf"\b{token}\b\s+(-?\d+)",
+        )
+        for pattern in patterns:
+            match = re.search(pattern, normalized)
+            if match:
+                return int(match.group(1))
+    return None
+
+
+def _first_value_from_sources(sources: list[dict[str, object]], aliases: tuple[str, ...]) -> object | None:
+    normalized_aliases = {alias.lower() for alias in aliases}
+    for source in sources:
+        for key, value in source.items():
+            if str(key).lower() in normalized_aliases and value not in (None, "", []):
+                return value
+    return None
+
+
+def _compact_metric_item(value: object) -> str | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, str):
+        clean = " ".join(value.split())
+        return clean[:120] if clean else None
+    if isinstance(value, dict):
+        for key in (
+            "name",
+            "program",
+            "program_name",
+            "title",
+            "domain",
+            "asset",
+            "signal",
+            "finding",
+            "company",
+        ):
+            if value.get(key):
+                return _compact_metric_item(value.get(key))
+        return _compact_metric_item(json.dumps(value, ensure_ascii=False, sort_keys=True, default=str))
+    return _compact_metric_item(str(value))
+
+
+def _metric_list_from_sources(
+    sources: list[dict[str, object]],
+    aliases: tuple[str, ...],
+    *,
+    limit: int = 6,
+) -> list[str]:
+    value = _first_value_from_sources(sources, aliases)
+    items = value if isinstance(value, list) else []
+    result: list[str] = []
+    for item in items:
+        clean = _compact_metric_item(item)
+        if clean and clean not in result:
+            result.append(clean)
+        if len(result) == limit:
+            break
+    return result
+
+
+def _metric_text_from_sources(sources: list[dict[str, object]], aliases: tuple[str, ...]) -> str | None:
+    value = _first_value_from_sources(sources, aliases)
+    if isinstance(value, (dict, list)):
+        return _compact_metric_item(value)
+    return _compact_metric_item(value)
+
+
+def _extract_pdf_path(event: dict[str, object]) -> str | None:
+    payload = event.get("payload")
+    if isinstance(payload, dict):
+        for key in ("pdf", "pdf_path", "report_path", "report_file"):
+            value = payload.get(key)
+            if value:
+                return str(value)
+    text = f"{event.get('summary') or ''} {event.get('executive_summary') or ''}"
+    match = re.search(r"\bpdf\s*[:=]\s*([^\s]+)", text, flags=re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return None
+
+
+def extract_sombra_scan_metrics(event: dict[str, object]) -> dict[str, object]:
+    payload = event.get("payload")
+    metadata = event.get("metadata")
+    sources: list[dict[str, object]] = []
+    if isinstance(payload, dict):
+        sources.extend(_iter_metric_sources(payload))
+    if isinstance(metadata, dict):
+        sources.extend(_iter_metric_sources(metadata))
+    text = " ".join(
+        str(event.get(key) or "")
+        for key in ("title", "summary", "executive_summary")
+    )
+    metrics: dict[str, object] = {}
+    for metric_name, aliases in SOMBRA_SCAN_METRIC_ALIASES.items():
+        parsed = _metric_from_dict(sources, aliases)
+        if parsed is None:
+            parsed = _metric_from_text(text, aliases)
+        if parsed is not None:
+            metrics[metric_name] = parsed
+    program_names = _metric_list_from_sources(
+        sources,
+        (
+            "program_names",
+            "programs",
+            "paid_programs",
+            "bug_bounty_programs",
+            "programs_analyzed_details",
+        ),
+    )
+    if program_names:
+        metrics["program_names"] = program_names
+        metrics.setdefault("programs_analyzed", len(program_names))
+    local_signals = _metric_list_from_sources(
+        sources,
+        (
+            "local_signals",
+            "signals",
+            "signals_loaded",
+            "signal_examples",
+            "local_signal_examples",
+        ),
+    )
+    if local_signals:
+        metrics["local_signals"] = local_signals
+        metrics.setdefault("local_signal_count", len(local_signals))
+    scope_matches = _metric_list_from_sources(
+        sources,
+        (
+            "scope_signal_matches",
+            "matches",
+            "matches_found",
+            "confirmed_matches",
+            "matched_assets",
+        ),
+    )
+    if scope_matches:
+        metrics["scope_matches"] = scope_matches
+        metrics.setdefault("matches", len(scope_matches))
+    reportable_items = _metric_list_from_sources(
+        sources,
+        (
+            "reportable_items",
+            "reportable_findings",
+            "reportable_opportunities",
+            "opportunities",
+        ),
+    )
+    if reportable_items:
+        metrics["reportable_items"] = reportable_items
+        metrics.setdefault("reportable_opportunities", len(reportable_items))
+    next_step = _metric_text_from_sources(
+        sources,
+        (
+            "next_step",
+            "recommended_next_step",
+            "recommendation",
+            "recommended_action",
+            "siguiente_paso",
+        ),
+    )
+    if next_step:
+        metrics["next_step"] = next_step
+    pdf_path = _extract_pdf_path(event)
+    if pdf_path:
+        metrics["pdf_path"] = pdf_path
+    return metrics
+
+
+def _metric_copy(metrics: dict[str, object], key: str) -> str:
+    value = metrics.get(key)
+    return str(value) if isinstance(value, int) else "no informado"
+
+
+def _metric_list_copy(metrics: dict[str, object], key: str, empty: str) -> str:
+    value = metrics.get(key)
+    if not isinstance(value, list) or not value:
+        return empty
+    return ", ".join(str(item) for item in value[:6])
+
+
+def select_sombra_context_event(events: list[dict[str, object]]) -> dict[str, object] | None:
+    if not events:
+        return None
+    meaningful = [
+        event
+        for event in events
+        if str(event.get("type") or "").lower() != "heartbeat"
+    ]
+    reports = [
+        event
+        for event in meaningful
+        if str(event.get("type") or "").lower() in {"scan_report", "order_result", "briefing", "lead_signal"}
+    ]
+    if reports:
+        return reports[0]
+    priority = [
+        event
+        for event in meaningful
+        if str(event.get("severity") or "").lower() in {"critical", "high"}
+    ]
+    if priority:
+        return priority[0]
+    if meaningful:
+        return meaningful[0]
+    return events[0]
+
+
+def build_sombra_context_reply(events: list[dict[str, object]]) -> tuple[str, dict[str, object]]:
+    selected = select_sombra_context_event(events)
+    context = {
+        "used_sombra_context": bool(events),
+        "sombra_events_used": len(events),
+        "sombra_latest_event_at": selected.get("received_at") if selected else None,
+        "sombra_latest_message_id": selected.get("message_id") if selected else None,
+    }
+    if selected is None:
+        return (
+            "Daniel, el inbox interno de CEREBRO esta preparado. "
+            "Todavia no hay eventos reales de SOMBRA registrados en PostgreSQL para responder con contexto. "
+            "No consulte el servidor externo de SOMBRA.",
+            context,
+        )
+
+    latest = selected
+    metrics = extract_sombra_scan_metrics(latest)
+    context["sombra_latest_metrics"] = metrics
+    reportable = metrics.get("reportable_opportunities")
+    reportable_count = reportable if isinstance(reportable, int) else None
+    money_line = (
+        "Hay oportunidades reportables para revision manual; todavia no lo presento como dinero reclamado hasta confirmar evidencia y scope."
+        if reportable_count and reportable_count > 0
+        else "No hay plata reclamable todavia: el ultimo evento no registra oportunidades reportables confirmadas."
+    )
+    if metrics:
+        programs_line = _metric_list_copy(metrics, "program_names", "no informado")
+        signals_line = _metric_list_copy(metrics, "local_signals", "no informado")
+        matches_line = _metric_list_copy(metrics, "scope_matches", "sin coincidencias confirmadas")
+        reportables_line = _metric_list_copy(metrics, "reportable_items", "sin items reportables confirmados")
+        next_step = str(
+            metrics.get("next_step")
+            or "Cruzar las senales con el scope autorizado y confirmar evidencia antes de reclamar."
+        )
+        reply = (
+            "Daniel, revise el ultimo evento real recibido de SOMBRA en el inbox interno de CEREBRO. "
+            f"Evento: {latest.get('title') or 'sin titulo'}; tipo={latest.get('type')}; severidad={latest.get('severity')}; "
+            f"message_id={latest.get('message_id')}; recibido={latest.get('received_at')}. "
+            f"Programas analizados: {_metric_copy(metrics, 'programs_analyzed')}. "
+            f"Programas detectados: {programs_line}. "
+            f"Senales detectadas: {_metric_copy(metrics, 'local_signal_count')}. "
+            f"Senales principales: {signals_line}. "
+            f"Coincidencias: {_metric_copy(metrics, 'matches')}. "
+            f"Matches: {matches_line}. "
+            f"Oportunidades reportables: {_metric_copy(metrics, 'reportable_opportunities')}. "
+            f"Items reportables: {reportables_line}. "
+            f"{money_line} "
+            f"Siguiente paso: {next_step}. "
+            "Esto sale de eventos ya recibidos; no consulté runtime externo ni expuse payload sensible."
+        )
+        if metrics.get("pdf_path"):
+            reply += f" PDF registrado: {metrics['pdf_path']}."
+        return reply, context
+
+    summary = latest.get("executive_summary") or latest.get("summary") or "sin resumen disponible"
+    return (
+        "Daniel, revise el inbox interno de SOMBRA usando eventos reales recibidos, pero el ultimo evento "
+        "no trae metricas de scan parseables. "
+        f"Evento: {latest.get('title') or 'sin titulo'}; message_id={latest.get('message_id')}; "
+        f"recibido={latest.get('received_at')}. Resumen: {summary}. "
+        "No invento conteos ni oportunidades; se requiere que SOMBRA envie metricas explicitas en el payload "
+        "o summary para hablar de programas, senales, coincidencias y dinero reclamable.",
+        context,
+    )
+
+
+def cerebro_conversation_owner_id(actor: AuthenticatedUser) -> str:
+    return str(actor.id or actor.email or actor.name or "unknown")
+
+
+def _message_count_for_conversation(connection, conversation_id: str) -> int:
+    placeholder = sql_placeholder()
+    row = connection.execute(
+        f"SELECT COUNT(*) AS message_count FROM {CEREBRO_MESSAGES_TABLE} WHERE conversation_id = {placeholder}",
+        (conversation_id,),
+    ).fetchone()
+    return int(get_row_value(row, "message_count", index=0, default=0) or 0)
+
+
+def _latest_message_for_conversation(connection, conversation_id: str) -> str | None:
+    placeholder = sql_placeholder()
+    row = connection.execute(
+        f"""
+        SELECT content
+        FROM {CEREBRO_MESSAGES_TABLE}
+        WHERE conversation_id = {placeholder}
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        (conversation_id,),
+    ).fetchone()
+    content = get_row_value(row, "content", default=None)
+    return str(content) if content else None
+
+
+def _row_to_conversation_summary(row: object, connection=None) -> CerebroConversationSummary:
+    metadata = _json_load(get_row_value(row, "metadata_json", default="{}"), {})
+    conversation_id = str(get_row_value(row, "id"))
+    message_count = int(get_row_value(row, "message_count", default=-1) or -1)
+    latest_message = get_row_value(row, "latest_message", default=None)
+    if connection is not None:
+        if message_count < 0:
+            message_count = _message_count_for_conversation(connection, conversation_id)
+        if latest_message is None:
+            latest_message = _latest_message_for_conversation(connection, conversation_id)
+    if message_count < 0:
+        message_count = 0
+    return CerebroConversationSummary(
+        id=conversation_id,
+        owner=str(get_row_value(row, "owner")),
+        title=str(get_row_value(row, "title")),
+        context=str(get_row_value(row, "context")),
+        message_count=message_count,
+        latest_message=str(latest_message) if latest_message else None,
+        created_at=str(get_row_value(row, "created_at")),
+        updated_at=str(get_row_value(row, "updated_at")),
+        metadata=metadata if isinstance(metadata, dict) else {},
+    )
+
+
+def _row_to_conversation_message(row: object) -> CerebroConversationMessage:
+    metadata = _json_load(get_row_value(row, "metadata_json", default="{}"), {})
+    return CerebroConversationMessage(
+        id=str(get_row_value(row, "id")),
+        conversation_id=str(get_row_value(row, "conversation_id")),
+        role=get_row_value(row, "role"),
+        content=str(get_row_value(row, "content")),
+        source=str(get_row_value(row, "source")),
+        metadata=metadata if isinstance(metadata, dict) else {},
+        created_at=str(get_row_value(row, "created_at")),
+    )
+
+
+def ensure_cerebro_conversation(
+    request: CerebroChatRequest,
+    actor: AuthenticatedUser,
+    message: str,
+) -> CerebroConversationSummary:
+    ensure_cerebro_schema()
+    placeholder = sql_placeholder()
+    owner_id = cerebro_conversation_owner_id(actor)
+    with connect() as connection:
+        if request.conversation_id:
+            row = connection.execute(
+                f"SELECT * FROM {CEREBRO_CONVERSATIONS_TABLE} WHERE id = {placeholder}",
+                (request.conversation_id,),
+            ).fetchone()
+            if row is None or get_row_value(row, "owner_id") != owner_id:
+                raise CerebroError(
+                    status_code=404,
+                    detail={"error": "cerebro_conversation_not_found", "conversation_id": request.conversation_id},
+                )
+            return _row_to_conversation_summary(row, connection)
+
+        now = utc_now()
+        conversation_id = f"cerebro-conv-{uuid4()}"
+        metadata = sanitize_metadata(
+            {
+                "created_from": "cerebro_chat",
+                "office": request.office,
+                "priority": request.priority,
+                "app_context": request.app_context,
+                "external_connection_enabled": False,
+                "runtime_connected": False,
+            }
+        )
+        connection.execute(
+            f"""
+            INSERT INTO {CEREBRO_CONVERSATIONS_TABLE} (
+                id, owner_id, owner, title, context, metadata_json, created_at, updated_at
+            )
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+            """,
+            (
+                conversation_id,
+                owner_id,
+                actor_name(actor),
+                cerebro_chat_title(message, "Conversacion con CEREBRO"),
+                request.context,
+                _json_dump(metadata),
+                now,
+                now,
+            ),
+        )
+        connection.commit()
+        row = connection.execute(
+            f"SELECT * FROM {CEREBRO_CONVERSATIONS_TABLE} WHERE id = {placeholder}",
+            (conversation_id,),
+        ).fetchone()
+    return _row_to_conversation_summary(row)
+
+
+def store_cerebro_message(
+    conversation_id: str,
+    role: str,
+    content: str,
+    *,
+    source: str = "cerebro_chat",
+    metadata: dict[str, object] | None = None,
+) -> CerebroConversationMessage:
+    ensure_cerebro_schema()
+    placeholder = sql_placeholder()
+    now = utc_now()
+    message_id = f"cerebro-msg-{uuid4()}"
+    safe_metadata = sanitize_metadata(metadata or {})
+    with connect() as connection:
+        connection.execute(
+            f"""
+            INSERT INTO {CEREBRO_MESSAGES_TABLE} (
+                id, conversation_id, role, content, source, metadata_json, created_at
+            )
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+            """,
+            (
+                message_id,
+                conversation_id,
+                role,
+                content,
+                source,
+                _json_dump(safe_metadata),
+                now,
+            ),
+        )
+        connection.execute(
+            f"""
+            UPDATE {CEREBRO_CONVERSATIONS_TABLE}
+            SET updated_at = {placeholder}
+            WHERE id = {placeholder}
+            """,
+            (now, conversation_id),
+        )
+        connection.commit()
+        row = connection.execute(
+            f"SELECT * FROM {CEREBRO_MESSAGES_TABLE} WHERE id = {placeholder}",
+            (message_id,),
+        ).fetchone()
+    return _row_to_conversation_message(row)
+
+
+def list_cerebro_conversations(
+    actor: AuthenticatedUser,
+    *,
+    limit: int = 20,
+) -> list[CerebroConversationSummary]:
+    ensure_cerebro_schema()
+    safe_limit = max(1, min(int(limit or 20), 100))
+    placeholder = sql_placeholder()
+    owner_id = cerebro_conversation_owner_id(actor)
+    with connect() as connection:
+        rows = connection.execute(
+            f"""
+            SELECT *
+            FROM {CEREBRO_CONVERSATIONS_TABLE}
+            WHERE owner_id = {placeholder}
+            ORDER BY updated_at DESC
+            LIMIT {safe_limit}
+            """,
+            (owner_id,),
+        ).fetchall()
+        return [_row_to_conversation_summary(row, connection) for row in rows]
+
+
+def get_cerebro_conversation(
+    conversation_id: str,
+    actor: AuthenticatedUser,
+) -> CerebroConversationDetail:
+    ensure_cerebro_schema()
+    placeholder = sql_placeholder()
+    owner_id = cerebro_conversation_owner_id(actor)
+    with connect() as connection:
+        row = connection.execute(
+            f"SELECT * FROM {CEREBRO_CONVERSATIONS_TABLE} WHERE id = {placeholder}",
+            (conversation_id,),
+        ).fetchone()
+        if row is None or get_row_value(row, "owner_id") != owner_id:
+            raise CerebroError(
+                status_code=404,
+                detail={"error": "cerebro_conversation_not_found", "conversation_id": conversation_id},
+            )
+        messages = connection.execute(
+            f"""
+            SELECT *
+            FROM {CEREBRO_MESSAGES_TABLE}
+            WHERE conversation_id = {placeholder}
+            ORDER BY created_at ASC
+            """,
+            (conversation_id,),
+        ).fetchall()
+        summary = _row_to_conversation_summary(row, connection)
+    return CerebroConversationDetail(
+        **summary.model_dump(),
+        messages=[_row_to_conversation_message(message) for message in messages],
+    )
 
 
 def create_cerebro_commercial_draft(
@@ -2170,7 +2850,7 @@ def cerebro_chat_title(message: str, fallback: str) -> str:
 def cerebro_chat_intent(request: CerebroChatRequest) -> str:
     if request.action != "auto":
         return request.action
-    message = str(request.message or "").lower()
+    message = _normalized_metric_text(request.message)
     office = normalize_destination(request.office)
     if office == "centinela":
         return "centinela"
@@ -2189,6 +2869,17 @@ def cerebro_chat_intent(request: CerebroChatRequest) -> str:
             "resume briefing",
             "briefing",
             "sombra",
+            "ultimo reporte",
+            "ultimo escaneo",
+            "bug bounty",
+            "recompensa",
+            "oportunidades",
+            "plata",
+            "reclamar",
+            "que encontro",
+            "reporte de sombra",
+            "hay plata",
+            "oportunidad reportable",
         )
     ):
         return "sombra_inbox"
@@ -2243,7 +2934,29 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
     ensure_cerebro_schema()
     intent = cerebro_chat_intent(request)
     message = " ".join(request.message.split())
+    conversation = ensure_cerebro_conversation(request, actor, message)
+    user_message = store_cerebro_message(
+        conversation.id,
+        "user",
+        message,
+        metadata={
+            "intent_detected": intent,
+            "request_context": request.context,
+            "office": request.office,
+            "priority": request.priority,
+            "app_context": request.app_context,
+            "external_connection_enabled": False,
+            "runtime_connected": False,
+        },
+    )
     actions: list[CerebroChatAction] = []
+    used_context: dict[str, object] = {
+        "intent_detected": intent,
+        "used_sombra_context": False,
+        "sombra_events_used": 0,
+        "external_connection_enabled": False,
+        "runtime_connected": False,
+    }
 
     if intent == "mission":
         mission = create_mission(
@@ -2341,25 +3054,30 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
             "No menciona fuentes, no contiene secretos, no publica automaticamente y queda pendiente de aprobacion CEO."
         )
     elif intent == "sombra_inbox":
-        recent = list_sombra_inbox_messages(limit=5)
-        if recent:
-            latest = recent[0]
+        sombra_events = list_sombra_inbox_context(limit=5)
+        reply, sombra_context = build_sombra_context_reply(sombra_events)
+        used_context.update(sombra_context)
+        if sombra_events:
+            latest = sombra_events[0]
+            metrics = extract_sombra_scan_metrics(latest)
+            metrics_detail = (
+                "programas={programs} senales={signals} coincidencias={matches} reportables={reportable}".format(
+                    programs=metrics.get("programs_analyzed", "no informado"),
+                    signals=metrics.get("local_signal_count", "no informado"),
+                    matches=metrics.get("matches", "no informado"),
+                    reportable=metrics.get("reportable_opportunities", "no informado"),
+                )
+                if metrics
+                else "Evento real recibido, sin metricas parseables."
+            )
             actions.append(
                 CerebroChatAction(
                     type="sombra_inbox_reviewed",
                     status="prepared",
-                    id=latest.message_id,
-                    label=latest.title,
-                    detail=f"{len(recent)} mensajes recientes sanitizados; payload sensible no expuesto.",
+                    id=str(latest.get("message_id") or "sombra-inbox-event"),
+                    label=str(latest.get("title") or "Inbox SOMBRA de CEREBRO"),
+                    detail=f"{len(sombra_events)} eventos reales revisados; {metrics_detail} Payload sensible no expuesto.",
                 )
-            )
-            reply = (
-                "Daniel, recibi la inteligencia entrante en el inbox interno de CEREBRO. "
-                f"La ultima senal esta clasificada como {latest.type.value}/{latest.severity.value}. "
-                f"Codigo CEO pendiente: {latest.ceo_code or 'sin codigo inmediato'}. "
-                f"Resumen ejecutivo: {latest.executive_summary or latest.summary}. "
-                "CENTINELA puede convertirla en diagnostico de riesgo, FORJA queda preparada si requiere soporte tecnico "
-                "y PLUMA/MARKETING solo trabaja borradores sanitizados sin revelar fuente ni datos sensibles."
             )
         else:
             actions.append(
@@ -2370,10 +3088,6 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
                     label="Inbox SOMBRA de CEREBRO",
                     detail="No hay mensajes internos recientes.",
                 )
-            )
-            reply = (
-                "Daniel, el inbox interno de CEREBRO esta preparado. "
-                "Todavia no hay inteligencia entrante registrada y no consulte el servidor externo de SOMBRA."
             )
     else:
         actions.append(
@@ -2392,22 +3106,41 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
 
     state = cerebro_chat_state()
     provider = "internal"
-    llm_reply = generate_cerebro_reply(
-        message=message,
-        intent=intent,
-        actions=[action.model_dump() for action in actions],
-        state=state.model_dump(),
+    if intent != "sombra_inbox":
+        llm_reply = generate_cerebro_reply(
+            message=message,
+            intent=intent,
+            actions=[action.model_dump() for action in actions],
+            state=state.model_dump(),
+        )
+        if llm_reply:
+            reply = llm_reply
+            provider = "anthropic"
+
+    assistant_message = store_cerebro_message(
+        conversation.id,
+        "assistant",
+        reply,
+        metadata={
+            **used_context,
+            "provider": provider,
+            "actions": [action.model_dump() for action in actions],
+            "state": state.model_dump(),
+        },
     )
-    if llm_reply:
-        reply = llm_reply
-        provider = "anthropic"
 
     return CerebroChatResponse(
         ok=True,
+        conversation_id=conversation.id,
+        message_id=user_message.id,
+        assistant_message_id=assistant_message.id,
         reply=reply,
+        response=reply,
         actions=actions,
         state=state,
         provider=provider,
+        used_context=used_context,
+        created_at=assistant_message.created_at,
     )
 
 

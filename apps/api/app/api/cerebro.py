@@ -15,6 +15,8 @@ from app.schemas.cerebro import (
     CerebroCommercialDraftCreate,
     CerebroCompanyGoal,
     CerebroCompanyGoalCreate,
+    CerebroConversationDetail,
+    CerebroConversationSummary,
     CerebroDailyBrief,
     CerebroDecision,
     CerebroDecisionCreate,
@@ -52,7 +54,9 @@ from app.services.cerebro import (
     dispatch_mission,
     get_cerebro_status,
     get_chief_of_staff_status,
+    get_cerebro_conversation,
     get_mission,
+    list_cerebro_conversations,
     list_sombra_inbox_messages,
     list_alerts,
     list_approval_requests,
@@ -169,6 +173,27 @@ def write_cerebro_chat(
 ) -> CerebroChatResponse:
     require_cerebro_write(current_user)
     return run_cerebro_chat(request, current_user)
+
+
+@router.get("/conversations", response_model=list[CerebroConversationSummary])
+def read_cerebro_conversations(
+    limit: int = 20,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> list[CerebroConversationSummary]:
+    require_cerebro_read(current_user)
+    return list_cerebro_conversations(current_user, limit=limit)
+
+
+@router.get("/conversations/{conversation_id}", response_model=CerebroConversationDetail)
+def read_cerebro_conversation(
+    conversation_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> CerebroConversationDetail:
+    require_cerebro_read(current_user)
+    try:
+        return get_cerebro_conversation(conversation_id, current_user)
+    except CerebroError as error:
+        raise_cerebro_error(error)
 
 
 @router.post("/commercial-draft", response_model=CerebroCommercialDraft)
