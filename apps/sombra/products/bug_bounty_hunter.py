@@ -9,11 +9,14 @@ import json
 import os
 from pathlib import Path
 import re
+import socket
 import sqlite3
+import ssl
 import time
 from typing import Any
+import uuid
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
 from reportlab.lib import colors
@@ -22,6 +25,27 @@ from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+
+def _load_local_env() -> None:
+    env_path = Path.cwd() / ".env"
+    if not env_path.exists():
+        return
+
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if key.startswith("export "):
+            key = key.removeprefix("export ").strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_local_env()
 
 
 HACKERONE_PUBLIC_PROGRAMS_URL = "https://hackerone.com/programs.json"
@@ -37,7 +61,14 @@ CEREBRO_TOKEN = os.getenv(
     "SOMBRA_CEREBRO_TOKEN",
     "kmbIwNC6lSVsXRhFdPtacfODGuW8YQH1JUgAn05zTi4EyvMjeZ3qLx79pKB2or",
 )
-CEREBRO_REPORT_TYPE = "bug_bounty_report"
+CEREBRO_REPORT_TYPE = os.getenv("SOMBRA_CEREBRO_REPORT_TYPE", "scan_report")
+CEREBRO_SOURCE = os.getenv("SOMBRA_CEREBRO_SOURCE", "sombra")
+CEREBRO_SEVERITY = os.getenv("SOMBRA_CEREBRO_SEVERITY", "medium")
+CEREBRO_AUDIENCE = [
+    item.strip()
+    for item in os.getenv("SOMBRA_CEREBRO_AUDIENCE", "centinela").split(",")
+    if item.strip()
+]
 
 DEFAULT_CENTINELA_ROOT = Path(os.getenv("CENTINELA_ROOT", r"C:\Users\admin\Documents\CENTINELA"))
 DEFAULT_OUTPUT_DIR = DEFAULT_CENTINELA_ROOT / "reportes" / "bugbounty"
@@ -46,6 +77,55 @@ DEFAULT_STATE_PATH = DEFAULT_CENTINELA_ROOT / "operaciones" / "bug_bounty_hunter
 USER_AGENT = os.getenv("SOMBRA_BUGBOUNTY_USER_AGENT", "Centinela-BugBountyHunter/1.0")
 MAX_BUGCROWD_PAGES = int(os.getenv("SOMBRA_BUGBOUNTY_MAX_BUGCROWD_PAGES", "20"))
 MAX_DETAIL_PROGRAMS = int(os.getenv("SOMBRA_BUGBOUNTY_MAX_DETAIL_PROGRAMS", "30"))
+DEFAULT_SCOPE_DOMAINS = tuple(
+    item.strip().lower()
+    for item in os.getenv(
+        "SOMBRA_BUGBOUNTY_SCOPE_DOMAINS",
+        "bitso.com,hostgator.com.mx,nubank.com.br,quintoandar.com",
+    ).split(",")
+    if item.strip()
+)
+MAX_PASSIVE_SUBDOMAINS = int(os.getenv("SOMBRA_BUGBOUNTY_MAX_PASSIVE_SUBDOMAINS", "50"))
+MAX_PASSIVE_HTTP_CHECKS = int(os.getenv("SOMBRA_BUGBOUNTY_MAX_PASSIVE_HTTP_CHECKS", "8"))
+PASSIVE_TIMEOUT_SECONDS = int(os.getenv("SOMBRA_BUGBOUNTY_PASSIVE_TIMEOUT_SECONDS", "6"))
+CRT_SH_URL = "https://crt.sh/?q=%25.{domain}&output=json"
+
+SECURITY_HEADERS = {
+    "strict-transport-security": "HSTS",
+    "content-security-policy": "CSP",
+    "x-frame-options": "X-Frame-Options",
+    "x-content-type-options": "X-Content-Type-Options",
+    "referrer-policy": "Referrer-Policy",
+    "permissions-policy": "Permissions-Policy",
+}
+SENSITIVE_SUBDOMAIN_TERMS = {
+    "admin",
+    "auth",
+    "beta",
+    "dev",
+    "grafana",
+    "internal",
+    "jira",
+    "jenkins",
+    "login",
+    "panel",
+    "portal",
+    "preprod",
+    "staging",
+    "test",
+    "vpn",
+}
+POC_TERMS = {
+    "proof of concept",
+    "poc",
+    "exploit-db",
+    "metasploit",
+    "nuclei",
+    "reproduce",
+    "reproduction",
+    "curl ",
+    "http request",
+}
 
 LATAM_PATTERN = re.compile(
     r"\b("
@@ -165,6 +245,9 @@ class BugBountyHunter:
         timeout_seconds: int = 30,
         max_bugcrowd_pages: int = MAX_BUGCROWD_PAGES,
         max_detail_programs: int = MAX_DETAIL_PROGRAMS,
+        scope_domains: list[str] | tuple[str, ...] | None = None,
+        max_passive_subdomains: int = MAX_PASSIVE_SUBDOMAINS,
+        max_passive_http_checks: int = MAX_PASSIVE_HTTP_CHECKS,
     ) -> None:
         self.centinela_root = Path(centinela_root)
         self.output_dir = Path(output_dir) if output_dir else self.centinela_root / "reportes" / "bugbounty"
@@ -173,21 +256,43 @@ class BugBountyHunter:
         self.timeout_seconds = timeout_seconds
         self.max_bugcrowd_pages = max_bugcrowd_pages
         self.max_detail_programs = max_detail_programs
+        self.scope_domains = [
+            domain
+            for domain in (self._clean_domain(item) for item in (scope_domains or DEFAULT_SCOPE_DOMAINS))
+            if domain
+        ]
+        self.max_passive_subdomains = max_passive_subdomains
+        self.max_passive_http_checks = max_passive_http_checks
         self.fetch_attempts: list[FetchAttempt] = []
 
     def run_once(self, today: datetime | None = None) -> dict[str, Any]:
         now = today or datetime.now(UTC)
         self.fetch_attempts = []
         programs = self.fetch_active_programs()
-        signals = self.load_known_vulnerability_signals(now=now)
+        local_signals = self.load_known_vulnerability_signals(now=now)
+        scope_signal_matches = self.analyze_scope_signals(local_signals)
+        passive_scope_signals = self.scan_scope_domains()
+        signals = self._dedupe_signals([*local_signals, *passive_scope_signals])
         matches = self.match_with_known_vulnerabilities(programs, signals)
         findings = self.identify_reportable_findings(matches)
-        pdf_path = self.generate_opportunity_report(programs, signals, matches, findings, now=now)
+        pdf_path = self.generate_opportunity_report(
+            programs,
+            signals,
+            matches,
+            findings,
+            passive_scope_signals=passive_scope_signals,
+            scope_signal_matches=scope_signal_matches,
+            now=now,
+        )
         self._save_state(programs, signals, matches, findings, pdf_path, now)
         result = {
+            "message_id": self._new_message_id(now),
             "generated_at": self._iso(now),
             "programs_fetched": len(programs),
             "signals_loaded": len(signals),
+            "local_signals_loaded": len(local_signals),
+            "scope_signal_matches": scope_signal_matches,
+            "passive_scope_findings": [asdict(item) for item in passive_scope_signals],
             "matches_found": len(matches),
             "reportable_findings": len(findings),
             "immediate_opportunities": [asdict(item) for item in findings],
@@ -199,8 +304,14 @@ class BugBountyHunter:
 
     def send_result_to_cerebro(self, scan_result: dict[str, Any]) -> dict[str, Any]:
         payload = {
+            "message_id": scan_result.get("message_id") or self._new_message_id(datetime.now(UTC)),
+            "source": CEREBRO_SOURCE,
             "type": CEREBRO_REPORT_TYPE,
-            "summary": scan_result,
+            "severity": CEREBRO_SEVERITY,
+            "title": "Bug bounty hunter scan report",
+            "created_at": scan_result.get("generated_at") or self._iso(datetime.now(UTC)),
+            "audience": CEREBRO_AUDIENCE,
+            "summary": self._cerebro_summary(scan_result),
         }
         request = Request(
             CEREBRO_INBOX_URL,
@@ -295,8 +406,12 @@ class BugBountyHunter:
         signals: list[VulnerabilitySignal],
         matches: list[ProgramMatch],
         findings: list[ReportableFinding],
+        passive_scope_signals: list[VulnerabilitySignal] | None = None,
+        scope_signal_matches: list[dict[str, Any]] | None = None,
         now: datetime | None = None,
     ) -> Path:
+        passive_scope_signals = passive_scope_signals or []
+        scope_signal_matches = scope_signal_matches or []
         report_date = (now or datetime.now(UTC)).date().isoformat()
         pdf_path = self.output_dir / f"opportunities_{report_date}.pdf"
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -321,7 +436,9 @@ class BugBountyHunter:
 
         summary_rows = [
             ["Paid LATAM web programs", str(len(programs))],
-            ["Local vulnerability signals", str(len(signals))],
+            ["Total vulnerability signals", str(len(signals))],
+            ["Scoped local signal matches", str(len(scope_signal_matches))],
+            ["Passive scoped findings", str(len(passive_scope_signals))],
             ["Potential matches", str(len(matches))],
             ["Immediate reportable opportunities", str(len(findings))],
         ]
@@ -354,6 +471,38 @@ class BugBountyHunter:
                 )
             )
             story.append(Spacer(1, 10))
+
+        story.append(Paragraph("Scoped Domain Signal Analysis", styles["section"]))
+        if scope_signal_matches:
+            for item in scope_signal_matches[:12]:
+                rows = [
+                    ["Domains", ", ".join(item.get("scope_domains", []))],
+                    ["Signal", str(item.get("title") or "")],
+                    ["Severity", str(item.get("severity") or "")],
+                    ["PoC status", str(item.get("poc_status") or "")],
+                    ["Reportable", "yes" if item.get("reportable") else "no"],
+                ]
+                story.append(self._detail_table(rows))
+                story.append(Spacer(1, 7))
+        else:
+            story.append(Paragraph("No recent local Sombra signal overlapped the configured scoped domains.", styles["body"]))
+        story.append(Spacer(1, 8))
+
+        story.append(Paragraph("Passive Scoped Surface Findings", styles["section"]))
+        if passive_scope_signals:
+            for signal in passive_scope_signals[:16]:
+                rows = [
+                    ["Domain", signal.domain or ""],
+                    ["Finding", signal.title],
+                    ["Severity", self._normalize_severity(signal.severity)],
+                    ["Indicators", ", ".join(signal.indicators[:10])],
+                    ["Evidence", signal.evidence],
+                ]
+                story.append(self._detail_table(rows))
+                story.append(Spacer(1, 7))
+        else:
+            story.append(Paragraph("No passive scoped findings were produced in this run.", styles["body"]))
+        story.append(Spacer(1, 8))
 
         story.append(Paragraph("Active LATAM Paid Web Programs", styles["section"]))
         if programs:
@@ -401,15 +550,323 @@ class BugBountyHunter:
         signals.extend(self._signals_from_local_reports(cutoff))
         return self._dedupe_signals(signals)
 
+    def analyze_scope_signals(self, signals: list[VulnerabilitySignal]) -> list[dict[str, Any]]:
+        matches: list[dict[str, Any]] = []
+        for signal in signals:
+            scope_domains = self._signal_scope_domains(signal)
+            if not scope_domains:
+                continue
+            poc_status, has_valid_poc = self._assess_signal_poc(signal)
+            severity = self._normalize_severity(signal.severity)
+            matches.append(
+                {
+                    "scope_domains": scope_domains,
+                    "title": signal.title,
+                    "severity": severity,
+                    "signal_type": signal.signal_type,
+                    "source": signal.source,
+                    "published_at": signal.published_at,
+                    "domain": signal.domain,
+                    "indicators": signal.indicators[:20],
+                    "poc_status": poc_status,
+                    "has_valid_poc": has_valid_poc,
+                    "reportable": has_valid_poc and severity in {"HIGH", "CRITICAL"},
+                    "evidence": signal.evidence,
+                }
+            )
+        return sorted(matches, key=lambda item: (item["reportable"], item["severity"]), reverse=True)
+
+    def scan_scope_domains(self) -> list[VulnerabilitySignal]:
+        signals: list[VulnerabilitySignal] = []
+        for domain in self.scope_domains:
+            subdomains = self._fetch_ct_subdomains(domain)
+            sensitive_subdomains = [host for host in subdomains if self._looks_sensitive_subdomain(host)]
+            if sensitive_subdomains:
+                signals.append(
+                    VulnerabilitySignal(
+                        source="Passive CT subdomain inventory",
+                        signal_type="exposed_subdomain",
+                        title=f"Potentially sensitive subdomains exposed for {domain}",
+                        severity="LOW",
+                        domain=domain,
+                        indicators=sensitive_subdomains[:20],
+                        evidence=(
+                            f"Certificate transparency exposed {len(sensitive_subdomains)} sensitive-looking "
+                            f"hostname(s): {', '.join(sensitive_subdomains[:12])}"
+                        ),
+                        confidence=0.55,
+                    )
+                )
+
+            for host in self._select_passive_hosts(domain, subdomains):
+                header_signal = self._security_header_signal(domain, host)
+                if header_signal:
+                    signals.append(header_signal)
+                tls_signal = self._tls_certificate_signal(domain, host)
+                if tls_signal:
+                    signals.append(tls_signal)
+        return self._dedupe_signals(signals)
+
+    def _signal_scope_domains(self, signal: VulnerabilitySignal) -> list[str]:
+        hits: list[str] = []
+        signal_text = " ".join(
+            [
+                signal.title,
+                signal.evidence,
+                signal.domain or "",
+                " ".join(signal.indicators),
+                " ".join(signal.component_terms),
+            ]
+        ).lower()
+        for domain in self.scope_domains:
+            candidates = {domain}
+            if signal.domain and self._domain_matches_any(signal.domain, candidates):
+                hits.append(domain)
+                continue
+            indicator_hit = False
+            for indicator in signal.indicators:
+                clean = self._clean_domain(str(indicator))
+                if clean and self._domain_matches_any(clean, candidates):
+                    hits.append(domain)
+                    indicator_hit = True
+                    break
+            if indicator_hit:
+                continue
+            if domain in signal_text:
+                hits.append(domain)
+        return hits
+
+    def _assess_signal_poc(self, signal: VulnerabilitySignal) -> tuple[str, bool]:
+        evidence_text = " ".join(
+            [
+                signal.title,
+                signal.evidence,
+                signal.reference or "",
+                " ".join(signal.indicators),
+            ]
+        ).lower()
+        if any(term in evidence_text for term in POC_TERMS):
+            return "PoC indicator present in local evidence; manual reproduction required", True
+        if signal.signal_type in {"exposed_service", "scan", "leakradar"} and signal.domain:
+            return "domain-specific passive evidence present; validate manually before reporting", True
+        return "No valid PoC or reproducible evidence in local signal", False
+
+    def _fetch_ct_subdomains(self, domain: str) -> list[str]:
+        url = CRT_SH_URL.format(domain=domain)
+        payload = self._fetch_json(
+            url,
+            source=f"Certificate transparency {domain}",
+            timeout_seconds=min(self.timeout_seconds, PASSIVE_TIMEOUT_SECONDS),
+        )
+        if not isinstance(payload, list):
+            return []
+        hosts: list[str] = []
+        for item in payload[: self.max_passive_subdomains * 8]:
+            if not isinstance(item, dict):
+                continue
+            name_value = str(item.get("name_value") or item.get("common_name") or "")
+            for raw_host in name_value.splitlines():
+                clean = self._clean_domain(raw_host.replace("*.", ""))
+                if clean and self._domain_matches_any(clean, {domain}):
+                    hosts.append(clean)
+        return list(dict.fromkeys(hosts))[: self.max_passive_subdomains]
+
+    def _select_passive_hosts(self, domain: str, subdomains: list[str]) -> list[str]:
+        preferred = [
+            domain,
+            f"www.{domain}",
+            f"api.{domain}",
+            f"app.{domain}",
+            f"auth.{domain}",
+            f"login.{domain}",
+            f"portal.{domain}",
+            f"admin.{domain}",
+        ]
+        candidates = list(dict.fromkeys([*preferred, *subdomains]))
+
+        def score(host: str) -> tuple[int, int, str]:
+            if host == domain:
+                return (0, len(host), host)
+            label = host.removesuffix(f".{domain}").split(".")[0]
+            if label in {"www", "api", "app", "auth", "login", "portal"}:
+                return (1, len(host), host)
+            if self._looks_sensitive_subdomain(host):
+                return (2, len(host), host)
+            return (3, len(host), host)
+
+        scoped = [host for host in candidates if self._domain_matches_any(host, {domain})]
+        return sorted(scoped, key=score)[: self.max_passive_http_checks]
+
+    def _looks_sensitive_subdomain(self, host: str) -> bool:
+        labels = set(re.split(r"[-.]", host.lower()))
+        return bool(labels & SENSITIVE_SUBDOMAIN_TERMS)
+
+    def _security_header_signal(self, scope_domain: str, host: str) -> VulnerabilitySignal | None:
+        headers, status, final_url = self._fetch_response_headers(host)
+        if not headers:
+            return None
+        final_host = self._clean_domain(urlparse(final_url).netloc or host)
+        if final_host and not self._domain_matches_any(final_host, {scope_domain}):
+            return None
+        issues = self._header_issues(headers)
+        if not issues:
+            return None
+        severity = "MEDIUM" if any(issue.startswith("missing HSTS") or issue.startswith("weak HSTS") for issue in issues) else "LOW"
+        if len(issues) >= 4:
+            severity = "MEDIUM"
+        return VulnerabilitySignal(
+            source="Passive HTTP security header check",
+            signal_type="security_header",
+            title=f"Security header hardening gaps on {host}",
+            severity=severity,
+            domain=host,
+            indicators=[host, *issues[:8]],
+            evidence=f"HTTP {status} at {final_url}; observed issues: {', '.join(issues)}",
+            confidence=0.64 if severity == "MEDIUM" else 0.5,
+        )
+
+    def _fetch_response_headers(self, host: str) -> tuple[dict[str, str], int | None, str]:
+        url = f"https://{host}/"
+        for method in ("HEAD", "GET"):
+            headers = {
+                "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
+                "User-Agent": USER_AGENT,
+            }
+            if method == "GET":
+                headers["Range"] = "bytes=0-0"
+            request = Request(url, headers=headers, method=method)
+            try:
+                with urlopen(request, timeout=min(self.timeout_seconds, PASSIVE_TIMEOUT_SECONDS)) as response:
+                    response_headers = {key.lower(): str(value) for key, value in response.headers.items()}
+                    final_url = response.geturl()
+                    self.fetch_attempts.append(
+                        FetchAttempt(
+                            f"Security headers {host}",
+                            url,
+                            f"ok:{response.status}",
+                            f"{len(response_headers)} headers; final={final_url}",
+                        )
+                    )
+                    return response_headers, response.status, final_url
+            except HTTPError as error:
+                response_headers = {key.lower(): str(value) for key, value in (error.headers or {}).items()}
+                self.fetch_attempts.append(
+                    FetchAttempt(
+                        f"Security headers {host}",
+                        url,
+                        f"http:{error.code}",
+                        error.reason or f"{len(response_headers)} headers",
+                    )
+                )
+                if error.code == 405 and method == "HEAD":
+                    continue
+                if response_headers:
+                    return response_headers, error.code, url
+                return {}, error.code, url
+            except URLError as error:
+                self.fetch_attempts.append(FetchAttempt(f"Security headers {host}", url, "network_error", str(error.reason)))
+                return {}, None, url
+            except Exception as error:
+                self.fetch_attempts.append(FetchAttempt(f"Security headers {host}", url, "error", repr(error)))
+                return {}, None, url
+        return {}, None, url
+
+    def _header_issues(self, headers: dict[str, str]) -> list[str]:
+        issues: list[str] = []
+        hsts = headers.get("strict-transport-security", "")
+        if not hsts:
+            issues.append("missing HSTS")
+        else:
+            max_age = re.search(r"max-age=(\d+)", hsts, re.IGNORECASE)
+            if not max_age or int(max_age.group(1)) < 15552000:
+                issues.append("weak HSTS max-age")
+            if "includesubdomains" not in hsts.lower():
+                issues.append("HSTS missing includeSubDomains")
+
+        csp = headers.get("content-security-policy", "")
+        if not csp:
+            issues.append("missing CSP")
+        elif "'unsafe-inline'" in csp.lower() or "*" in csp:
+            issues.append("broad CSP directives")
+
+        frame = headers.get("x-frame-options", "")
+        if not frame and "frame-ancestors" not in csp.lower():
+            issues.append("missing clickjacking protection")
+
+        content_type = headers.get("x-content-type-options", "")
+        if content_type.lower() != "nosniff":
+            issues.append("missing X-Content-Type-Options nosniff")
+
+        referrer = headers.get("referrer-policy", "")
+        if not referrer or referrer.lower() in {"unsafe-url", "no-referrer-when-downgrade"}:
+            issues.append("weak or missing Referrer-Policy")
+
+        if not headers.get("permissions-policy"):
+            issues.append("missing Permissions-Policy")
+        return issues
+
+    def _tls_certificate_signal(self, scope_domain: str, host: str) -> VulnerabilitySignal | None:
+        try:
+            context = ssl.create_default_context()
+            with socket.create_connection(
+                (host, 443),
+                timeout=min(self.timeout_seconds, PASSIVE_TIMEOUT_SECONDS),
+            ) as sock:
+                with context.wrap_socket(sock, server_hostname=host) as tls:
+                    cert = tls.getpeercert()
+                    version = tls.version() or "unknown"
+            self.fetch_attempts.append(FetchAttempt(f"TLS certificate {host}", host, "ok", f"TLS {version}"))
+        except ssl.SSLCertVerificationError as error:
+            self.fetch_attempts.append(FetchAttempt(f"TLS certificate {host}", host, "ssl_verify_error", str(error)))
+            return VulnerabilitySignal(
+                source="Passive TLS certificate check",
+                signal_type="tls_certificate",
+                title=f"TLS certificate validation failed on {host}",
+                severity="HIGH",
+                domain=host,
+                indicators=[host],
+                evidence=f"TLS certificate validation failed for {host}: {error}",
+                confidence=0.82,
+            )
+        except (TimeoutError, OSError, ssl.SSLError) as error:
+            self.fetch_attempts.append(FetchAttempt(f"TLS certificate {host}", host, "network_error", repr(error)))
+            return None
+
+        not_after = cert.get("notAfter") if isinstance(cert, dict) else None
+        if not not_after:
+            return None
+        expires_at = datetime.fromtimestamp(ssl.cert_time_to_seconds(not_after), tz=UTC)
+        days_remaining = (expires_at - datetime.now(UTC)).days
+        if days_remaining < 0:
+            severity = "HIGH"
+            title = f"Expired TLS certificate on {host}"
+        elif days_remaining <= 14:
+            severity = "HIGH"
+            title = f"TLS certificate expires soon on {host}"
+        elif days_remaining <= 30:
+            severity = "MEDIUM"
+            title = f"TLS certificate nearing expiry on {host}"
+        else:
+            return None
+        return VulnerabilitySignal(
+            source="Passive TLS certificate check",
+            signal_type="tls_certificate",
+            title=title,
+            severity=severity,
+            domain=host,
+            indicators=[host, expires_at.date().isoformat()],
+            evidence=f"Certificate for {host} expires at {expires_at.date().isoformat()} UTC ({days_remaining} day(s) remaining).",
+            confidence=0.82,
+        )
+
     def _fetch_hackerone_programs(self) -> list[BugBountyProgram]:
         programs: list[BugBountyProgram] = []
-        payload = self._fetch_json(HACKERONE_PUBLIC_PROGRAMS_URL, source="HackerOne public list")
-        if payload:
-            programs.extend(self._parse_hackerone_payload(payload, HACKERONE_PUBLIC_PROGRAMS_URL))
-
         username = os.getenv("HACKERONE_USERNAME") or os.getenv("H1_USERNAME")
         token = os.getenv("HACKERONE_API_TOKEN") or os.getenv("H1_API_TOKEN")
         if not username or not token:
+            payload = self._fetch_json(HACKERONE_PUBLIC_PROGRAMS_URL, source="HackerOne public list")
+            if payload:
+                programs.extend(self._parse_hackerone_payload(payload, HACKERONE_PUBLIC_PROGRAMS_URL))
             self.fetch_attempts.append(
                 FetchAttempt(
                     "HackerOne Hacker API",
@@ -436,9 +893,10 @@ class BugBountyHunter:
 
     def _fetch_bugcrowd_programs(self) -> list[BugBountyProgram]:
         programs: list[BugBountyProgram] = []
-        requested_payload = self._fetch_json(BUGCROWD_PUBLIC_PROGRAMS_URL, source="Bugcrowd requested list")
-        if requested_payload:
-            programs.extend(self._parse_bugcrowd_payload(requested_payload, BUGCROWD_PUBLIC_PROGRAMS_URL))
+        if os.getenv("SOMBRA_BUGBOUNTY_FETCH_BUGCROWD_LEGACY", "").lower() in {"1", "true", "yes"}:
+            requested_payload = self._fetch_json(BUGCROWD_PUBLIC_PROGRAMS_URL, source="Bugcrowd requested list")
+            if requested_payload:
+                programs.extend(self._parse_bugcrowd_payload(requested_payload, BUGCROWD_PUBLIC_PROGRAMS_URL))
 
         seen_handles = {program.handle for program in programs if program.handle}
         for page in range(1, self.max_bugcrowd_pages + 1):
@@ -895,8 +1353,14 @@ class BugBountyHunter:
                 deduped[str(path)] = path
         return sorted(deduped.values(), key=lambda item: item.stat().st_mtime if item.exists() else 0, reverse=True)[:5]
 
-    def _fetch_json(self, url: str, source: str, headers: dict[str, str] | None = None) -> Any | None:
-        text = self._fetch_text(url, source=source, accept="application/json", headers=headers)
+    def _fetch_json(
+        self,
+        url: str,
+        source: str,
+        headers: dict[str, str] | None = None,
+        timeout_seconds: int | None = None,
+    ) -> Any | None:
+        text = self._fetch_text(url, source=source, accept="application/json", headers=headers, timeout_seconds=timeout_seconds)
         if not text:
             return None
         try:
@@ -911,6 +1375,7 @@ class BugBountyHunter:
         source: str,
         accept: str = "application/json",
         headers: dict[str, str] | None = None,
+        timeout_seconds: int | None = None,
     ) -> str | None:
         request_headers = {
             "Accept": accept,
@@ -919,7 +1384,7 @@ class BugBountyHunter:
         }
         request = Request(url, headers=request_headers, method="GET")
         try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
+            with urlopen(request, timeout=timeout_seconds or self.timeout_seconds) as response:
                 text = response.read().decode("utf-8", "replace")
                 self.fetch_attempts.append(FetchAttempt(source, url, f"ok:{response.status}", f"{len(text)} bytes"))
                 return text
@@ -1252,6 +1717,22 @@ class BugBountyHunter:
     def _iso(self, value: datetime) -> str:
         return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
+    def _new_message_id(self, now: datetime) -> str:
+        stamp = now.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
+        return f"bug-bounty-hunter-{stamp}-{uuid.uuid4().hex[:12]}"
+
+    def _cerebro_summary(self, scan_result: dict[str, Any]) -> str:
+        return (
+            f"Bug bounty hunter scan generated_at={scan_result.get('generated_at')} "
+            f"programs={scan_result.get('programs_fetched')} "
+            f"signals={scan_result.get('signals_loaded')} "
+            f"scope_matches={len(scan_result.get('scope_signal_matches') or [])} "
+            f"passive_findings={len(scan_result.get('passive_scope_findings') or [])} "
+            f"matches={scan_result.get('matches_found')} "
+            f"reportable={scan_result.get('reportable_findings')} "
+            f"pdf={scan_result.get('pdf_path', '')}"
+        )
+
     def _pdf_styles(self) -> dict[str, ParagraphStyle]:
         return {
             "brand": ParagraphStyle("brand", fontName="Helvetica-Bold", fontSize=13, leading=16, alignment=TA_CENTER, textColor=colors.HexColor("#17324D"), spaceAfter=5),
@@ -1312,6 +1793,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", default=None, help="PDF output directory.")
     parser.add_argument("--db", action="append", default=[], help="Optional Sombra SQLite database path. Can be repeated.")
     parser.add_argument("--max-detail-programs", type=int, default=MAX_DETAIL_PROGRAMS, help="Maximum public briefs to enrich per run.")
+    parser.add_argument("--scope-domain", action="append", default=[], help="Domain to include in scoped passive analysis. Can be repeated.")
+    parser.add_argument("--max-passive-subdomains", type=int, default=MAX_PASSIVE_SUBDOMAINS, help="Maximum CT subdomains retained per scoped domain.")
+    parser.add_argument("--max-passive-http-checks", type=int, default=MAX_PASSIVE_HTTP_CHECKS, help="Maximum passive HTTP/TLS checks per scoped domain.")
     return parser
 
 
@@ -1323,6 +1807,9 @@ def main() -> None:
         output_dir=args.output_dir,
         sombra_db_paths=args.db,
         max_detail_programs=args.max_detail_programs,
+        scope_domains=args.scope_domain or None,
+        max_passive_subdomains=args.max_passive_subdomains,
+        max_passive_http_checks=args.max_passive_http_checks,
     )
     if args.daily:
         hunter.run_daily_forever()
