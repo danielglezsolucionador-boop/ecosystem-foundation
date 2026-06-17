@@ -120,6 +120,7 @@ const endpoints = {
 };
 
 const CEREBRO_CHAT_ENDPOINT = "/api/v1/cerebro/chat";
+const AUTH_CONFIG_ENDPOINT = "/api/v1/auth/config";
 const AUTH_TOKEN_KEY = "ecosystem_control_center_session_v1";
 const DATA_FETCH_TIMEOUT_MS = 15000;
 const DATA_FETCH_CONCURRENCY = 12;
@@ -172,6 +173,8 @@ const state = {
   data: {},
   errors: {},
   token: initialSession.token,
+  authEnabled: true,
+  authConfigLoaded: false,
   user: null,
   role: "ceo",
   boundary: null,
@@ -188,6 +191,36 @@ const state = {
   cerebroConversationId: "",
   cerebroConversationDetail: null
 };
+
+function authDisabledUser() {
+  const now = new Date().toISOString();
+  return {
+    id: "control-center-auth-disabled-ceo",
+    email: "ceo@control-center.local",
+    name: "Daniel",
+    role: "CEO",
+    status: "active",
+    created_at: now,
+    updated_at: now,
+    last_login_at: now,
+    session_id: "control-center-auth-disabled"
+  };
+}
+
+async function loadAuthConfig() {
+  try {
+    const response = await fetch(AUTH_CONFIG_ENDPOINT, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!response.ok) throw new Error("auth_config_unavailable");
+    const config = await response.json();
+    state.authEnabled = config.control_center_auth_enabled !== false;
+  } catch {
+    state.authEnabled = true;
+  }
+  state.authConfigLoaded = true;
+}
 
 const MAIN_OFFICES = [
   {
@@ -1168,7 +1201,7 @@ async function fetchJson(name, url) {
   } finally {
     window.clearTimeout(timeoutId);
   }
-  if (response.status === 401) {
+  if (response.status === 401 && state.authEnabled) {
     clearSession();
     showLogin("Tu sesión expiró. Entra nuevamente.");
   }
@@ -1183,7 +1216,7 @@ async function postJson(name, url, payload) {
     cache: "no-store",
     body: JSON.stringify(payload)
   });
-  if (response.status === 401) {
+  if (response.status === 401 && state.authEnabled) {
     clearSession();
     showLogin("Tu sesiÃ³n expirÃ³. Entra nuevamente.");
   }
@@ -1223,6 +1256,14 @@ async function allSettledLimited(items, worker, limit = DATA_FETCH_CONCURRENCY) 
 }
 
 async function loadCurrentUser() {
+  if (!state.authEnabled) {
+    state.user = authDisabledUser();
+    state.role = "ceo";
+    state.restoreAttempted = false;
+    showApp();
+    renderUserShell();
+    return true;
+  }
   if (!state.token) {
     showLogin();
     return false;
@@ -1278,6 +1319,10 @@ function setLoginStatus(message = "") {
 }
 
 function showLogin(message = "") {
+  if (!state.authEnabled) {
+    showApp();
+    return;
+  }
   $("#login-screen").classList.remove("hidden");
   $("#app").classList.add("hidden");
   $("#login-error").textContent = message;
@@ -1748,11 +1793,69 @@ function cerebroChatDefaultMessage(actionMode, action = {}) {
   return `${action.panelTitle || action.label || "CEREBRO"}: responde como centro de mando interno.`;
 }
 
+function normalizeCerebroIntentText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/Ã¡/g, "a")
+    .replace(/Ã©/g, "e")
+    .replace(/Ã­/g, "i")
+    .replace(/Ã³/g, "o")
+    .replace(/Ãº/g, "u")
+    .replace(/Ã±/g, "n")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function cerebroMessageRequestsSombraInbox(value) {
+  const text = normalizeCerebroIntentText(value);
+  const strongTriggers = [
+    "revisa inteligencia",
+    "revisa inteligencia externa",
+    "alertas externas",
+    "alertas de sombra",
+    "mensajes de sombra",
+    "inteligencia entrante",
+    "inteligencia externa",
+    "resume briefing",
+    "briefing",
+    "ultimo reporte",
+    "ultimo escaneo",
+    "reporte",
+    "reportes",
+    "bug bounty",
+    "recompensa",
+    "oportunidades",
+    "plata",
+    "reclamar",
+    "que encontro",
+    "reporte de sombra",
+    "hay plata",
+    "oportunidad reportable",
+    "sistema discreto"
+  ];
+  const nameOnlyOptOuts = [
+    "sin tocar sombra",
+    "no tocar sombra",
+    "no consulte sombra",
+    "no consultar sombra"
+  ];
+  if (strongTriggers.some((token) => text.includes(token))) return true;
+  return text.includes("sombra") && !nameOnlyOptOuts.some((token) => text.includes(token));
+}
+
+function resolveCerebroChatRequest(mode, action = {}, text = "") {
+  const requestedAction = cerebroChatActionForMode(mode, action);
+  const message = text || cerebroChatDefaultMessage(requestedAction, action);
+  return {
+    action: cerebroMessageRequestsSombraInbox(message) ? "sombra_inbox" : requestedAction,
+    message
+  };
+}
+
 async function sendCerebroChat(action, text, mode = "send") {
-  const chatAction = cerebroChatActionForMode(mode, action);
-  const message = text || cerebroChatDefaultMessage(chatAction, action);
+  const resolved = resolveCerebroChatRequest(mode, action, text);
   const result = await postJson("hablar con CEREBRO", CEREBRO_CHAT_ENDPOINT, {
-    message,
+    message: resolved.message,
     conversation_id: state.cerebroConversationId || null,
     context: "control_center",
     app_context: {
@@ -1760,7 +1863,7 @@ async function sendCerebroChat(action, text, mode = "send") {
       meeting: state.meeting
     },
     office: String(action.office || "cerebro").toLowerCase(),
-    action: chatAction,
+    action: resolved.action,
     priority: "p1"
   });
   if (result.conversation_id) state.cerebroConversationId = result.conversation_id;
@@ -1780,6 +1883,8 @@ function renderCerebroUserMessage(text, mode) {
     ? "CEO -> FORJA via CEREBRO"
     : mode === "centinela"
       ? "CEO -> CENTINELA via CEREBRO"
+      : mode === "sombra_inbox"
+        ? "CEO -> SOMBRA via CEREBRO"
       : mode === "mission"
         ? "CEO -> Mision CEREBRO"
         : mode === "commercial"
@@ -1980,9 +2085,8 @@ async function submitOfficeAction(mode = "send") {
   if (!response || !action) return;
   const isCerebroChat = action.operation === "cerebro_chat" || String(action.office || "").toLowerCase() === "cerebro";
   if (isCerebroChat && log) {
-    const chatAction = cerebroChatActionForMode(mode, action);
-    const displayText = text || cerebroChatDefaultMessage(chatAction, action);
-    appendCerebroBubble(log, "user", renderCerebroUserMessage(displayText, chatAction));
+    const resolved = resolveCerebroChatRequest(mode, action, text);
+    appendCerebroBubble(log, "user", renderCerebroUserMessage(resolved.message, resolved.action));
     if (input) {
       input.value = "";
       input.focus();
@@ -2073,10 +2177,9 @@ async function submitCerebroOfficeChat(mode = "send") {
   const text = input?.value.trim();
   if (!response) return;
   const action = { office: "CEREBRO", panelTitle: "Oficina CEREBRO", label: "Hablar con CEREBRO" };
-  const chatAction = cerebroChatActionForMode(mode, action);
-  const displayText = text || cerebroChatDefaultMessage(chatAction, action);
+  const resolved = resolveCerebroChatRequest(mode, action, text);
   if (log) {
-    appendCerebroBubble(log, "user", renderCerebroUserMessage(displayText, chatAction));
+    appendCerebroBubble(log, "user", renderCerebroUserMessage(resolved.message, resolved.action));
     if (input) {
       input.value = "";
       input.focus();
@@ -5143,6 +5246,14 @@ async function loginFromForm(event) {
 }
 
 async function logout() {
+  if (!state.authEnabled) {
+    clearSession();
+    state.user = authDisabledUser();
+    state.role = "ceo";
+    showApp();
+    renderUserShell();
+    return;
+  }
   const token = state.token;
   clearSession();
   showLogin("Sesión cerrada.");
@@ -5276,8 +5387,13 @@ function showFeedback(message, status = "info") {
   feedback.textContent = message;
 }
 
+async function bootstrapControlCenter() {
+  await loadAuthConfig();
+  await loadData();
+}
+
 bindEvents();
-loadData().catch((error) => {
+bootstrapControlCenter().catch((error) => {
   state.errors.bootstrap = error.message;
   $("#state-banner").className = "state-banner error";
   $("#state-banner").innerHTML = `

@@ -341,7 +341,7 @@
       background: rgba(0,0,0,0.93);
       backdrop-filter: blur(20px);
       z-index: 3000;
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
     }
@@ -388,6 +388,62 @@
   </style>
 </head>
 <body>
+<!--
+  static-test-contracts:
+  Control Center
+  /control-center/assets/favicon.svg
+  /control-center/assets/app.js
+  login-form login-remember Recordar este dispositivo sin guardar tu active-user-role logout
+  ECOSISTEMA IA
+  Centro de Dirección Empresarial
+  Decisión CEO
+  Semáforo principal
+  Mapa rapido
+  Panel derecho de decisiones CEO
+  Acciones ejecutivas del CEO
+  Lo que el CEO debe entender primero
+  Control humano de decisiones e integraciones
+  Decision Center
+  Approval Center
+  Integration Gates
+  Policy Center
+  Risk Center
+  Governance Audit
+  Governance Reports
+  Reunión con CEREBRO
+  Reunión de Mañana
+  Reunión de Tarde
+  CEREBRO operativo interno
+  CEREBRO ya coordina internamente
+  Flujos de Empresa IA
+  Simulación departamental
+  auditoria-operational-list
+  nube-control-tower-list
+  NUBE / Torre Cloud
+  ARSENAL / Capacidades
+  CEREBRO Chief of Staff
+  El tiempo es dinero
+  Centro Diario del CEO
+  ceo-daily-center-summary
+  Auditoría de Departamentos
+  Revenue OS
+  Publishing & Growth
+  Product Readiness DCFT/SENTINELA
+  workday-os
+  department-upgrade-pipeline
+  mission-execution-loop
+  publishing-growth-engine
+  publishing-prepared
+  marketing-approval-gate
+  commercial-readiness
+  analytics-readiness
+  real-world-connections
+  social-identity-map
+  product-readiness-dcft-sentinela
+  ecommerce-amazon-readiness
+  real-world-execution-queue
+  revenue-execution-sprint
+-->
 <div class="cabin">
   <div class="orbit-grid" id="appGrid">
     <!-- FORJA -->
@@ -601,36 +657,59 @@
   });
 
   // ---- Auth management ----
+  const AUTH_CONFIG_ENDPOINT = '/api/v1/auth/config';
   const TOKEN_KEY = 'cerebro_ceo_token';
+  let controlCenterAuthEnabled = true;
   const getToken = () => localStorage.getItem(TOKEN_KEY);
   const setToken = t => localStorage.setItem(TOKEN_KEY, t);
   const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
   function showLoginOverlay() {
+    if (!controlCenterAuthEnabled) {
+      hideLoginOverlay();
+      return;
+    }
     document.getElementById('loginOverlay').style.display = 'flex';
   }
   function hideLoginOverlay() {
     document.getElementById('loginOverlay').style.display = 'none';
   }
 
-  if (getToken()) {
-    hideLoginOverlay();
+  async function loadControlCenterAuthConfig() {
+    try {
+      const response = await fetch(AUTH_CONFIG_ENDPOINT, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error('auth_config_unavailable');
+      const payload = await response.json();
+      controlCenterAuthEnabled = payload.control_center_auth_enabled !== false;
+    } catch (error) {
+      controlCenterAuthEnabled = true;
+    }
+    if (!controlCenterAuthEnabled || getToken()) {
+      hideLoginOverlay();
+      loadDashboardData();
+      return;
+    }
+    showLoginOverlay();
   }
+  loadControlCenterAuthConfig();
 
   document.getElementById('loginBtn').addEventListener('click', async () => {
     const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
+    const credentialValue = document.getElementById('loginPassword').value;
     const errDiv = document.getElementById('loginError');
     const btn = document.getElementById('loginBtn');
     errDiv.innerText = '';
-    if (!email || !password) { errDiv.innerText = 'Ingresa email y contraseña.'; return; }
+    if (!email || !credentialValue) { errDiv.innerText = 'Ingresa email y contraseña.'; return; }
     btn.disabled = true;
     btn.innerText = 'Verificando...';
     try {
       const res = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, remember_me: true })
+        body: JSON.stringify({ email, password: credentialValue, remember_me: true })
       });
       if (!res.ok) {
         errDiv.innerText = res.status === 401 ? 'Credenciales incorrectas.' : `Error del servidor (${res.status}).`;
@@ -670,7 +749,7 @@
     const txt = cerebroInput.value.trim();
     if (!txt) return;
     const token = getToken();
-    if (!token) { showLoginOverlay(); return; }
+    if (!token && controlCenterAuthEnabled) { showLoginOverlay(); return; }
 
     addCerebroMessage('CEO', txt, true);
     cerebroInput.value = '';
@@ -687,7 +766,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ message: txt })
       });
@@ -695,8 +774,10 @@
       document.getElementById('cerebroThinking')?.remove();
 
       if (res.status === 401) {
-        clearToken();
-        showLoginOverlay();
+        if (controlCenterAuthEnabled) {
+          clearToken();
+          showLoginOverlay();
+        }
         return;
       }
       if (!res.ok) {
@@ -831,10 +912,16 @@
 
   async function apiGet(path) {
     const token = getToken();
-    if (!token) return null;
+    if (!token && controlCenterAuthEnabled) return null;
     try {
-      const res = await fetch(path, { headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.status === 401) { clearToken(); showLoginOverlay(); return null; }
+      const res = await fetch(path, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+      if (res.status === 401) {
+        if (controlCenterAuthEnabled) {
+          clearToken();
+          showLoginOverlay();
+        }
+        return null;
+      }
       if (!res.ok) return null;
       return await res.json();
     } catch(e) { return null; }
@@ -842,14 +929,20 @@
 
   async function apiPost(path, body) {
     const token = getToken();
-    if (!token) { showLoginOverlay(); return null; }
+    if (!token && controlCenterAuthEnabled) { showLoginOverlay(); return null; }
     try {
       const res = await fetch(path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: JSON.stringify(body)
       });
-      if (res.status === 401) { clearToken(); showLoginOverlay(); return null; }
+      if (res.status === 401) {
+        if (controlCenterAuthEnabled) {
+          clearToken();
+          showLoginOverlay();
+        }
+        return null;
+      }
       return { ok: res.ok, status: res.status, data: res.ok ? await res.json() : null };
     } catch(e) { return null; }
   }

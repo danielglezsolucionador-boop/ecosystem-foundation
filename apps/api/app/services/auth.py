@@ -35,6 +35,46 @@ SESSION_TTL_HOURS = 12
 REMEMBER_SESSION_TTL_DAYS = 30
 TOKEN_PREFIX = "ccs_"
 ADMIN_BOOTSTRAP_FINGERPRINT_KEY = "control_center_admin_bootstrap_fingerprint"
+AUTH_DISABLED_SESSION_ID = "control-center-auth-disabled"
+AUTH_DISABLED_USER_ID = "control-center-auth-disabled-ceo"
+AUTH_DISABLED_SENSITIVE_PREFIXES = (
+    "/api/v1/auth/audit",
+    "/api/v1/auth/sessions",
+    "/api/v1/cerebro/inbox/sombra",
+    "/api/v1/audit",
+    "/api/v1/auditoria",
+    "/api/v1/observability",
+    "/api/v1/security",
+)
+
+
+def control_center_auth_enabled() -> bool:
+    raw = os.environ.get("CONTROL_CENTER_AUTH_ENABLED")
+    if raw is None or raw.strip() == "":
+        return True
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def auth_disabled_request_allowed(request: Request) -> bool:
+    path = str(request.url.path)
+    if path in {"/api/v1/auth/me", "/api/v1/auth/logout"}:
+        return True
+    return not any(path == prefix or path.startswith(f"{prefix}/") for prefix in AUTH_DISABLED_SENSITIVE_PREFIXES)
+
+
+def auth_disabled_user() -> AuthenticatedUser:
+    now = utc_now()
+    return AuthenticatedUser(
+        id=AUTH_DISABLED_USER_ID,
+        email="ceo@control-center.local",
+        name="Daniel",
+        role=ControlCenterRole.ceo,
+        status=UserStatus.active,
+        created_at=now,
+        updated_at=now,
+        last_login_at=now,
+        session_id=AUTH_DISABLED_SESSION_ID,
+    )
 
 
 def utc_now_datetime() -> datetime:
@@ -579,6 +619,21 @@ def require_control_center_user(
     request: Request,
     authorization: str | None = Header(default=None),
 ) -> AuthenticatedUser:
+    if not control_center_auth_enabled() and auth_disabled_request_allowed(request):
+        user = auth_disabled_user()
+        audit_auth_event(
+            user_id=user.id,
+            email=user.email,
+            role=user.role.value,
+            session_id=user.session_id,
+            action=f"{request.method} {request.url.path}",
+            resource=str(request.url.path),
+            result="allowed_auth_disabled",
+            ip_address=client_ip(request),
+            user_agent=user_agent(request),
+            metadata={"CONTROL_CENTER_AUTH_ENABLED": False},
+        )
+        return user
     user = current_user_from_authorization(authorization, request)
     audit_auth_event(
         user_id=user.id,

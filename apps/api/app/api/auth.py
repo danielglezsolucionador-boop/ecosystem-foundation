@@ -10,6 +10,7 @@ from app.schemas.auth import (
     SessionRevokeRequest,
 )
 from app.services.auth import (
+    control_center_auth_enabled,
     get_current_user,
     list_auth_audit_events,
     list_sessions,
@@ -19,6 +20,11 @@ from app.services.auth import (
 )
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+
+@router.get("/config")
+def read_auth_config() -> dict[str, bool]:
+    return {"control_center_auth_enabled": control_center_auth_enabled()}
 
 
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)

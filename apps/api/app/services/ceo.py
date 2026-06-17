@@ -160,6 +160,38 @@ def chief_of_staff_fallback() -> dict[str, Any]:
     }
 
 
+def nube_status_fallback() -> dict[str, Any]:
+    return {
+        "status": "nube_status_fallback_prepared",
+        "production_public_status": "unknown",
+        "database": "unknown",
+        "cost_status": "unknown",
+        "vercel_api_connected": False,
+        "local_nube_touched": False,
+        "local_nube_path": "not_touched",
+        "external_connection_enabled": False,
+        "runtime_connected": False,
+        "deploy_executed_by_nube": False,
+        "fallback": True,
+    }
+
+
+def ensure_nube_status_contract(value: Any) -> dict[str, Any]:
+    data = safe_model_dump(value)
+    fallback = nube_status_fallback()
+    merged = {**fallback, **data}
+    for key in (
+        "vercel_api_connected",
+        "local_nube_touched",
+        "external_connection_enabled",
+        "runtime_connected",
+        "deploy_executed_by_nube",
+    ):
+        merged[key] = bool(merged.get(key, False))
+    merged["local_nube_path"] = str(merged.get("local_nube_path") or "not_touched")
+    return merged
+
+
 def safe_snapshot_call(
     label: str,
     callback,
@@ -218,7 +250,7 @@ def snapshot_call_specs() -> dict[str, tuple[Callable[[], Any], Any]]:
         "auditoria_status": (get_auditoria_status, {}),
         "auditoria_reviews": (lambda: list_auditoria_reviews(limit=24), []),
         "department_audits": (list_department_audits, []),
-        "nube_status": (get_nube_status, {}),
+        "nube_status": (get_nube_status, nube_status_fallback()),
         "revenue_status": (get_revenue_status, {}),
         "revenue_sprint_status": (get_revenue_sprint_status, {}),
         "ecommerce_readiness_status": (get_ecommerce_readiness_status, {}),
@@ -274,7 +306,7 @@ def build_ceo_snapshot() -> CeoSnapshot:
     auditoria_status = safe_model_dump(snapshot_sources["auditoria_status"])
     auditoria_reviews = snapshot_sources["auditoria_reviews"][:24]
     department_audits = snapshot_sources["department_audits"][:24]
-    nube_status = safe_model_dump(snapshot_sources["nube_status"])
+    nube_status = ensure_nube_status_contract(snapshot_sources["nube_status"])
     revenue_status = safe_model_dump(snapshot_sources["revenue_status"])
     revenue_sprint_status = safe_model_dump(snapshot_sources["revenue_sprint_status"])
     ecommerce_readiness_status = safe_model_dump(snapshot_sources["ecommerce_readiness_status"])

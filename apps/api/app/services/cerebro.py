@@ -4,6 +4,7 @@ import hmac
 import json
 from os import environ
 import re
+import unicodedata
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -84,6 +85,22 @@ CEREBRO_MESSAGES_TABLE = "cerebro_messages"
 PERU_TZ = ZoneInfo("America/Lima")
 GLOBAL_MONTHLY_GOAL_USD = 6000.0
 ECOMMERCE_MONTHLY_GOAL_USD = 10000.0
+CEREBRO_FIXED_OPERATION_INSTRUCTION = (
+    "CEREBRO opera como orquestador ejecutivo del ecosistema. Cuando reciba o detecte "
+    "inteligencia externa, bug bounty, recompensas, plata, reclamar, reportes, ultimo "
+    "escaneo o sistema discreto, debe leer datos reales del inbox interno, no responder "
+    "generico, clasificar la informacion y producir salidas accionables para CEO, FORJA, "
+    "PLUMA, MARCA PERSONAL, CENTINELA y AUDITORIA."
+)
+
+SOMBRA_PRODUCTIVE_CLASSIFICATIONS = {
+    "INFORME_BUG_BOUNTY",
+    "TAREA_FORJA",
+    "BORRADOR_LINKEDIN",
+    "ALERTA_CENTINELA",
+    "DESCARTADO",
+    "PENDIENTE_EVIDENCIA",
+}
 
 CEREBRO_CYBER_INTELLIGENCE_POLICY = {
     "name": "CEREBRO Cyber Intelligence Core",
@@ -659,8 +676,34 @@ def apply_cyber_intelligence_protocol(message: SombraInboxMessageCreate) -> dict
         if commercial_draft_ready
         else None
     )
+    event_metrics = extract_sombra_scan_metrics(
+        {
+            "type": message.type.value,
+            "severity": message.severity.value,
+            "title": message.title,
+            "summary": message.summary,
+            "payload": message.payload,
+            "metadata": message.metadata,
+            "safe_for_commercial_use": message.safe_for_commercial_use,
+        }
+    )
+    productive_classification = classify_sombra_productive_event(
+        {
+            "type": message.type.value,
+            "severity": message.severity.value,
+            "title": message.title,
+            "summary": message.summary,
+            "payload": message.payload,
+            "metadata": message.metadata,
+            "routed_to": determine_sombra_routes(message),
+            "safe_for_commercial_use": message.safe_for_commercial_use,
+        },
+        event_metrics,
+    )
     return {
         "policy": CEREBRO_CYBER_INTELLIGENCE_POLICY["name"],
+        "fixed_operation_instruction": CEREBRO_FIXED_OPERATION_INSTRUCTION,
+        "productive_classification": productive_classification,
         "ceo_code": ceo_code,
         "immediate_ceo_attention": immediate_ceo_attention,
         "top_points": top_points,
@@ -1062,6 +1105,8 @@ def _normalized_metric_text(value: object) -> str:
     }
     for original, replacement in replacements.items():
         text = text.replace(original, replacement)
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(character for character in text if not unicodedata.combining(character))
     return text
 
 
@@ -1104,6 +1149,14 @@ SOMBRA_SCAN_METRIC_ALIASES = {
         "passive_findings",
         "passive_scope_findings",
         "hallazgos pasivos",
+    ),
+    "paid_program_count": (
+        "paid_programs",
+        "paid_program_count",
+        "paid_programs_count",
+        "paid_bug_bounty_programs",
+        "programas pagados",
+        "programas con recompensa",
     ),
 }
 
@@ -1242,7 +1295,6 @@ def extract_sombra_scan_metrics(event: dict[str, object]) -> dict[str, object]:
         (
             "program_names",
             "programs",
-            "paid_programs",
             "bug_bounty_programs",
             "programs_analyzed_details",
         ),
@@ -1250,6 +1302,20 @@ def extract_sombra_scan_metrics(event: dict[str, object]) -> dict[str, object]:
     if program_names:
         metrics["program_names"] = program_names
         metrics.setdefault("programs_analyzed", len(program_names))
+    paid_programs = _metric_list_from_sources(
+        sources,
+        (
+            "paid_program_names",
+            "paid_programs",
+            "paid_bug_bounty_programs",
+            "bounty_programs",
+            "reward_programs",
+            "programas_pagados",
+        ),
+    )
+    if paid_programs:
+        metrics["paid_programs"] = paid_programs
+        metrics.setdefault("paid_program_count", len(paid_programs))
     local_signals = _metric_list_from_sources(
         sources,
         (
@@ -1345,6 +1411,261 @@ def select_sombra_context_event(events: list[dict[str, object]]) -> dict[str, ob
     return events[0]
 
 
+def _event_metadata(event: dict[str, object]) -> dict[str, object]:
+    metadata = event.get("metadata")
+    return metadata if isinstance(metadata, dict) else {}
+
+
+def _event_protocol(event: dict[str, object]) -> dict[str, object]:
+    protocol = _event_metadata(event).get("cyber_intelligence_protocol")
+    return protocol if isinstance(protocol, dict) else {}
+
+
+def _event_bool(event: dict[str, object], key: str) -> bool:
+    value = event.get(key)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on", "si"}
+    return bool(value)
+
+
+def classify_sombra_productive_event(
+    event: dict[str, object],
+    metrics: dict[str, object] | None = None,
+) -> str:
+    metrics = metrics or extract_sombra_scan_metrics(event)
+    protocol = _event_protocol(event)
+    existing = str(protocol.get("productive_classification") or "").strip().upper()
+    if existing in SOMBRA_PRODUCTIVE_CLASSIFICATIONS:
+        return existing
+
+    metadata = _event_metadata(event)
+    text = _normalized_metric_text(
+        " ".join(
+            [
+                str(event.get("type") or ""),
+                str(event.get("severity") or ""),
+                str(event.get("title") or ""),
+                str(event.get("summary") or ""),
+                json.dumps(metadata, ensure_ascii=False, default=str),
+                json.dumps(event.get("payload") or {}, ensure_ascii=False, default=str),
+            ]
+        )
+    )
+    event_type = str(event.get("type") or "").lower()
+    severity = str(event.get("severity") or "").lower()
+    routes = [str(route).lower() for route in event.get("routed_to", []) if route]
+    reportable_count = metrics.get("reportable_opportunities")
+    paid_program_count = metrics.get("paid_program_count")
+    has_reportable = isinstance(reportable_count, int) and reportable_count > 0
+    has_paid_programs = isinstance(paid_program_count, int) and paid_program_count > 0
+    manual_review = bool(
+        metadata.get("manual_review_required")
+        or metadata.get("requires_manual_review")
+        or metadata.get("force_manual_review")
+        or event.get("manual_review_required")
+    )
+
+    if manual_review:
+        return "PENDIENTE_EVIDENCIA"
+    if has_reportable:
+        return "INFORME_BUG_BOUNTY"
+    if (
+        event_type in {"scan_report", "order_result"}
+        and (
+            "bug bounty" in text
+            or "recompensa" in text
+            or "paid" in text
+            or has_paid_programs
+            or metrics.get("program_names")
+        )
+    ):
+        return "PENDIENTE_EVIDENCIA"
+    if event_type == "lead_signal" or _event_bool(event, "safe_for_commercial_use") or any(
+        token in text for token in ("linkedin", "pluma", "marca personal", "contenido")
+    ):
+        return "BORRADOR_LINKEDIN"
+    if severity in {"critical", "high"} or event_type == "alert" or any(
+        token in text for token in ("riesgo", "amenaza", "intrusion", "credencial", "cve")
+    ):
+        return "ALERTA_CENTINELA"
+    if "forja" in routes or any(
+        token in text
+        for token in ("forja", "parche", "patch", "api", "skill", "herramienta", "diagnostico", "hardening")
+    ):
+        return "TAREA_FORJA"
+    return "DESCARTADO"
+
+
+def _metric_value_or_zero(metrics: dict[str, object], key: str) -> int:
+    value = metrics.get(key)
+    return value if isinstance(value, int) else 0
+
+
+def _money_claimable_confirmed(event: dict[str, object], metrics: dict[str, object]) -> bool:
+    metadata = _event_metadata(event)
+    return bool(
+        metrics.get("money_claimable_confirmed")
+        or metadata.get("money_claimable_confirmed")
+        or metadata.get("evidence_confirmed")
+    )
+
+
+def _sombra_output_counts(classification: str, metrics: dict[str, object]) -> dict[str, int]:
+    reportable_count = _metric_value_or_zero(metrics, "reportable_opportunities")
+    ready_reports = reportable_count if classification == "INFORME_BUG_BOUNTY" else 0
+    pending_evidence = 1 if classification == "PENDIENTE_EVIDENCIA" else 0
+    discarded = 1 if classification == "DESCARTADO" else 0
+    return {
+        "ready_reports": ready_reports,
+        "pending_evidence": pending_evidence,
+        "discarded": discarded,
+    }
+
+
+def build_sombra_production_reply(
+    latest: dict[str, object],
+    events: list[dict[str, object]],
+    metrics: dict[str, object],
+    classification: str,
+) -> tuple[str, dict[str, object]]:
+    programs_line = _metric_list_copy(metrics, "program_names", "no informado")
+    paid_programs_line = _metric_list_copy(metrics, "paid_programs", "no informado")
+    signals_line = _metric_list_copy(metrics, "local_signals", "no informado")
+    matches_line = _metric_list_copy(metrics, "scope_matches", "sin coincidencias confirmadas")
+    reportables_line = _metric_list_copy(metrics, "reportable_items", "sin items reportables confirmados")
+    next_step = str(
+        metrics.get("next_step")
+        or "Cruzar las senales con el scope autorizado y confirmar evidencia antes de reclamar."
+    )
+    confirmed_money = _money_claimable_confirmed(latest, metrics)
+    reportable_count = _metric_value_or_zero(metrics, "reportable_opportunities")
+    counts = _sombra_output_counts(classification, metrics)
+    if confirmed_money:
+        money_line = (
+            "Dinero reclamable confirmado: si; requiere que Daniel revise y suba manualmente el informe al programa."
+        )
+    elif reportable_count:
+        money_line = (
+            "No hay dinero reclamable confirmado todavia: hay oportunidad reportable potencial, "
+            "pendiente de evidencia y scope."
+        )
+    else:
+        money_line = "No hay plata reclamable todavia: el ultimo evento no registra oportunidades reportables confirmadas."
+    potential_line = (
+        f"{reportable_count} oportunidad(es) reportable(s) para revision privada del CEO."
+        if reportable_count
+        else "pendiente; hay programas pagados detectados, pero falta evidencia reportable."
+    )
+    forja_line = (
+        "Tarea tecnica necesaria: preparar diagnostico/parche defensivo interno sin tocar FORJA externa."
+        if classification in {"TAREA_FORJA", "PENDIENTE_EVIDENCIA", "INFORME_BUG_BOUNTY"}
+        else "Tareas tecnicas necesarias: ninguna nueva hasta tener evidencia accionable."
+    )
+    centinela_line = (
+        "Alerta defensiva: revisar senales con CENTINELA; nivel de riesgo derivado del evento "
+        f"{latest.get('severity') or 'no informado'}."
+    )
+    linkedin_line = (
+        "Borrador publico seguro: educar sobre gestion de riesgo digital; sin empresa vulnerable, "
+        "sin endpoint, sin explotacion, sin datos sensibles y sin publicacion automatica."
+    )
+    ready_line = (
+        f"{counts['ready_reports']} informe(s) privado(s) listo(s) para revision del CEO."
+        if counts["ready_reports"]
+        else "0 informes listos; no se declara bounty reclamable sin evidencia suficiente."
+    )
+    pending_line = (
+        f"{counts['pending_evidence']} informe(s) pendiente(s) por evidencia."
+        if counts["pending_evidence"]
+        else "0 informes pendientes por evidencia fuera de las validaciones del evento seleccionado."
+    )
+    audit_context = {
+        "productive_classification": classification,
+        "ready_reports": counts["ready_reports"],
+        "pending_evidence": counts["pending_evidence"],
+        "discarded": counts["discarded"],
+        "money_claimable_confirmed": confirmed_money,
+        "fixed_operation_instruction_active": True,
+    }
+    reply = (
+        "DINERO:\n"
+        f"- hay dinero reclamable confirmado? {'si' if confirmed_money else 'no'}.\n"
+        f"- programas pagados detectados: {paid_programs_line}.\n"
+        f"- programas pagados: {_metric_copy(metrics, 'paid_program_count')}.\n"
+        f"- potencial economico: {potential_line}\n"
+        f"- {money_line}\n\n"
+        "INFORMES:\n"
+        f"- clasificacion productiva: {classification}.\n"
+        f"- informes listos para revision del CEO: {ready_line}\n"
+        f"- informes pendientes por evidencia: {pending_line}\n"
+        f"- descartados: {counts['discarded']}.\n"
+        f"- evento: {latest.get('title') or 'sin titulo'}; tipo={latest.get('type')}; severidad={latest.get('severity')}; "
+        f"message_id={latest.get('message_id')}; recibido={latest.get('received_at')}.\n"
+        f"- programas analizados: {_metric_copy(metrics, 'programs_analyzed')}.\n"
+        f"- programas detectados: {programs_line}.\n"
+        f"- senales detectadas: {_metric_copy(metrics, 'local_signal_count')}.\n"
+        f"- senales principales: {signals_line}.\n"
+        f"- coincidencias: {_metric_copy(metrics, 'matches')}.\n"
+        f"- matches cantidad: {_metric_copy(metrics, 'matches')}.\n"
+        f"- matches: {matches_line}.\n"
+        f"- oportunidades reportables: {_metric_copy(metrics, 'reportable_opportunities')}.\n"
+        f"- items reportables: {reportables_line}.\n\n"
+        "FORJA:\n"
+        f"- {forja_line}\n"
+        "- salida: tarea preparada por CEREBRO si falta construir herramienta, API, skill o parche defensivo.\n\n"
+        "LINKEDIN:\n"
+        f"- {linkedin_line}\n\n"
+        "CENTINELA:\n"
+        f"- {centinela_line}\n"
+        "- accion recomendada: validar defensivamente y no consultar SOMBRA externo desde la UI.\n\n"
+        "AUDITORIA:\n"
+        "- evento registrado: si.\n"
+        f"- decision tomada: {classification}.\n"
+        "- evidencia disponible: payload sensible retenido en inbox interno; salida CEO sanitizada.\n\n"
+        "DECISION CEO:\n"
+        f"- Daniel debe revisar evidencia y decidir si sube manualmente el informe al programa correspondiente. Siguiente paso: {next_step}.\n"
+        f"- Esto sale de {len(events)} evento(s) ya recibido(s); no consulte runtime externo ni expuse payload sensible."
+    )
+    if metrics.get("pdf_path"):
+        reply += f"\n- PDF registrado: {metrics['pdf_path']}."
+    return reply, audit_context
+
+
+def audit_sombra_productive_decision(
+    latest: dict[str, object],
+    classification_context: dict[str, object],
+) -> str | None:
+    try:
+        severity_value = str(latest.get("severity") or "info").lower()
+        if severity_value not in {item.value for item in AuditSeverity}:
+            severity_value = "info"
+        event = create_audit_event(
+            AuditEventCreate(
+                category=AuditCategory.integration,
+                severity=AuditSeverity(severity_value),
+                source="cerebro.production_flow",
+                action="sombra_inbox_decision",
+                status=str(classification_context.get("productive_classification") or "DESCARTADO"),
+                detail="CEREBRO classified SOMBRA inbox and produced sanitized CEO outputs.",
+                metadata={
+                    "message_id": latest.get("message_id"),
+                    "message_type": latest.get("type"),
+                    "classification": classification_context.get("productive_classification"),
+                    "money_claimable_confirmed": classification_context.get("money_claimable_confirmed"),
+                    "ready_reports": classification_context.get("ready_reports"),
+                    "pending_evidence": classification_context.get("pending_evidence"),
+                    "discarded": classification_context.get("discarded"),
+                    "payload_exposed": False,
+                    "external_connection_enabled": False,
+                    "runtime_connected": False,
+                },
+            )
+        )
+        return event.id
+    except Exception:
+        return None
+
+
 def build_sombra_context_reply(events: list[dict[str, object]]) -> tuple[str, dict[str, object]]:
     selected = select_sombra_context_event(events)
     context = {
@@ -1366,48 +1687,60 @@ def build_sombra_context_reply(events: list[dict[str, object]]) -> tuple[str, di
     context["sombra_latest_metrics"] = metrics
     reportable = metrics.get("reportable_opportunities")
     reportable_count = reportable if isinstance(reportable, int) else None
+    money_claimable = bool(reportable_count and reportable_count > 0)
     money_line = (
-        "Hay oportunidades reportables para revision manual; todavia no lo presento como dinero reclamado hasta confirmar evidencia y scope."
-        if reportable_count and reportable_count > 0
+        "Dinero reclamable: si, potencialmente; requiere revision manual, evidencia y scope antes de reclamar."
+        if money_claimable
         else "No hay plata reclamable todavia: el ultimo evento no registra oportunidades reportables confirmadas."
     )
     if metrics:
-        programs_line = _metric_list_copy(metrics, "program_names", "no informado")
-        signals_line = _metric_list_copy(metrics, "local_signals", "no informado")
-        matches_line = _metric_list_copy(metrics, "scope_matches", "sin coincidencias confirmadas")
-        reportables_line = _metric_list_copy(metrics, "reportable_items", "sin items reportables confirmados")
-        next_step = str(
-            metrics.get("next_step")
-            or "Cruzar las senales con el scope autorizado y confirmar evidencia antes de reclamar."
+        classification = classify_sombra_productive_event(latest, metrics)
+        reply, classification_context = build_sombra_production_reply(
+            latest,
+            events,
+            metrics,
+            classification,
         )
-        reply = (
-            "Daniel, revise el ultimo evento real recibido de SOMBRA en el inbox interno de CEREBRO. "
-            f"Evento: {latest.get('title') or 'sin titulo'}; tipo={latest.get('type')}; severidad={latest.get('severity')}; "
-            f"message_id={latest.get('message_id')}; recibido={latest.get('received_at')}. "
-            f"Programas analizados: {_metric_copy(metrics, 'programs_analyzed')}. "
-            f"Programas detectados: {programs_line}. "
-            f"Senales detectadas: {_metric_copy(metrics, 'local_signal_count')}. "
-            f"Senales principales: {signals_line}. "
-            f"Coincidencias: {_metric_copy(metrics, 'matches')}. "
-            f"Matches: {matches_line}. "
-            f"Oportunidades reportables: {_metric_copy(metrics, 'reportable_opportunities')}. "
-            f"Items reportables: {reportables_line}. "
-            f"{money_line} "
-            f"Siguiente paso: {next_step}. "
-            "Esto sale de eventos ya recibidos; no consulté runtime externo ni expuse payload sensible."
-        )
-        if metrics.get("pdf_path"):
-            reply += f" PDF registrado: {metrics['pdf_path']}."
+        context.update(classification_context)
         return reply, context
 
     summary = latest.get("executive_summary") or latest.get("summary") or "sin resumen disponible"
+    classification = classify_sombra_productive_event(latest, metrics)
+    context.update(
+        {
+            "productive_classification": classification,
+            "ready_reports": 0,
+            "pending_evidence": 1 if classification == "PENDIENTE_EVIDENCIA" else 0,
+            "discarded": 1 if classification == "DESCARTADO" else 0,
+            "money_claimable_confirmed": False,
+            "fixed_operation_instruction_active": True,
+        }
+    )
     return (
-        "Daniel, revise el inbox interno de SOMBRA usando eventos reales recibidos, pero el ultimo evento "
-        "no trae metricas de scan parseables. "
-        f"Evento: {latest.get('title') or 'sin titulo'}; message_id={latest.get('message_id')}; "
-        f"recibido={latest.get('received_at')}. Resumen: {summary}. "
-        "No invento conteos ni oportunidades; se requiere que SOMBRA envie metricas explicitas en el payload "
-        "o summary para hablar de programas, senales, coincidencias y dinero reclamable.",
+        "DINERO:\n"
+        "- hay dinero reclamable confirmado? no.\n"
+        "- programas pagados detectados: no informado.\n"
+        "- potencial economico: pendiente por evidencia.\n\n"
+        "INFORMES:\n"
+        f"- clasificacion productiva: {classification}.\n"
+        "- informes listos para revision del CEO: 0.\n"
+        "- informes pendientes por evidencia: 1.\n"
+        "- descartados: 0.\n"
+        f"- evento: {latest.get('title') or 'sin titulo'}; message_id={latest.get('message_id')}; recibido={latest.get('received_at')}.\n"
+        f"- resumen: {summary}.\n"
+        "- no invento conteos ni oportunidades; se requiere que SOMBRA envie metricas explicitas.\n\n"
+        "FORJA:\n"
+        "- tarea tecnica necesaria: pendiente hasta tener evidencia parseable.\n\n"
+        "LINKEDIN:\n"
+        "- borrador publico seguro: no generar pieza especifica sin evidencia; sin empresa vulnerable, sin endpoint, sin explotacion, sin datos sensibles.\n\n"
+        "CENTINELA:\n"
+        "- alerta defensiva: revisar solo si la severidad o evidencia lo justifica.\n\n"
+        "AUDITORIA:\n"
+        "- evento registrado: si.\n"
+        f"- decision tomada: {classification}.\n"
+        "- evidencia disponible: insuficiente para informe productivo.\n\n"
+        "DECISION CEO:\n"
+        "- Daniel debe pedir a SOMBRA metricas explicitas o evidencia antes de reclamar o publicar. No consulte servidor externo de SOMBRA.",
         context,
     )
 
@@ -2847,42 +3180,59 @@ def cerebro_chat_title(message: str, fallback: str) -> str:
     return clean[:176]
 
 
+SOMBRA_CHAT_STRONG_TRIGGERS = (
+    "revisa inteligencia",
+    "revisa inteligencia externa",
+    "alertas externas",
+    "alertas de sombra",
+    "mensajes de sombra",
+    "inteligencia entrante",
+    "inteligencia externa",
+    "resume briefing",
+    "briefing",
+    "ultimo reporte",
+    "ultimo escaneo",
+    "reporte",
+    "reportes",
+    "bug bounty",
+    "recompensa",
+    "oportunidades",
+    "plata",
+    "reclamar",
+    "que encontro",
+    "reporte de sombra",
+    "hay plata",
+    "oportunidad reportable",
+    "sistema discreto",
+)
+
+SOMBRA_CHAT_NAME_ONLY_OPTOUTS = (
+    "sin tocar sombra",
+    "no tocar sombra",
+    "no consulte sombra",
+    "no consultar sombra",
+)
+
+
+def message_requests_sombra_inbox(message: str) -> bool:
+    if any(token in message for token in SOMBRA_CHAT_STRONG_TRIGGERS):
+        return True
+    return "sombra" in message and not any(
+        token in message for token in SOMBRA_CHAT_NAME_ONLY_OPTOUTS
+    )
+
+
 def cerebro_chat_intent(request: CerebroChatRequest) -> str:
+    message = _normalized_metric_text(request.message)
+    if message_requests_sombra_inbox(message):
+        return "sombra_inbox"
     if request.action != "auto":
         return request.action
-    message = _normalized_metric_text(request.message)
     office = normalize_destination(request.office)
     if office == "centinela":
         return "centinela"
     if office == "forja":
         return "forja"
-    if any(
-        token in message
-        for token in (
-            "revisa inteligencia",
-            "revisa inteligencia externa",
-            "alertas externas",
-            "alertas de sombra",
-            "mensajes de sombra",
-            "inteligencia entrante",
-            "inteligencia externa",
-            "resume briefing",
-            "briefing",
-            "sombra",
-            "ultimo reporte",
-            "ultimo escaneo",
-            "bug bounty",
-            "recompensa",
-            "oportunidades",
-            "plata",
-            "reclamar",
-            "que encontro",
-            "reporte de sombra",
-            "hay plata",
-            "oportunidad reportable",
-        )
-    ):
-        return "sombra_inbox"
     if any(token in message for token in ("amenaza", "cliente en riesgo", "consulta centinela")):
         return "centinela"
     if any(token in message for token in ("implementa", "construye", "desarrolla", "parche")):
@@ -3058,7 +3408,18 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
         reply, sombra_context = build_sombra_context_reply(sombra_events)
         used_context.update(sombra_context)
         if sombra_events:
-            latest = sombra_events[0]
+            selected_message_id = str(sombra_context.get("sombra_latest_message_id") or "")
+            latest = next(
+                (
+                    event
+                    for event in sombra_events
+                    if str(event.get("message_id") or "") == selected_message_id
+                ),
+                sombra_events[0],
+            )
+            audit_event_id = audit_sombra_productive_decision(latest, sombra_context)
+            if audit_event_id:
+                used_context["audit_event_id"] = audit_event_id
             metrics = extract_sombra_scan_metrics(latest)
             metrics_detail = (
                 "programas={programs} senales={signals} coincidencias={matches} reportables={reportable}".format(

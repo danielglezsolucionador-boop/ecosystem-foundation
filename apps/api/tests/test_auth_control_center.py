@@ -111,6 +111,27 @@ def test_invalid_login_and_missing_session_are_denied_and_audited() -> None:
     assert "denied_missing_session" in audit_results
 
 
+def test_control_center_auth_disabled_opens_cabin_but_keeps_sensitive_routes(monkeypatch) -> None:
+    monkeypatch.setenv("CONTROL_CENTER_AUTH_ENABLED", "false")
+
+    config = client.get("/api/v1/auth/config")
+    me = client.get("/api/v1/auth/me")
+    control_center = client.get("/api/v1/control-center")
+    inbox = client.get("/api/v1/cerebro/inbox/sombra/recent")
+    auth_audit = client.get("/api/v1/auth/audit")
+    sessions = client.get("/api/v1/auth/sessions")
+
+    assert config.status_code == 200
+    assert config.json()["control_center_auth_enabled"] is False
+    assert me.status_code == 200
+    assert me.json()["role"] == "CEO"
+    assert me.json()["session_id"] == "control-center-auth-disabled"
+    assert control_center.status_code == 200
+    assert inbox.status_code == 401
+    assert auth_audit.status_code == 401
+    assert sessions.status_code == 401
+
+
 def test_role_limits_are_bound_to_real_session_user() -> None:
     operator_headers = auth_headers(ControlCenterRole.operator)
     ceo_headers = auth_headers(ControlCenterRole.ceo)

@@ -14,6 +14,8 @@ ECOSYSTEM_API_DATABASE_URL=sqlite:///./var/ecosystem_foundation.db
 # DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DBNAME
 
 # Control Center initial CEO bootstrap.
+# Set to false when the CEO cabin must open directly without email/password.
+CONTROL_CENTER_AUTH_ENABLED=true
 # Leave unset unless you are provisioning the first real user.
 # No default admin is created when any of these values is missing.
 CONTROL_CENTER_ADMIN_EMAIL=

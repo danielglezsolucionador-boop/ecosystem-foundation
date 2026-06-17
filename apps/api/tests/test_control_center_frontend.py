@@ -63,6 +63,9 @@ def test_control_center_assets_are_served() -> None:
     assert "/api/v1/control-center" in js_response.text
     assert "/api/v1/governance/auth-boundary" in js_response.text
     assert "/api/v1/auth/login" in js_response.text
+    assert "/api/v1/auth/config" in js_response.text
+    assert "control_center_auth_enabled" in js_response.text
+    assert "control-center-auth-disabled" in js_response.text
     assert "remember_me" in js_response.text
     assert "readStoredSession" in js_response.text
     assert "sessionStorage.setItem(AUTH_TOKEN_KEY" in js_response.text

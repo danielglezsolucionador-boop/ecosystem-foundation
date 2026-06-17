@@ -217,6 +217,7 @@ def test_sombra_bug_bounty_report_is_idempotent_and_used_by_cerebro(monkeypatch)
                 "matches": 0,
                 "reportable_opportunities": 0,
                 "program_names": ["Bitso", "HostGator LATAM", "Nubank", "QuintoAndar"],
+                "paid_programs": ["Bitso", "HostGator LATAM", "Nubank", "QuintoAndar"],
                 "local_signals": [
                     "cabecera desactualizada en activo local",
                     "subdominio historico sin match de scope",
@@ -262,16 +263,26 @@ def test_sombra_bug_bounty_report_is_idempotent_and_used_by_cerebro(monkeypatch)
     reply = report_payload["reply"].lower()
     assert report_payload["used_context"]["used_sombra_context"] is True
     assert report_payload["used_context"]["sombra_latest_message_id"] == message["message_id"]
+    assert report_payload["used_context"]["productive_classification"] == "PENDIENTE_EVIDENCIA"
+    assert report_payload["used_context"]["audit_event_id"]
+    for section in ("dinero:", "informes:", "forja:", "linkedin:", "centinela:", "auditoria:", "decision ceo:"):
+        assert section in reply
     assert "bitso" in reply
     assert "hostgator latam" in reply
     assert "nubank" in reply
     assert "quintoandar" in reply
     assert "programas analizados: 4" in reply
+    assert "programas pagados: 4" in reply
     assert "senales detectadas: 3" in reply
     assert "coincidencias: 0" in reply
+    assert "matches cantidad: 0" in reply
     assert "oportunidades reportables: 0" in reply
     assert "no hay plata reclamable todavia" in reply
     assert "puedo ayudarte a revisar reportes si me los envias" not in reply
+    assert "sin empresa vulnerable" in reply
+    assert "sin endpoint" in reply
+    assert "sin explotacion" in reply
+    assert "sin datos sensibles" in reply
 
     bounty_question = client.post(
         "/api/v1/cerebro/chat",
@@ -282,3 +293,64 @@ def test_sombra_bug_bounty_report_is_idempotent_and_used_by_cerebro(monkeypatch)
     bounty_reply = bounty_question.json()["reply"].lower()
     assert "no hay plata reclamable todavia" in bounty_reply
     assert "no registra oportunidades reportables confirmadas" in bounty_reply
+
+    explicit_centinela_question = client.post(
+        "/api/v1/cerebro/chat",
+        json={
+            "message": "Consulta el ultimo escaneo del sistema discreto SOMBRA.",
+            "action": "centinela",
+        },
+        headers=CEO_HEADERS,
+    )
+    assert explicit_centinela_question.status_code == 200
+    explicit_payload = explicit_centinela_question.json()
+    assert explicit_payload["actions"][0]["type"] == "sombra_inbox_reviewed"
+    assert explicit_payload["used_context"]["used_sombra_context"] is True
+
+
+def test_sombra_reportable_bug_bounty_generates_private_ceo_outputs(monkeypatch) -> None:
+    monkeypatch.setattr(cerebro_service, "generate_cerebro_reply", lambda **_kwargs: None)
+    token = enable_sombra_inbox(monkeypatch)
+    message = sample_message(
+        type="scan_report",
+        severity="high",
+        title="Bug bounty reportable scope match",
+        summary="SOMBRA detecto oportunidad reportable en programa pagado con evidencia pendiente de revision CEO.",
+        audience=["cerebro", "centinela", "forja"],
+        payload={
+            "scan_summary": {
+                "programs_analyzed": 2,
+                "paid_programs": ["Programa Pagado Uno"],
+                "paid_program_count": 1,
+                "matches": 1,
+                "reportable_opportunities": 1,
+                "reportable_items": ["hallazgo privado sanitizado para revision CEO"],
+                "next_step": "Daniel revisa evidencia privada y sube manualmente el informe al programa.",
+            }
+        },
+        metadata={"case": "reportable-bug-bounty"},
+    )
+
+    stored = client.post(
+        "/api/v1/cerebro/inbox/sombra",
+        json=message,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert stored.status_code == 200
+
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": "Hay plata para reclamar por bug bounty?"},
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    reply = payload["reply"].lower()
+    assert payload["used_context"]["productive_classification"] == "INFORME_BUG_BOUNTY"
+    assert payload["used_context"]["ready_reports"] == 1
+    assert "informes listos para revision del ceo" in reply
+    assert "informe(s) privado(s) listo(s)" in reply
+    assert "daniel revisa evidencia privada" in reply
+    assert "sin publicacion automatica" in reply
+    assert "payload sensible retenido" in reply

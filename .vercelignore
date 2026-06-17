@@ -1,0 +1,17 @@
+.git/
+.vercel/
+.pytest_cache/
+__pycache__/
+**/__pycache__/
+.env
+.env.*
+backup/
+outputs/
+work/
+*.log
+work_*.pdf
+node_modules/
+dist/
+build/
+.venv/
+venv/
