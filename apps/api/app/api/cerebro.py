@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
 from app.schemas.auth import AuthenticatedUser, ControlCenterRole
+from app.schemas.bunker import SealedReport, SealedReportStatusUpdate
 from app.schemas.cerebro import (
     CerebroAlert,
     CerebroAlertCreate,
@@ -35,6 +36,11 @@ from app.schemas.cerebro import (
     SombraInboxMessageCreate,
     SombraInboxMessageResponse,
     SombraInboxRecentMessage,
+)
+from app.services.bunker_vault import (
+    audit_sealed_report_list_access,
+    list_sealed_reports,
+    update_sealed_report_status,
 )
 from app.services.auth import get_current_user, require_control_center_user
 from app.services.cerebro import (
@@ -120,6 +126,14 @@ def require_cerebro_approval(user: AuthenticatedUser) -> None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"error": "cerebro_approval_role_not_authorized", "role": user.role.value},
+        )
+
+
+def require_bunker_ceo(user: AuthenticatedUser) -> None:
+    if user.role != ControlCenterRole.ceo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"error": "bunker_ceo_only", "role": user.role.value},
         )
 
 
@@ -212,6 +226,38 @@ def read_sombra_inbox_recent(
 ) -> list[SombraInboxRecentMessage]:
     require_cerebro_read(current_user)
     return list_sombra_inbox_messages(limit=limit)
+
+
+@router.get("/bunker/sombra/sealed", response_model=list[SealedReport])
+def read_bunker_sombra_sealed_reports(
+    limit: int = 50,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> list[SealedReport]:
+    require_bunker_ceo(current_user)
+    reports = list_sealed_reports(limit=limit)
+    audit_sealed_report_list_access(current_user, len(reports))
+    return reports
+
+
+@router.patch("/bunker/sombra/sealed/{report_id}", response_model=SealedReport)
+def update_bunker_sombra_sealed_report(
+    report_id: str,
+    request: SealedReportStatusUpdate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> SealedReport:
+    require_bunker_ceo(current_user)
+    report = update_sealed_report_status(
+        report_id,
+        request.status,
+        actor=current_user,
+        reason=request.reason,
+    )
+    if report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "sealed_report_not_found", "report_id": report_id},
+        )
+    return report
 
 
 @router.get("/goals", response_model=list[CerebroCompanyGoal])

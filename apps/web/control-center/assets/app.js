@@ -37,6 +37,7 @@ const endpoints = {
   cerebroDecisions: "/api/v1/cerebro/decisions",
   cerebroTasks: "/api/v1/cerebro/tasks",
   cerebroExternalInbox: "/api/v1/cerebro/inbox/sombra/recent",
+  bunkerSealedReports: "/api/v1/cerebro/bunker/sombra/sealed",
   cerebroConversations: "/api/v1/cerebro/conversations",
   centinelaStatus: "/api/v1/centinela/status",
   ceoDailyCenter: "/api/v1/ceo/daily-center",
@@ -472,6 +473,31 @@ const BUNKER_DATA = [
   ["Códigos CEO sin leer", "0", "A1/A2 pendientes"],
   ["Riesgo personal", "Bajo", "Escaneo local limpio"]
 ];
+
+function renderBunkerSealedReports() {
+  const reports = Array.isArray(state.data.bunkerSealedReports) ? state.data.bunkerSealedReports : [];
+  if (!reports.length) {
+    return `
+      <div class="bunker-sealed-list">
+        <span>Reportes SOMBRA sellados</span>
+        <small>Sin paquetes CEO_ONLY registrados.</small>
+      </div>
+    `;
+  }
+  return `
+    <div class="bunker-sealed-list">
+      <span>Reportes SOMBRA sellados</span>
+      ${reports.slice(0, 5).map((report) => `
+        <article>
+          <strong>${escapeHtml(report.status || "SELLADO")}</strong>
+          <small>${escapeHtml(report.received_at || report.source_created_at || "sin fecha")}</small>
+          <code>${escapeHtml(report.content_sha256 || "hash pendiente")}</code>
+          <small>${escapeHtml(report.vault_path || "BUNKER/SOMBRA/")}</small>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
 
 const CENTINELA_ROWS = [
   ["CRÍTICO", [["Alertas activas", "3"], ["Nivel de amenaza", "Medio"], ["Clientes en riesgo", "Demo"], ["Decisiones pendientes", "2"]]],
@@ -2526,6 +2552,7 @@ function renderBunker() {
           <span>Flujo visual</span>
           <strong>CEO → CEREBRO → SOMBRA</strong>
           <p>Tú hablas con CEREBRO. Él gestiona a SOMBRA. Sin canal directo CEO → SOMBRA.</p>
+          ${renderBunkerSealedReports()}
           <label class="bunker-cerebro-channel">
             <span>Canal con CEREBRO</span>
             <div class="chat-input-row">

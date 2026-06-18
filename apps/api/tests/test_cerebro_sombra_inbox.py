@@ -6,6 +6,10 @@ from fastapi.testclient import TestClient
 import app.services.cerebro as cerebro_service
 from app.main import app
 from app.schemas.auth import ControlCenterRole
+from app.services.arsenal import get_catalog_item
+from app.services.audit import list_audit_events
+from app.services.bunker_vault import list_sealed_reports
+from app.services.cerebro import list_commercial_drafts, list_cerebro_tasks, list_sombra_inbox_messages
 from auth_helpers import auth_headers
 
 
@@ -354,3 +358,172 @@ def test_sombra_reportable_bug_bounty_generates_private_ceo_outputs(monkeypatch)
     assert "daniel revisa evidencia privada" in reply
     assert "sin publicacion automatica" in reply
     assert "payload sensible retenido" in reply
+
+
+def test_sombra_operational_defensive_report_runs_double_channel_operational_flow(monkeypatch) -> None:
+    monkeypatch.setattr(cerebro_service, "generate_cerebro_reply", lambda **_kwargs: None)
+    token = enable_sombra_inbox(monkeypatch)
+    message = sample_message(
+        classification="OPERATIVO_DEFENSIVO",
+        type="scan_report",
+        severity="high",
+        title="Reporte operativo defensivo para regla API skill",
+        summary=(
+            "CENTINELA debe evaluar una regla defensiva, preparar API interna, skill y herramienta "
+            "sin publicar endpoints ni tocar proveedores."
+        ),
+        audience=["cerebro"],
+        safe_for_commercial_use=True,
+        metadata={
+            "case": "double-channel-operational",
+            "requires_api": True,
+            "requires_skill": True,
+            "requires_tool": True,
+            "requires_defensive_rule": True,
+        },
+    )
+
+    response = client.post(
+        "/api/v1/cerebro/inbox/sombra",
+        json=message,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["classification"] == "OPERATIVO_DEFENSIVO"
+    assert payload["sealed"] is False
+    assert "centinela" in payload["routed_to"]
+    actions = {action["type"]: action for action in payload["internal_actions"]}
+    assert "centinela_analysis_created" in actions
+    assert actions["centinela_analysis_created"]["requires_forja_task"] == "true"
+    assert "forja_task_created" in actions
+    assert "arsenal_artifact_registered" in actions
+    assert "commercial_draft_created" in actions
+    assert "auditoria_flow_registered" in actions
+
+    task_id = actions["forja_task_created"]["id"]
+    task = next(item for item in list_cerebro_tasks() if item.id == task_id)
+    assert task.destination == "forja"
+    assert "CENTINELA" in task.description
+
+    artifact = get_catalog_item(actions["arsenal_artifact_registered"]["id"])
+    assert artifact.metadata["message_id"] == message["message_id"]
+    assert artifact.metadata["content_included"] is False
+    assert artifact.item_type in {"api", "skill", "herramienta", "regla_reutilizable"}
+
+    draft = next(item for item in list_commercial_drafts() if item.id == actions["commercial_draft_created"]["id"])
+    assert draft.source == "sombra_operativo_defensivo"
+    assert draft.source_message_id == message["message_id"]
+    assert draft.status == "prepared_pending_ceo_approval"
+    assert draft.requires_ceo_approval is True
+    assert draft.publish_allowed is False
+
+    audit = next(event for event in list_audit_events() if event.id == actions["auditoria_flow_registered"]["id"])
+    assert audit.action == "sombra_operational_report_flow"
+    assert audit.metadata["destination"] == "centinela_forja_arsenal_pluma_auditoria"
+
+
+def test_sombra_secret_military_ceo_report_is_sealed_without_cerebro_reading(monkeypatch) -> None:
+    token = enable_sombra_inbox(monkeypatch)
+    secret_marker = f"ULTRA-SEALED-{uuid4().hex}"
+
+    def fail_if_read(*_args, **_kwargs):
+        raise AssertionError("sealed content must not be processed by CEREBRO")
+
+    monkeypatch.setattr(cerebro_service, "apply_cyber_intelligence_protocol", fail_if_read)
+    monkeypatch.setattr(cerebro_service, "route_sombra_message", fail_if_read)
+    monkeypatch.setattr(cerebro_service, "generate_cerebro_reply", fail_if_read)
+
+    message = sample_message(
+        classification="SECRETO_MILITAR_CEO",
+        type="briefing",
+        severity="critical",
+        title="Paquete sellado CEO",
+        summary=f"Contenido sellado no legible {secret_marker}",
+        audience=["cerebro", "centinela", "forja", "pluma", "bunker"],
+        payload={"sealed_blob": secret_marker, "do_not_read": True},
+        metadata={"filename": "sealed-package.bin", "case": "sealed-channel"},
+    )
+
+    response = client.post(
+        "/api/v1/cerebro/inbox/sombra",
+        json=message,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    body = response.text
+    payload = response.json()
+    assert payload["classification"] == "SECRETO_MILITAR_CEO"
+    assert payload["sealed"] is True
+    assert payload["bunker_entry_id"]
+    assert payload["routed_to"] == ["bunker"]
+    assert payload["executive_summary"] is None
+    assert payload["commercial_draft_ready"] is False
+    assert payload["manual_review_required"] is True
+    assert "sealed_report_archived" in {action["type"] for action in payload["internal_actions"]}
+    assert secret_marker not in body
+
+    assert all(item.message_id != message["message_id"] for item in list_sombra_inbox_messages(limit=100))
+    sealed = next(item for item in list_sealed_reports(limit=100) if item.original_message_id == message["message_id"])
+    assert sealed.id == payload["bunker_entry_id"]
+    assert sealed.status == "SELLADO"
+    assert sealed.access == "CEO_ONLY"
+    assert sealed.vault_path.startswith("BUNKER/SOMBRA/")
+    assert len(sealed.content_sha256) == 64
+    assert sealed.content_size_bytes > 0
+    assert sealed.metadata["content_indexed"] is False
+    assert sealed.metadata["llm_allowed"] is False
+    assert sealed.metadata["embeddings_allowed"] is False
+    assert sealed.metadata["routed_to_centinela"] is False
+    assert sealed.metadata["routed_to_forja"] is False
+    assert sealed.metadata["routed_to_pluma"] is False
+    assert secret_marker not in sealed.model_dump_json()
+
+    audit_text = "\n".join(event.model_dump_json() for event in list_audit_events())
+    assert payload["bunker_entry_id"] in audit_text
+    assert secret_marker not in audit_text
+
+
+def test_bunker_sealed_reports_are_ceo_only_metadata_and_status_can_change(monkeypatch) -> None:
+    token = enable_sombra_inbox(monkeypatch)
+    message = sample_message(
+        classification="SECRETO_MILITAR_CEO",
+        message_id=f"sombra_sealed_status_{uuid4().hex}",
+        title="Paquete sellado para cambio de estado",
+        summary="Contenido reservado exclusivamente para CEO.",
+        audience=["bunker"],
+        payload={"sealed_blob": f"private-{uuid4().hex}"},
+    )
+    stored = client.post(
+        "/api/v1/cerebro/inbox/sombra",
+        json=message,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert stored.status_code == 200
+    report_id = stored.json()["bunker_entry_id"]
+
+    operator_headers = auth_headers(client, ControlCenterRole.operator)
+    denied = client.get("/api/v1/cerebro/bunker/sombra/sealed", headers=operator_headers)
+    assert denied.status_code == 403
+
+    listed = client.get("/api/v1/cerebro/bunker/sombra/sealed?limit=20", headers=CEO_HEADERS)
+    assert listed.status_code == 200
+    report = next(item for item in listed.json() if item["id"] == report_id)
+    assert report["status"] == "SELLADO"
+    assert report["access"] == "CEO_ONLY"
+    assert "content" not in report
+    assert "payload" not in report
+    assert report["vault_path"].count("/") >= 3
+
+    updated = client.patch(
+        f"/api/v1/cerebro/bunker/sombra/sealed/{report_id}",
+        json={"status": "COMPARTIR_CON_CEREBRO", "reason": "CEO autoriza revision posterior."},
+        headers=CEO_HEADERS,
+    )
+    assert updated.status_code == 200
+    assert updated.json()["status"] == "COMPARTIR_CON_CEREBRO"
+    assert "payload" not in updated.text
+    assert "sealed_blob" not in updated.text
+    assert str(message["payload"]["sealed_blob"]) not in updated.text

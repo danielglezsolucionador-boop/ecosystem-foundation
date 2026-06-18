@@ -193,6 +193,11 @@ class SombraInboxSeverity(StrEnum):
     critical = "critical"
 
 
+class SombraReportClassification(StrEnum):
+    operativo_defensivo = "OPERATIVO_DEFENSIVO"
+    secreto_militar_ceo = "SECRETO_MILITAR_CEO"
+
+
 SombraInboxAudience = Literal[
     "cerebro",
     "centinela",
@@ -214,6 +219,7 @@ class SombraInboxClientContext(BaseModel):
 class SombraInboxMessageCreate(BaseModel):
     message_id: str = Field(min_length=1, max_length=160)
     source: Literal["sombra"]
+    classification: SombraReportClassification = SombraReportClassification.operativo_defensivo
     type: SombraInboxMessageType
     severity: SombraInboxSeverity
     created_at: str = Field(min_length=1, max_length=80)
@@ -233,6 +239,9 @@ class SombraInboxMessageResponse(BaseModel):
     received: bool
     message_id: str = Field(min_length=1)
     stored: bool
+    classification: SombraReportClassification = SombraReportClassification.operativo_defensivo
+    sealed: bool = False
+    bunker_entry_id: str | None = None
     severity: SombraInboxSeverity | None = None
     ceo_code: str | None = None
     immediate_ceo_attention: bool = False
@@ -240,12 +249,14 @@ class SombraInboxMessageResponse(BaseModel):
     executive_summary: str | None = None
     commercial_draft_ready: bool = False
     manual_review_required: bool = False
+    internal_actions: list[dict[str, str]] = Field(default_factory=list)
 
 
 class SombraInboxRecentMessage(BaseModel):
     id: str = Field(min_length=1)
     message_id: str = Field(min_length=1)
     source: str = Field(min_length=1)
+    classification: SombraReportClassification = SombraReportClassification.operativo_defensivo
     type: SombraInboxMessageType
     severity: SombraInboxSeverity
     created_at: str = Field(min_length=1)

@@ -8338,3 +8338,25 @@ body {
     background-size: auto 100vh;
   }
 }
+.bunker-sealed-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.75rem 0;
+  font-size: 0.72rem;
+}
+
+.bunker-sealed-list article {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.6rem;
+  border: 1px solid rgba(200, 164, 94, 0.22);
+  background: rgba(8, 8, 10, 0.55);
+}
+
+.bunker-sealed-list code {
+  max-width: 100%;
+  overflow: hidden;
+  color: #d4af6a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -598,6 +598,7 @@
     <div style="margin: 1rem 0;"><span class="status-led" id="ledEstado"></span> <strong id="textoEstado">Estado operacional</strong></div>
     <div id="reporteTexto" style="background:#101014; padding: 12px; border-radius: 24px; margin: 10px 0;">Último reporte: Inteligencia externa verificada. Sin brechas activas. Riesgo contenido.</div>
     <div><strong>🚨 Alertas críticas:</strong> <span id="alertasBunker">1 anomalía en heartbeat de inteligencia (mitigada).</span></div>
+    <div id="bunkerSealedReports" style="background:#0b0b0e; border:1px solid rgba(200,164,94,0.22); padding:10px; margin-top:10px; font-size:0.72rem; color:#aaa;">Reportes SOMBRA sellados: metadata CEO_ONLY.</div>
     <div class="botones-bunker">
       <button class="btn-mini" id="btnVerInteligencia" style="background:#1e1a10;">🔍 VER INTELIGENCIA</button>
       <button class="btn-mini" id="btnBugBounty">🐞 BUG BOUNTY</button>
@@ -901,6 +902,29 @@
   const estadoSpan = document.getElementById('textoEstado');
   const reporteDiv = document.getElementById('reporteTexto');
   const alertasSpan = document.getElementById('alertasBunker');
+  const sealedReportsDiv = document.getElementById('bunkerSealedReports');
+
+  async function cargarReportesSelladosBunker() {
+    if (!sealedReportsDiv) return;
+    const reports = await apiGet('/api/v1/cerebro/bunker/sombra/sealed?limit=5');
+    sealedReportsDiv.innerHTML = '';
+    const title = document.createElement('div');
+    title.style.color = '#c8a45e';
+    title.innerText = 'Reportes SOMBRA sellados';
+    sealedReportsDiv.appendChild(title);
+    if (!reports || !reports.length) {
+      const empty = document.createElement('div');
+      empty.innerText = 'Sin paquetes CEO_ONLY registrados.';
+      sealedReportsDiv.appendChild(empty);
+      return;
+    }
+    reports.forEach(report => {
+      const row = document.createElement('div');
+      row.style.cssText = 'border-top:1px solid #25252a; padding-top:6px; margin-top:6px;';
+      row.innerText = `${report.status || 'SELLADO'} · ${report.received_at || 'sin fecha'} · ${report.content_sha256 || 'hash pendiente'} · ${report.vault_path || 'BUNKER/SOMBRA/'}`;
+      sealedReportsDiv.appendChild(row);
+    });
+  }
 
   function actualizarEstadoBunker() {
     const rand = Math.random();
@@ -924,12 +948,13 @@
 
   openBtn.onclick = () => {
     actualizarEstadoBunker();
+    cargarReportesSelladosBunker();
     modal.style.display = 'flex';
   };
   closeBtn.onclick = () => modal.style.display = 'none';
   window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 
-  document.getElementById('btnVerInteligencia').onclick = () => alert('📡 Inteligencia externa: patrones de amenaza en tiempo real. Matriz de riesgo actualizada.');
+  document.getElementById('btnVerInteligencia').onclick = () => alert('Metadata sellada visible para CEO. El contenido no se abre ni se resume desde la cabina normal.');
   document.getElementById('btnBugBounty').onclick = () => alert('🐞 Bug Bounty activo: reportes anónimos recompensados. Último cierre de brecha hace 4h.');
   document.getElementById('btnAutorizar').onclick = () => alert('✅ Autorización registrada: protocolos de acceso ejecutivo validados.');
   document.getElementById('btnArchivo').onclick = () => alert('📁 Archivo ejecutivo: reportes de auditoría, logs CENTINELA y bitácora estratégica.');

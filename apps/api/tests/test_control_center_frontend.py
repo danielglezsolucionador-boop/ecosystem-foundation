@@ -85,6 +85,9 @@ def test_control_center_assets_are_served() -> None:
     assert "/api/v1/cerebro/brief/evening" in js_response.text
     assert "/api/v1/cerebro/decisions" in js_response.text
     assert "/api/v1/cerebro/tasks" in js_response.text
+    assert "/api/v1/cerebro/bunker/sombra/sealed" in js_response.text
+    assert "renderBunkerSealedReports" in js_response.text
+    assert "Reportes SOMBRA sellados" in js_response.text
     assert "/api/v1/auditoria/status" in js_response.text
     assert "/api/v1/auditoria/reviews" in js_response.text
     assert "/api/v1/auditoria/queue" in js_response.text
@@ -141,6 +144,7 @@ def test_control_center_assets_are_served() -> None:
     assert "forbidden" in css_response.text
     assert "mobile-brand-chip" in css_response.text
     assert "department-card" in css_response.text
+    assert "bunker-sealed-list" in css_response.text
 
 
 def test_legacy_control_center_uses_auth_disabled_me_session() -> None:
@@ -152,6 +156,8 @@ def test_legacy_control_center_uses_auth_disabled_me_session() -> None:
     assert "loadAuthDisabledCeoSession" in response.text
     assert "clearToken();" in response.text
     assert "control-center-auth-disabled-ceo" in response.text
+    assert "/api/v1/cerebro/bunker/sombra/sealed" in response.text
+    assert "bunkerSealedReports" in response.text
     assert "showLoginOverlay();" in response.text
 
 

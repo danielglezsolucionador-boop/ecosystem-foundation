@@ -20,3 +20,22 @@ class CentinelaStatus(BaseModel):
     ceo_codes_pending: list[str] = Field(default_factory=list)
     source: str = Field(default="internal_control_center", min_length=1)
     generated_at: str = Field(min_length=1)
+
+
+class CentinelaReportAnalysis(BaseModel):
+    id: str = Field(min_length=1)
+    report_id: str = Field(min_length=1)
+    classification: str = Field(default="OPERATIVO_DEFENSIVO", min_length=1)
+    impact: str = Field(pattern="^(riesgo bajo|riesgo medio|riesgo alto|critico)$")
+    affects_ecosystem: bool
+    may_affect_clients: bool
+    requires_update: bool
+    requires_defensive_rule: bool
+    requires_api: bool
+    requires_skill: bool
+    requires_tool: bool
+    requires_forja_task: bool
+    safe_summary: str = Field(min_length=1, max_length=800)
+    recommendation: str = Field(min_length=1, max_length=1000)
+    source: str = Field(default="centinela.internal_analysis", min_length=1)
+    generated_at: str = Field(min_length=1)
