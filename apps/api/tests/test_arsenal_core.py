@@ -206,3 +206,18 @@ def test_arsenal_core_rejects_secret_fields() -> None:
         response.json()["detail"]["error"]
         == "arsenal_secret_payload_rejected"
     )
+
+
+def test_auth_disabled_mode_keeps_arsenal_writes_protected(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("CONTROL_CENTER_AUTH_ENABLED", "false")
+
+    readable = client.get("/api/v1/arsenal/resources")
+    write_attempt = client.post(
+        "/api/v1/arsenal/resources",
+        json=resource_payload(),
+    )
+
+    assert readable.status_code == 200
+    assert write_attempt.status_code == 401

@@ -59,6 +59,12 @@ def auth_disabled_request_allowed(request: Request) -> bool:
     path = str(request.url.path)
     if path in {"/api/v1/auth/me", "/api/v1/auth/logout"}:
         return True
+    if path.startswith("/api/v1/arsenal") and request.method.upper() not in {
+        "GET",
+        "HEAD",
+        "OPTIONS",
+    }:
+        return False
     return not any(path == prefix or path.startswith(f"{prefix}/") for prefix in AUTH_DISABLED_SENSITIVE_PREFIXES)
 
 
