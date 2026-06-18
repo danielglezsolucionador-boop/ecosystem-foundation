@@ -37,6 +37,17 @@ def test_arsenal_endpoints_require_auth() -> None:
         ("GET", "/api/v1/arsenal/linkedin/status"),
         ("GET", "/api/v1/arsenal/linkedin/oauth/start"),
         ("POST", "/api/v1/arsenal/linkedin/posts"),
+        ("GET", "/api/v1/arsenal/resources"),
+        ("GET", "/api/v1/arsenal/resources/arsenal-toolbelt-sombra"),
+        ("POST", "/api/v1/arsenal/resources"),
+        (
+            "POST",
+            "/api/v1/arsenal/resources/arsenal-toolbelt-sombra/replace",
+        ),
+        (
+            "POST",
+            "/api/v1/arsenal/resources/arsenal-toolbelt-sombra/disable",
+        ),
         ("GET", "/api/v1/arsenal/catalog"),
         ("POST", "/api/v1/arsenal/catalog"),
         ("GET", "/api/v1/arsenal/categories"),

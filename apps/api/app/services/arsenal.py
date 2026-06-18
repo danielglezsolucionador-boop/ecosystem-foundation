@@ -22,8 +22,13 @@ from app.schemas.arsenal import (
     ArsenalLinkedInPostRequest,
     ArsenalLinkedInPostResponse,
     ArsenalLinkedInStatus,
+    ArsenalOffice,
     ArsenalPermissionRule,
     ArsenalReadiness,
+    ArsenalResource,
+    ArsenalResourceCreate,
+    ArsenalResourceStatus,
+    ArsenalResourceType,
     ArsenalRisk,
     ArsenalRiskCreate,
     ArsenalStatus,
@@ -38,6 +43,7 @@ from app.services.revenue import create_opportunity
 
 ARSENAL_CATALOG_TABLE = "arsenal_catalog_items"
 ARSENAL_RISKS_TABLE = "arsenal_risks"
+ARSENAL_RESOURCES_TABLE = "arsenal_core_resources"
 
 SECRET_VALUE_PATTERN = re.compile(r"sk-[A-Za-z0-9_-]{8,}")
 SECRET_KEYS = {
@@ -100,6 +106,168 @@ BROKER_PERMISSIONS = {
     ArsenalBrokerOffice.cerebro: set(ArsenalBrokerCapability),
 }
 
+DEFENSIVE_RESOURCE_CATEGORIES = {
+    "herramientas_ciberseguridad",
+    "ciberseguridad",
+    "defensivo",
+    "defensive",
+    "security",
+}
+EDITORIAL_RESOURCE_CATEGORIES = {
+    "herramientas_contenido",
+    "contenido",
+    "editorial",
+    "publishing",
+    "marketing",
+}
+OBSOLETE_RESOURCE_STATUSES = {
+    ArsenalResourceStatus.deprecated,
+    ArsenalResourceStatus.replaced,
+    ArsenalResourceStatus.disabled,
+}
+
+INITIAL_CORE_RESOURCES: list[dict[str, object]] = [
+    {
+        "id": "arsenal-provider-openai-api",
+        "name": "OpenAI API provider",
+        "type": ArsenalResourceType.provider,
+        "category": "modelos_ia",
+        "version": "placeholder-v1",
+        "status": ArsenalResourceStatus.testing,
+        "owner_office": ArsenalOffice.cerebro,
+        "allowed_offices": [ArsenalOffice.cerebro, ArsenalOffice.forja, ArsenalOffice.auditoria],
+        "location": "provider://openai",
+        "runtime": "external_provider_pending_activation",
+        "description": "Proveedor de modelos IA preparado como metadata interna, sin credenciales reales.",
+        "input_schema": {"kind": "metadata_only"},
+        "output_schema": {"kind": "metadata_only"},
+        "replaces": None,
+        "notes": "No guarda llaves reales. Activacion requiere canal seguro y aprobacion CEO.",
+        "available_for_sombra": False,
+        "readiness": "pending_secret",
+    },
+    {
+        "id": "arsenal-integration-linkedin-oauth",
+        "name": "LinkedIn OAuth connector",
+        "type": ArsenalResourceType.integration,
+        "category": "conectores",
+        "version": "placeholder-v1",
+        "status": ArsenalResourceStatus.testing,
+        "owner_office": ArsenalOffice.forja,
+        "allowed_offices": [
+            ArsenalOffice.cerebro,
+            ArsenalOffice.forja,
+            ArsenalOffice.pluma,
+            ArsenalOffice.marca_personal,
+            ArsenalOffice.auditoria,
+        ],
+        "location": "connector://linkedin/oauth",
+        "runtime": "oauth_connector_pending_credentials",
+        "description": "Conector OAuth de LinkedIn preparado sin client id, client secret ni tokens.",
+        "input_schema": {"kind": "oauth_metadata_only"},
+        "output_schema": {"kind": "draft_or_auth_url_metadata"},
+        "replaces": None,
+        "notes": "Credenciales pendientes por canal seguro; publicacion real deshabilitada.",
+        "available_for_sombra": False,
+        "readiness": "pending_credentials",
+    },
+    {
+        "id": "arsenal-tool-header-csp-auditor",
+        "name": "Header/CSP Auditor",
+        "type": ArsenalResourceType.tool,
+        "category": "herramientas_ciberseguridad",
+        "version": "planned-v1",
+        "status": ArsenalResourceStatus.testing,
+        "owner_office": ArsenalOffice.centinela,
+        "allowed_offices": [
+            ArsenalOffice.cerebro,
+            ArsenalOffice.sombra,
+            ArsenalOffice.centinela,
+            ArsenalOffice.auditoria,
+        ],
+        "location": "internal://arsenal/tools/header-csp-auditor",
+        "runtime": "planned_internal_tool",
+        "description": "Auditor defensivo planificado para revisar cabeceras HTTP y politicas CSP.",
+        "input_schema": {"url": "string"},
+        "output_schema": {"findings": "list", "risk": "string"},
+        "replaces": None,
+        "notes": "Herramienta defensiva planificada. No ejecuta runtime externo en ARSENAL CORE.",
+        "available_for_sombra": True,
+        "readiness": "planned",
+    },
+    {
+        "id": "arsenal-tool-report-normalizer",
+        "name": "Report Normalizer",
+        "type": ArsenalResourceType.tool,
+        "category": "herramientas_contenido",
+        "version": "planned-v1",
+        "status": ArsenalResourceStatus.testing,
+        "owner_office": ArsenalOffice.pluma,
+        "allowed_offices": [
+            ArsenalOffice.cerebro,
+            ArsenalOffice.pluma,
+            ArsenalOffice.marca_personal,
+            ArsenalOffice.auditoria,
+        ],
+        "location": "internal://arsenal/tools/report-normalizer",
+        "runtime": "planned_internal_tool",
+        "description": "Normalizador de reportes preparado para convertir hallazgos tecnicos en entregables.",
+        "input_schema": {"report": "object"},
+        "output_schema": {"normalized_report": "object"},
+        "replaces": None,
+        "notes": "Uso editorial y documental. Sin secretos ni publicacion automatica.",
+        "available_for_sombra": False,
+        "readiness": "planned",
+    },
+    {
+        "id": "arsenal-toolbelt-sombra",
+        "name": "Sombra Toolbelt",
+        "type": ArsenalResourceType.tool,
+        "category": "herramientas_ciberseguridad",
+        "version": "external-v1",
+        "status": ArsenalResourceStatus.active,
+        "owner_office": ArsenalOffice.sombra,
+        "allowed_offices": [
+            ArsenalOffice.cerebro,
+            ArsenalOffice.sombra,
+            ArsenalOffice.centinela,
+            ArsenalOffice.auditoria,
+        ],
+        "location": "external://sombra/toolbelt",
+        "runtime": "external_registered_metadata_only",
+        "description": "Registro externo del conjunto de herramientas disponible para SOMBRA.",
+        "input_schema": {"tool_request": "object"},
+        "output_schema": {"tool_result_metadata": "object"},
+        "replaces": None,
+        "notes": "ARSENAL solo registra metadata; no toca runtime de SOMBRA.",
+        "available_for_sombra": True,
+        "readiness": "external_registered",
+    },
+    {
+        "id": "arsenal-module-centinela-defensive-rules",
+        "name": "Centinela Defensive Rules",
+        "type": ArsenalResourceType.module,
+        "category": "herramientas_ciberseguridad",
+        "version": "planned-v1",
+        "status": ArsenalResourceStatus.testing,
+        "owner_office": ArsenalOffice.centinela,
+        "allowed_offices": [
+            ArsenalOffice.cerebro,
+            ArsenalOffice.centinela,
+            ArsenalOffice.auditoria,
+        ],
+        "location": "internal://arsenal/modules/centinela-defensive-rules",
+        "runtime": "planned_internal_module",
+        "description": "Reglas defensivas planificadas para CENTINELA.",
+        "input_schema": {"event": "object"},
+        "output_schema": {"decision": "object"},
+        "replaces": None,
+        "notes": "Modulo defensivo preparado. Sin integracion externa activa.",
+        "available_for_sombra": False,
+        "readiness": "planned",
+    },
+]
+
 
 class ArsenalError(Exception):
     def __init__(self, status_code: int, detail: dict[str, object]) -> None:
@@ -123,7 +291,7 @@ def actor_name(user: AuthenticatedUser) -> str:
 def ensure_arsenal_schema() -> None:
     initialize_database()
     with connect() as connection:
-        for table_name in [ARSENAL_CATALOG_TABLE, ARSENAL_RISKS_TABLE]:
+        for table_name in [ARSENAL_CATALOG_TABLE, ARSENAL_RISKS_TABLE, ARSENAL_RESOURCES_TABLE]:
             connection.execute(
                 f"""
                 CREATE TABLE IF NOT EXISTS {table_name} (
@@ -135,6 +303,54 @@ def ensure_arsenal_schema() -> None:
                 """
             )
         connection.commit()
+    seed_initial_core_resources()
+
+
+def seed_initial_core_resources() -> None:
+    placeholder = sql_placeholder()
+    now = utc_now()
+    created: list[ArsenalResource] = []
+    with connect() as connection:
+        for seed in INITIAL_CORE_RESOURCES:
+            row = connection.execute(
+                f"SELECT id FROM {ARSENAL_RESOURCES_TABLE} WHERE id = {placeholder}",
+                (seed["id"],),
+            ).fetchone()
+            if row:
+                continue
+            resource = ArsenalResource(
+                **seed,
+                created_at=now,
+                updated_at=now,
+                audit_event_ids=[],
+            )
+            connection.execute(
+                f"""
+                INSERT INTO {ARSENAL_RESOURCES_TABLE} (id, payload_json, created_at, updated_at)
+                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+                """,
+                (resource.id, resource.model_dump_json(), resource.created_at, resource.updated_at),
+            )
+            created.append(resource)
+        connection.commit()
+
+    for resource in created:
+        event_id = audit_arsenal_action(
+            actor=None,
+            action="resource_created",
+            status=resource.status.value,
+            detail="ARSENAL CORE seeded placeholder resource metadata without secrets.",
+            metadata={
+                "resource_id": resource.id,
+                "resource_name": resource.name,
+                "resource_type": resource.type.value,
+                "version": resource.version,
+                "readiness": resource.readiness,
+                "available_for_sombra": resource.available_for_sombra,
+            },
+        )
+        resource.audit_event_ids.append(event_id)
+        _save_resource(resource)
 
 
 def insert_payload(table_name: str, item_id: str, payload: str) -> None:
@@ -257,6 +473,524 @@ def assert_no_secret_payload(payload: dict) -> None:
                 "reason": "ARSENAL stores metadata only; do not send API keys, tokens, passwords or secrets.",
             },
         )
+
+
+def build_resource_id(resource: ArsenalResourceCreate) -> str:
+    if resource.id:
+        return resource.id.strip()
+    slug = re.sub(
+        r"[^a-z0-9_]+",
+        "_",
+        normalize(f"{resource.name}_{resource.version}"),
+    ).strip("_")
+    return f"arsenal-resource-{slug[:140]}"
+
+
+def coerce_resource_create(
+    resource: ArsenalResourceCreate | dict[str, object],
+) -> ArsenalResourceCreate:
+    if isinstance(resource, ArsenalResourceCreate):
+        return resource
+    return ArsenalResourceCreate(**resource)
+
+
+def coerce_office(office: ArsenalOffice | str) -> ArsenalOffice:
+    if isinstance(office, ArsenalOffice):
+        return office
+    normalized = str(office or "").strip().upper().replace(" ", "_").replace("-", "_")
+    try:
+        return ArsenalOffice(normalized)
+    except ValueError as exc:
+        raise ArsenalError(
+            400,
+            {"error": "arsenal_unknown_office", "office": str(office)},
+        ) from exc
+
+
+def resource_matches_name(resource: ArsenalResource, resource_name: str) -> bool:
+    normalized = normalize(resource_name)
+    return resource.id == resource_name or normalize(resource.name) == normalized
+
+
+def is_defensive_resource(resource: ArsenalResource) -> bool:
+    category = normalize(resource.category)
+    return (
+        category in DEFENSIVE_RESOURCE_CATEGORIES
+        or resource.owner_office == ArsenalOffice.centinela
+        or "ciber" in category
+        or "security" in category
+        or "defens" in category
+    )
+
+
+def is_editorial_resource(resource: ArsenalResource) -> bool:
+    category = normalize(resource.category)
+    return (
+        category in EDITORIAL_RESOURCE_CATEGORIES
+        or resource.owner_office
+        in {ArsenalOffice.pluma, ArsenalOffice.marca_personal}
+        or "contenido" in category
+        or "editor" in category
+        or "marketing" in category
+    )
+
+
+def office_can_access_resource(
+    office: ArsenalOffice,
+    resource: ArsenalResource,
+) -> bool:
+    allowed = set(resource.allowed_offices)
+    if office in {ArsenalOffice.cerebro, ArsenalOffice.auditoria, ArsenalOffice.ceo}:
+        return True
+    if office == ArsenalOffice.sombra:
+        return resource.available_for_sombra and office in allowed
+    if office == ArsenalOffice.centinela:
+        return office in allowed and is_defensive_resource(resource)
+    if office in {ArsenalOffice.pluma, ArsenalOffice.marca_personal}:
+        return office in allowed and is_editorial_resource(resource)
+    if office == ArsenalOffice.forja:
+        return office in allowed or resource.owner_office == ArsenalOffice.forja
+    return office in allowed
+
+
+def _save_resource(resource: ArsenalResource) -> None:
+    placeholder = sql_placeholder()
+    with connect() as connection:
+        connection.execute(
+            f"""
+            INSERT INTO {ARSENAL_RESOURCES_TABLE} (id, payload_json, created_at, updated_at)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+            ON CONFLICT(id) DO UPDATE SET
+                payload_json = excluded.payload_json,
+                updated_at = excluded.updated_at
+            """,
+            (
+                resource.id,
+                resource.model_dump_json(),
+                resource.created_at,
+                resource.updated_at,
+            ),
+        )
+        connection.commit()
+
+
+def _resource_from_payload(payload: dict) -> ArsenalResource:
+    return ArsenalResource(**payload)
+
+
+def list_all_resources() -> list[ArsenalResource]:
+    ensure_arsenal_schema()
+    resources: list[ArsenalResource] = []
+    for payload in fetch_payloads(ARSENAL_RESOURCES_TABLE):
+        try:
+            resources.append(_resource_from_payload(payload))
+        except Exception:
+            continue
+    return resources
+
+
+def get_resource(resource_id: str) -> ArsenalResource:
+    payload = fetch_payload(ARSENAL_RESOURCES_TABLE, resource_id)
+    if payload is None:
+        raise ArsenalError(
+            404,
+            {"error": "arsenal_resource_not_found", "resource_id": resource_id},
+        )
+    return _resource_from_payload(payload)
+
+
+def find_active_replacement(resource: ArsenalResource) -> ArsenalResource | None:
+    for candidate in list_all_resources():
+        if candidate.id == resource.id or candidate.status != ArsenalResourceStatus.active:
+            continue
+        if candidate.replaces == resource.id:
+            return candidate
+        if (
+            normalize(candidate.name) == normalize(resource.name)
+            and candidate.type == resource.type
+        ):
+            return candidate
+    return None
+
+
+def validate_resource_payload(resource: ArsenalResourceCreate) -> None:
+    assert_no_secret_payload(resource.model_dump(mode="json"))
+    if not resource.allowed_offices:
+        raise ArsenalError(400, {"error": "arsenal_allowed_offices_required"})
+    if (
+        resource.available_for_sombra
+        and ArsenalOffice.sombra not in set(resource.allowed_offices)
+    ):
+        raise ArsenalError(
+            400,
+            {
+                "error": "arsenal_sombra_availability_mismatch",
+                "reason": "available_for_sombra requires SOMBRA in allowed_offices.",
+            },
+        )
+
+
+def register_resource(
+    resource: ArsenalResourceCreate | dict[str, object],
+    actor: AuthenticatedUser | None = None,
+) -> ArsenalResource:
+    request = coerce_resource_create(resource)
+    validate_resource_payload(request)
+    ensure_arsenal_schema()
+
+    now = utc_now()
+    resource_id = build_resource_id(request)
+    existing: ArsenalResource | None = None
+    try:
+        existing = get_resource(resource_id)
+    except ArsenalError as error:
+        if error.status_code != 404:
+            raise
+
+    active_siblings = [
+        item
+        for item in list_all_resources()
+        if item.id != resource_id
+        and item.status == ArsenalResourceStatus.active
+        and item.type == request.type
+        and normalize(item.name) == normalize(request.name)
+    ]
+    if (
+        active_siblings
+        and not request.replaces
+        and request.status == ArsenalResourceStatus.active
+    ):
+        raise ArsenalError(
+            409,
+            {
+                "error": "arsenal_active_version_exists",
+                "resource_name": request.name,
+                "active_resource_id": active_siblings[0].id,
+                "reason": (
+                    "Use replace_resource to preserve version history and prevent "
+                    "obsolete usage."
+                ),
+            },
+        )
+
+    if request.owner_office not in set(request.allowed_offices):
+        request = request.model_copy(
+            update={
+                "allowed_offices": [
+                    *request.allowed_offices,
+                    request.owner_office,
+                ]
+            }
+        )
+
+    payload = request.model_dump(mode="json")
+    payload["id"] = resource_id
+    saved = ArsenalResource(
+        **payload,
+        replaced_by=existing.replaced_by if existing else None,
+        created_at=existing.created_at if existing else now,
+        updated_at=now,
+        audit_event_ids=list(existing.audit_event_ids) if existing else [],
+    )
+    _save_resource(saved)
+
+    if saved.replaces:
+        old = get_resource(saved.replaces)
+        old.status = ArsenalResourceStatus.replaced
+        old.replaced_by = saved.id
+        old.updated_at = now
+        old.notes = f"{old.notes} Replaced by {saved.id}.".strip()
+        old_event_id = audit_arsenal_action(
+            actor=actor,
+            action="resource_updated",
+            status=old.status.value,
+            detail="ARSENAL CORE marked an older resource version as replaced.",
+            metadata={
+                "resource_id": old.id,
+                "replacement_id": saved.id,
+                "resource_name": old.name,
+                "version": old.version,
+            },
+        )
+        replace_event_id = audit_arsenal_action(
+            actor=actor,
+            action="version_replaced",
+            status=saved.status.value,
+            detail=(
+                "ARSENAL CORE registered a new active version and preserved "
+                "the previous version."
+            ),
+            metadata={
+                "old_resource_id": old.id,
+                "new_resource_id": saved.id,
+                "resource_name": saved.name,
+                "old_version": old.version,
+                "new_version": saved.version,
+            },
+        )
+        old.audit_event_ids.extend([old_event_id, replace_event_id])
+        saved.audit_event_ids.append(replace_event_id)
+        _save_resource(old)
+
+    event_id = audit_arsenal_action(
+        actor=actor,
+        action="resource_updated" if existing else "resource_created",
+        status=saved.status.value,
+        detail="ARSENAL CORE registered resource metadata without storing secrets.",
+        metadata={
+            "resource_id": saved.id,
+            "resource_name": saved.name,
+            "resource_type": saved.type.value,
+            "version": saved.version,
+            "owner_office": saved.owner_office.value,
+            "allowed_offices": [
+                office.value for office in saved.allowed_offices
+            ],
+            "available_for_sombra": saved.available_for_sombra,
+        },
+    )
+    saved.audit_event_ids.append(event_id)
+    _save_resource(saved)
+    return saved
+
+
+def replace_resource(
+    old_id: str,
+    new_resource: ArsenalResourceCreate | dict[str, object],
+    actor: AuthenticatedUser | None = None,
+) -> ArsenalResource:
+    old = get_resource(old_id)
+    request = coerce_resource_create(new_resource).model_copy(
+        update={
+            "status": ArsenalResourceStatus.active,
+            "replaces": old.id,
+        }
+    )
+    return register_resource(request, actor)
+
+
+def disable_resource(
+    resource_id: str,
+    actor: AuthenticatedUser | None = None,
+) -> ArsenalResource:
+    resource = get_resource(resource_id)
+    resource.status = ArsenalResourceStatus.disabled
+    resource.updated_at = utc_now()
+    event_id = audit_arsenal_action(
+        actor=actor,
+        action="resource_updated",
+        status=resource.status.value,
+        detail="ARSENAL CORE disabled a resource.",
+        severity=AuditSeverity.medium,
+        metadata={
+            "resource_id": resource.id,
+            "resource_name": resource.name,
+            "version": resource.version,
+        },
+    )
+    resource.audit_event_ids.append(event_id)
+    _save_resource(resource)
+    audit_arsenal_action(
+        actor=actor,
+        action="resource_disabled",
+        status=resource.status.value,
+        detail="ARSENAL CORE resource disabled and unavailable for office usage.",
+        severity=AuditSeverity.medium,
+        metadata={"resource_id": resource.id, "resource_name": resource.name},
+    )
+    return resource
+
+
+def list_resources_for_office(
+    office: ArsenalOffice | str,
+    *,
+    include_obsolete: bool = False,
+    actor: AuthenticatedUser | None = None,
+) -> list[ArsenalResource]:
+    target_office = coerce_office(office)
+    resources = [
+        resource
+        for resource in list_all_resources()
+        if office_can_access_resource(target_office, resource)
+    ]
+    if not include_obsolete:
+        resources = [
+            resource
+            for resource in resources
+            if resource.status not in OBSOLETE_RESOURCE_STATUSES
+        ]
+    audit_arsenal_action(
+        actor=actor,
+        action="resource_consulted_by_office",
+        status="listed",
+        detail=f"ARSENAL CORE resources consulted by {target_office.value}.",
+        metadata={
+            "office": target_office.value,
+            "resource_count": len(resources),
+            "include_obsolete": include_obsolete,
+        },
+    )
+    return resources
+
+
+def get_resource_for_office(
+    office: ArsenalOffice | str,
+    resource_name: str,
+    actor: AuthenticatedUser | None = None,
+) -> ArsenalResource:
+    target_office = coerce_office(office)
+    matches = [
+        resource
+        for resource in list_all_resources()
+        if resource_matches_name(resource, resource_name)
+    ]
+    if not matches:
+        raise ArsenalError(
+            404,
+            {"error": "arsenal_resource_not_found", "resource_name": resource_name},
+        )
+
+    accessible = [
+        resource
+        for resource in matches
+        if office_can_access_resource(target_office, resource)
+    ]
+    if not accessible:
+        raise ArsenalError(
+            403,
+            {
+                "error": "arsenal_resource_not_authorized_for_office",
+                "office": target_office.value,
+                "resource_name": resource_name,
+            },
+        )
+
+    exact = next(
+        (resource for resource in accessible if resource.id == resource_name),
+        None,
+    )
+    if exact and exact.status in OBSOLETE_RESOURCE_STATUSES:
+        replacement = find_active_replacement(exact)
+        raise ArsenalError(
+            409,
+            {
+                "error": "arsenal_resource_obsolete",
+                "resource_id": exact.id,
+                "status": exact.status.value,
+                "active_resource_id": replacement.id if replacement else None,
+                "reason": (
+                    "CEREBRO and SOMBRA must not use obsolete ARSENAL resources."
+                ),
+            },
+        )
+
+    usable = [
+        resource
+        for resource in accessible
+        if resource.status not in OBSOLETE_RESOURCE_STATUSES
+    ]
+    if not usable:
+        raise ArsenalError(
+            409,
+            {
+                "error": "arsenal_resource_not_usable",
+                "office": target_office.value,
+                "resource_name": resource_name,
+            },
+        )
+
+    usable.sort(
+        key=lambda item: (
+            item.status != ArsenalResourceStatus.active,
+            item.updated_at,
+        )
+    )
+    selected = next(
+        (
+            item
+            for item in usable
+            if item.status == ArsenalResourceStatus.active
+        ),
+        usable[0],
+    )
+    audit_arsenal_action(
+        actor=actor,
+        action="resource_consulted_by_office",
+        status=selected.status.value,
+        detail=f"ARSENAL CORE resource consulted by {target_office.value}.",
+        metadata={
+            "office": target_office.value,
+            "resource_id": selected.id,
+            "resource_name": selected.name,
+            "version": selected.version,
+            "available_for_sombra": selected.available_for_sombra,
+        },
+    )
+    return selected
+
+
+def list_resources(
+    *,
+    name: str | None = None,
+    resource_type: ArsenalResourceType | str | None = None,
+    office: ArsenalOffice | str | None = None,
+    category: str | None = None,
+    status: ArsenalResourceStatus | str | None = None,
+    active_only: bool = False,
+    actor: AuthenticatedUser | None = None,
+) -> list[ArsenalResource]:
+    include_obsolete = status is not None
+    resources = (
+        list_resources_for_office(
+            office,
+            include_obsolete=include_obsolete,
+            actor=actor,
+        )
+        if office
+        else list_all_resources()
+    )
+    if name:
+        normalized_name = normalize(name)
+        resources = [
+            resource
+            for resource in resources
+            if resource.id == name or normalize(resource.name) == normalized_name
+        ]
+    if resource_type:
+        target_type = (
+            resource_type
+            if isinstance(resource_type, ArsenalResourceType)
+            else ArsenalResourceType(str(resource_type).upper())
+        )
+        resources = [
+            resource for resource in resources if resource.type == target_type
+        ]
+    if category:
+        normalized_category = normalize(category)
+        resources = [
+            resource
+            for resource in resources
+            if normalize(resource.category) == normalized_category
+        ]
+    if status:
+        target_status = (
+            status
+            if isinstance(status, ArsenalResourceStatus)
+            else ArsenalResourceStatus(str(status).lower())
+        )
+        resources = [
+            resource for resource in resources if resource.status == target_status
+        ]
+    if active_only:
+        resources = [
+            resource
+            for resource in resources
+            if resource.status == ArsenalResourceStatus.active
+        ]
+    return sorted(
+        resources,
+        key=lambda item: (normalize(item.name), item.version, item.id),
+    )
 
 
 def permission_rules() -> list[ArsenalPermissionRule]:

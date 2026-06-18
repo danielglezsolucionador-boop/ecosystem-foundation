@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.schemas.arsenal import (
     ArsenalBrokerRequest,
@@ -12,7 +12,12 @@ from app.schemas.arsenal import (
     ArsenalLinkedInPostRequest,
     ArsenalLinkedInPostResponse,
     ArsenalLinkedInStatus,
+    ArsenalOffice,
     ArsenalReadiness,
+    ArsenalResource,
+    ArsenalResourceCreate,
+    ArsenalResourceStatus,
+    ArsenalResourceType,
     ArsenalRisk,
     ArsenalRiskCreate,
     ArsenalStatus,
@@ -23,16 +28,22 @@ from app.services.arsenal import (
     build_linkedin_oauth_start,
     create_catalog_item,
     create_risk,
+    disable_resource,
     evaluate_catalog_item,
     get_broker_status,
     get_catalog_item,
     get_linkedin_status,
     get_readiness,
+    get_resource,
+    get_resource_for_office,
     get_status,
     list_catalog_items,
     list_categories,
+    list_resources,
     list_risks,
     prepare_linkedin_post,
+    register_resource,
+    replace_resource,
     run_broker_request,
     send_catalog_item_to_forja,
 )
@@ -146,6 +157,94 @@ def write_arsenal_linkedin_post(
     require_arsenal_write(current_user)
     try:
         return prepare_linkedin_post(request, current_user)
+    except ArsenalError as error:
+        raise_arsenal_error(error)
+
+
+@router.get("/resources", response_model=list[ArsenalResource])
+def read_arsenal_resources(
+    name: str | None = None,
+    resource_type: ArsenalResourceType | None = Query(default=None, alias="type"),
+    office: ArsenalOffice | None = None,
+    category: str | None = None,
+    resource_status: ArsenalResourceStatus | None = Query(
+        default=None,
+        alias="status",
+    ),
+    active_only: bool = False,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> list[ArsenalResource]:
+    require_arsenal_read(current_user)
+    try:
+        return list_resources(
+            name=name,
+            resource_type=resource_type,
+            office=office,
+            category=category,
+            status=resource_status,
+            active_only=active_only,
+            actor=current_user,
+        )
+    except ArsenalError as error:
+        raise_arsenal_error(error)
+
+
+@router.get("/resources/{resource_id}", response_model=ArsenalResource)
+def read_arsenal_resource(
+    resource_id: str,
+    office: ArsenalOffice | None = None,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalResource:
+    require_arsenal_read(current_user)
+    try:
+        if office:
+            return get_resource_for_office(office, resource_id, current_user)
+        return get_resource(resource_id)
+    except ArsenalError as error:
+        raise_arsenal_error(error)
+
+
+@router.post(
+    "/resources",
+    response_model=ArsenalResource,
+    status_code=status.HTTP_201_CREATED,
+)
+def write_arsenal_resource(
+    request: ArsenalResourceCreate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalResource:
+    require_arsenal_write(current_user)
+    try:
+        return register_resource(request, current_user)
+    except ArsenalError as error:
+        raise_arsenal_error(error)
+
+
+@router.post(
+    "/resources/{resource_id}/replace",
+    response_model=ArsenalResource,
+    status_code=status.HTTP_201_CREATED,
+)
+def replace_arsenal_resource(
+    resource_id: str,
+    request: ArsenalResourceCreate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalResource:
+    require_arsenal_write(current_user)
+    try:
+        return replace_resource(resource_id, request, current_user)
+    except ArsenalError as error:
+        raise_arsenal_error(error)
+
+
+@router.post("/resources/{resource_id}/disable", response_model=ArsenalResource)
+def disable_arsenal_resource(
+    resource_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalResource:
+    require_arsenal_write(current_user)
+    try:
+        return disable_resource(resource_id, current_user)
     except ArsenalError as error:
         raise_arsenal_error(error)
 

@@ -155,6 +155,88 @@ class ArsenalStatus(BaseModel):
     generated_at: str = Field(min_length=1)
 
 
+class ArsenalResourceType(StrEnum):
+    api = "API"
+    tool = "TOOL"
+    skill = "SKILL"
+    app = "APP"
+    module = "MODULE"
+    provider = "PROVIDER"
+    model = "MODEL"
+    integration = "INTEGRATION"
+
+
+class ArsenalResourceStatus(StrEnum):
+    active = "active"
+    testing = "testing"
+    deprecated = "deprecated"
+    replaced = "replaced"
+    disabled = "disabled"
+
+
+class ArsenalOffice(StrEnum):
+    cerebro = "CEREBRO"
+    sombra = "SOMBRA"
+    centinela = "CENTINELA"
+    forja = "FORJA"
+    pluma = "PLUMA"
+    marca_personal = "MARCA_PERSONAL"
+    auditoria = "AUDITORIA"
+    nube = "NUBE"
+    ceo = "CEO"
+
+
+class ArsenalResourceCreate(BaseModel):
+    id: str | None = Field(default=None, min_length=1, max_length=180)
+    name: str = Field(min_length=1, max_length=180)
+    type: ArsenalResourceType
+    category: str = Field(min_length=1, max_length=120)
+    version: str = Field(min_length=1, max_length=80)
+    status: ArsenalResourceStatus = ArsenalResourceStatus.testing
+    owner_office: ArsenalOffice
+    allowed_offices: list[ArsenalOffice] = Field(default_factory=list)
+    location: str = Field(min_length=1, max_length=300)
+    runtime: str = Field(default="metadata_only", min_length=1, max_length=180)
+    description: str = Field(min_length=1, max_length=1200)
+    input_schema: dict[str, Any] = Field(default_factory=dict)
+    output_schema: dict[str, Any] = Field(default_factory=dict)
+    replaces: str | None = Field(default=None, max_length=180)
+    notes: str = Field(default="", max_length=1200)
+    available_for_sombra: bool = False
+    readiness: str = Field(default="planned", min_length=1, max_length=120)
+
+
+class ArsenalResourceDisableRequest(BaseModel):
+    reason: str = Field(default="disabled_by_governance", min_length=1, max_length=400)
+
+
+class ArsenalResource(BaseModel):
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    type: ArsenalResourceType
+    category: str = Field(min_length=1)
+    version: str = Field(min_length=1)
+    status: ArsenalResourceStatus
+    owner_office: ArsenalOffice
+    allowed_offices: list[ArsenalOffice] = Field(default_factory=list)
+    location: str = Field(min_length=1)
+    runtime: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    input_schema: dict[str, Any] = Field(default_factory=dict)
+    output_schema: dict[str, Any] = Field(default_factory=dict)
+    replaces: str | None = None
+    replaced_by: str | None = None
+    created_at: str = Field(min_length=1)
+    updated_at: str = Field(min_length=1)
+    notes: str = ""
+    available_for_sombra: bool = False
+    readiness: str = Field(default="planned", min_length=1)
+    external_connection_enabled: bool = False
+    runtime_connected: bool = False
+    secrets_stored: bool = False
+    audit_event_ids: list[str] = Field(default_factory=list)
+
+
 class ArsenalBrokerOffice(StrEnum):
     cerebro = "CEREBRO"
     pluma = "PLUMA"
