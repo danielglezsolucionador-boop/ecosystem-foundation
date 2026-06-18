@@ -658,8 +658,10 @@
 
   // ---- Auth management ----
   const AUTH_CONFIG_ENDPOINT = '/api/v1/auth/config';
+  const AUTH_ME_ENDPOINT = '/api/v1/auth/me';
   const TOKEN_KEY = 'cerebro_ceo_token';
   let controlCenterAuthEnabled = true;
+  let currentCeoSession = null;
   const getToken = () => localStorage.getItem(TOKEN_KEY);
   const setToken = t => localStorage.setItem(TOKEN_KEY, t);
   const clearToken = () => localStorage.removeItem(TOKEN_KEY);
@@ -675,6 +677,26 @@
     document.getElementById('loginOverlay').style.display = 'none';
   }
 
+  async function loadAuthDisabledCeoSession() {
+    clearToken();
+    try {
+      const response = await fetch(AUTH_ME_ENDPOINT, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error('auth_disabled_ceo_unavailable');
+      currentCeoSession = await response.json();
+    } catch (error) {
+      currentCeoSession = {
+        id: 'control-center-auth-disabled-ceo',
+        email: 'ceo@control-center.local',
+        name: 'Daniel',
+        role: 'CEO',
+        session_id: 'control-center-auth-disabled'
+      };
+    }
+  }
+
   async function loadControlCenterAuthConfig() {
     try {
       const response = await fetch(AUTH_CONFIG_ENDPOINT, {
@@ -687,7 +709,13 @@
     } catch (error) {
       controlCenterAuthEnabled = true;
     }
-    if (!controlCenterAuthEnabled || getToken()) {
+    if (!controlCenterAuthEnabled) {
+      await loadAuthDisabledCeoSession();
+      hideLoginOverlay();
+      loadDashboardData();
+      return;
+    }
+    if (getToken()) {
       hideLoginOverlay();
       loadDashboardData();
       return;

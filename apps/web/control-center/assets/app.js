@@ -121,6 +121,7 @@ const endpoints = {
 
 const CEREBRO_CHAT_ENDPOINT = "/api/v1/cerebro/chat";
 const AUTH_CONFIG_ENDPOINT = "/api/v1/auth/config";
+const AUTH_ME_ENDPOINT = "/api/v1/auth/me";
 const AUTH_TOKEN_KEY = "ecosystem_control_center_session_v1";
 const DATA_FETCH_TIMEOUT_MS = 15000;
 const DATA_FETCH_CONCURRENCY = 12;
@@ -1257,7 +1258,16 @@ async function allSettledLimited(items, worker, limit = DATA_FETCH_CONCURRENCY) 
 
 async function loadCurrentUser() {
   if (!state.authEnabled) {
-    state.user = authDisabledUser();
+    clearSession();
+    try {
+      const response = await fetch(AUTH_ME_ENDPOINT, {
+        headers: { Accept: "application/json" },
+        cache: "no-store"
+      });
+      state.user = response.ok ? await response.json() : authDisabledUser();
+    } catch {
+      state.user = authDisabledUser();
+    }
     state.role = "ceo";
     state.restoreAttempted = false;
     showApp();

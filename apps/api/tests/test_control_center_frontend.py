@@ -64,6 +64,7 @@ def test_control_center_assets_are_served() -> None:
     assert "/api/v1/governance/auth-boundary" in js_response.text
     assert "/api/v1/auth/login" in js_response.text
     assert "/api/v1/auth/config" in js_response.text
+    assert "/api/v1/auth/me" in js_response.text
     assert "control_center_auth_enabled" in js_response.text
     assert "control-center-auth-disabled" in js_response.text
     assert "remember_me" in js_response.text
@@ -140,6 +141,18 @@ def test_control_center_assets_are_served() -> None:
     assert "forbidden" in css_response.text
     assert "mobile-brand-chip" in css_response.text
     assert "department-card" in css_response.text
+
+
+def test_legacy_control_center_uses_auth_disabled_me_session() -> None:
+    response = client.get("/control-center")
+
+    assert response.status_code == 200
+    assert "const AUTH_CONFIG_ENDPOINT = '/api/v1/auth/config';" in response.text
+    assert "const AUTH_ME_ENDPOINT = '/api/v1/auth/me';" in response.text
+    assert "loadAuthDisabledCeoSession" in response.text
+    assert "clearToken();" in response.text
+    assert "control-center-auth-disabled-ceo" in response.text
+    assert "showLoginOverlay();" in response.text
 
 
 def test_control_center_cerebro_copy_stays_truthful_and_protected() -> None:
