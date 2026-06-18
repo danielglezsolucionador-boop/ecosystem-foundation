@@ -62,7 +62,11 @@ from app.schemas.cerebro import (
 )
 from app.schemas.integration_bus import IntegrationDispatchRequest
 from app.services.audit import create_audit_event
-from app.services.bunker_vault import archive_sealed_report
+from app.services.bunker_vault import (
+    archive_sealed_report,
+    archive_sombra_event_metadata,
+    get_sealed_report_by_original_message_id,
+)
 from app.services.centinela import analyze_operational_report, get_centinela_status
 from app.services.cerebro_llm import generate_reply as generate_cerebro_reply
 from app.services.integration_bus import dispatch_message, route_id_for_cerebro_target
@@ -674,7 +678,8 @@ def apply_cyber_intelligence_protocol(message: SombraInboxMessageCreate) -> dict
         manual_review_required,
     )
     commercial_draft_ready = (
-        message.type.value in {"briefing", "scan_report", "lead_signal"}
+        message.safe_for_commercial_use
+        and message.type.value in {"briefing", "scan_report", "lead_signal"}
         and not manual_review_required
     )
     commercial_summary = (
@@ -1117,6 +1122,420 @@ def list_sombra_inbox_context(limit: int = 5) -> list[dict[str, object]]:
             """
         ).fetchall()
     return [_row_to_sombra_context(row) for row in rows]
+
+
+EVENT_TRACE_FIELDS = (
+    "message_id",
+    "received_at",
+    "source",
+    "classification",
+    "bunker_status",
+    "bunker_id",
+    "bunker_path_or_key",
+    "audit_status",
+    "audit_id",
+    "centinela_status",
+    "centinela_alert_id",
+    "centinela_response_summary",
+    "forja_status",
+    "forja_task_id",
+    "arsenal_status",
+    "arsenal_artifact_id",
+    "linkedin_status",
+    "draft_id",
+    "decision_ceo",
+    "missing_steps",
+)
+
+
+def _empty_event_trace(message_id: str) -> dict[str, object]:
+    return {
+        "message_id": message_id,
+        "received_at": None,
+        "source": None,
+        "classification": None,
+        "bunker_status": "no",
+        "bunker_id": None,
+        "bunker_path_or_key": None,
+        "audit_status": "no",
+        "audit_id": None,
+        "centinela_status": "no",
+        "centinela_alert_id": None,
+        "centinela_response_summary": None,
+        "forja_status": "no aplica",
+        "forja_task_id": None,
+        "arsenal_status": "no aplica",
+        "arsenal_artifact_id": None,
+        "linkedin_status": "no aplica",
+        "draft_id": None,
+        "decision_ceo": "Verificar message_id en inbox SOMBRA o BUNKER.",
+        "missing_steps": ["message_not_found"],
+    }
+
+
+def get_sombra_inbox_row_by_message_id(message_id: str) -> object | None:
+    ensure_sombra_inbox_schema()
+    placeholder = sql_placeholder()
+    with connect() as connection:
+        return connection.execute(
+            f"SELECT * FROM {CEREBRO_SOMBRA_INBOX_TABLE} WHERE message_id = {placeholder}",
+            (message_id,),
+        ).fetchone()
+
+
+def _row_metadata(row: object) -> dict[str, object]:
+    metadata = _json_load(get_row_value(row, "metadata_json", default="{}"), {})
+    return metadata if isinstance(metadata, dict) else {}
+
+
+def _row_internal_actions(row: object) -> list[dict[str, str]]:
+    metadata = _row_metadata(row)
+    actions = metadata.get("internal_actions", [])
+    if not isinstance(actions, list):
+        return []
+    normalized: list[dict[str, str]] = []
+    for action in actions:
+        if isinstance(action, dict):
+            normalized.append({str(key): str(value) for key, value in action.items()})
+    return normalized
+
+
+def _append_trace_action(actions: list[dict[str, str]], action: dict[str, str] | None) -> bool:
+    if not action:
+        return False
+    action_type = str(action.get("type") or "")
+    action_id = str(action.get("id") or "")
+    if any(
+        existing.get("type") == action_type
+        and (not action_id or existing.get("id") == action_id)
+        for existing in actions
+    ):
+        return False
+    actions.append({str(key): str(value) for key, value in action.items()})
+    return True
+
+
+def _find_action(actions: list[dict[str, str]], *action_types: str) -> dict[str, str] | None:
+    expected = set(action_types)
+    for action in actions:
+        action_id = str(action.get("id") or "")
+        if action.get("type") in expected and action_id and action_id != "unavailable":
+            return action
+    return None
+
+
+def _persist_trace_actions(row: object, actions: list[dict[str, str]]) -> None:
+    metadata = _row_metadata(row)
+    metadata["internal_actions"] = actions
+    placeholder = sql_placeholder()
+    with connect() as connection:
+        connection.execute(
+            f"""
+            UPDATE {CEREBRO_SOMBRA_INBOX_TABLE}
+            SET metadata_json = {placeholder}, updated_at = {placeholder}
+            WHERE message_id = {placeholder}
+            """,
+            (_json_dump(sanitize_metadata(metadata)), utc_now(), get_row_value(row, "message_id")),
+        )
+        connection.commit()
+
+
+def _row_payload_hash(row: object) -> tuple[str, int]:
+    payload_json = str(get_row_value(row, "payload_json", default="") or "")
+    content = payload_json.encode("utf-8")
+    return hashlib.sha256(content).hexdigest(), len(content)
+
+
+def _filename_from_metadata(metadata: dict[str, object], fallback: str) -> str:
+    for key in ("filename", "file_name", "name", "report_file", "report_path", "file_path", "path"):
+        value = metadata.get(key)
+        if value:
+            return str(value)
+    return fallback
+
+
+def _classification_from_row(row: object) -> str:
+    metadata = _row_metadata(row)
+    classification = str(metadata.get("report_classification") or "OPERATIVO_DEFENSIVO")
+    if classification not in {item.value for item in SombraReportClassification}:
+        return SombraReportClassification.operativo_defensivo.value
+    return classification
+
+
+def _sombra_message_from_row(row: object) -> SombraInboxMessageCreate:
+    audience = _json_load(get_row_value(row, "audience_json", default="[]"), [])
+    client_context = _json_load(get_row_value(row, "client_context_json", default="{}"), {})
+    payload = _json_load(get_row_value(row, "payload_json", default='""'), "")
+    metadata = _row_metadata(row)
+    safe_audience = [
+        item
+        for item in (audience if isinstance(audience, list) else [])
+        if item in {"cerebro", "centinela", "bunker", "ceo", "forja", "pluma", "marketing"}
+    ]
+    return SombraInboxMessageCreate(
+        message_id=str(get_row_value(row, "message_id")),
+        source="sombra",
+        classification=SombraReportClassification(_classification_from_row(row)),
+        type=get_row_value(row, "message_type"),
+        severity=get_row_value(row, "severity"),
+        created_at=str(get_row_value(row, "source_created_at")),
+        title=str(get_row_value(row, "title")),
+        summary=str(get_row_value(row, "summary")),
+        audience=safe_audience or ["cerebro", "centinela", "bunker"],
+        client_context=client_context if isinstance(client_context, dict) else {},
+        safe_for_commercial_use=row_bool(row, "safe_for_commercial_use"),
+        sensitive=row_bool(row, "sensitive", default=True),
+        encrypted=row_bool(row, "encrypted", default=True),
+        payload=payload if isinstance(payload, (str, dict)) else "",
+        metadata=metadata,
+    )
+
+
+def _create_trace_audit_action(trace: dict[str, object]) -> dict[str, str]:
+    event = create_audit_event(
+        AuditEventCreate(
+            category=AuditCategory.runtime,
+            severity=AuditSeverity.info,
+            source="cerebro.event_trace",
+            action="trace_event",
+            status="registered",
+            detail="CEREBRO registered exact SOMBRA/CEREBRO event traceability without exposing payload.",
+            metadata={
+                "message_id": trace.get("message_id"),
+                "classification": trace.get("classification"),
+                "bunker_id": trace.get("bunker_id"),
+                "centinela_alert_id": trace.get("centinela_alert_id"),
+                "forja_task_id": trace.get("forja_task_id"),
+                "arsenal_artifact_id": trace.get("arsenal_artifact_id"),
+                "draft_id": trace.get("draft_id"),
+                "content_included": False,
+                "payload_included": False,
+                "external_connection_enabled": False,
+                "runtime_connected": False,
+            },
+        )
+    )
+    return {"type": "event_trace_audit_registered", "id": event.id, "target": "auditoria"}
+
+
+def _create_centinela_trace_alert(
+    message: SombraInboxMessageCreate,
+    centinela_action: dict[str, str] | None,
+) -> dict[str, str]:
+    actor = service_actor()
+    summary = str(
+        (centinela_action or {}).get("recommendation")
+        or "Alerta defensiva creada para trazabilidad SOMBRA/CEREBRO."
+    )
+    alert = create_alert(
+        CerebroAlertCreate(
+            title=cerebro_chat_title(message.title, "CENTINELA: trazabilidad defensiva SOMBRA"),
+            summary=summary,
+            source="cerebro_event_trace",
+            relevance_score=88 if message.severity.value in {"high", "critical"} else 72,
+            risk_level=message.severity.value,
+            dafo=CerebroDafo(
+                opportunities=["Cerrar trazabilidad defensiva por evento SOMBRA/CEREBRO."],
+                threats=["Evento operativo sin alerta defensiva verificable previa."],
+            ),
+        ),
+        actor,
+    )
+    return {
+        "type": "centinela_alert_created",
+        "id": alert.id,
+        "target": "centinela",
+        "summary": summary[:300],
+    }
+
+
+def _find_draft_for_message(message_id: str) -> str | None:
+    for draft in list_commercial_drafts():
+        if draft.source_message_id == message_id:
+            return draft.id
+    return None
+
+
+def _event_trace_decision(trace: dict[str, object]) -> str:
+    missing_steps = trace.get("missing_steps")
+    if isinstance(missing_steps, list) and missing_steps:
+        return "CEO revisar missing_steps y ordenar cierre manual de los IDs faltantes."
+    return "Evento trazable; revisar IDs y aprobar solo pasos pendientes."
+
+
+def trace_event(message_id: str) -> dict[str, object]:
+    normalized_id = " ".join(str(message_id or "").strip().split())
+    trace = _empty_event_trace(normalized_id)
+    if not normalized_id:
+        return {key: trace[key] for key in EVENT_TRACE_FIELDS}
+
+    row = get_sombra_inbox_row_by_message_id(normalized_id)
+    sealed_report = get_sealed_report_by_original_message_id(normalized_id)
+    changed = False
+    actions: list[dict[str, str]] = []
+    missing_steps: list[str] = []
+
+    if row is None:
+        if sealed_report is None:
+            return {key: trace[key] for key in EVENT_TRACE_FIELDS}
+        trace.update(
+            {
+                "received_at": sealed_report.received_at,
+                "source": sealed_report.source,
+                "classification": sealed_report.classification,
+                "bunker_status": "si",
+                "bunker_id": sealed_report.id,
+                "bunker_path_or_key": sealed_report.vault_path or sealed_report.id,
+                "centinela_status": "no aplica",
+                "forja_status": "no aplica",
+                "arsenal_status": "no aplica",
+                "linkedin_status": "no aplica",
+                "missing_steps": [],
+            }
+        )
+        audit_action = _create_trace_audit_action(trace)
+        trace["audit_status"] = "si"
+        trace["audit_id"] = audit_action["id"]
+        trace["decision_ceo"] = _event_trace_decision(trace)
+        return {key: trace[key] for key in EVENT_TRACE_FIELDS}
+
+    metadata = _row_metadata(row)
+    actions = _row_internal_actions(row)
+    classification = _classification_from_row(row)
+    trace.update(
+        {
+            "received_at": get_row_value(row, "received_at"),
+            "source": get_row_value(row, "source"),
+            "classification": classification,
+        }
+    )
+
+    if sealed_report is None and str(trace["source"]).lower() == "sombra":
+        payload_hash, payload_size = _row_payload_hash(row)
+        sealed_report = archive_sombra_event_metadata(
+            message_id=normalized_id,
+            classification=classification,
+            message_type=str(get_row_value(row, "message_type")),
+            severity=str(get_row_value(row, "severity")),
+            source_created_at=get_row_value(row, "source_created_at", default=None),
+            received_at=get_row_value(row, "received_at", default=None),
+            filename_or_id_value=_filename_from_metadata(metadata, normalized_id),
+            content_hash=payload_hash,
+            content_size_bytes=payload_size,
+            metadata={
+                "origin": "SOMBRA",
+                "message_id": normalized_id,
+                "source_table": CEREBRO_SOMBRA_INBOX_TABLE,
+                "content_included": False,
+                "payload_included": False,
+                "local_path_is_bunker": False,
+            },
+        )
+        changed |= _append_trace_action(
+            actions,
+            {
+                "type": "bunker_event_metadata_archived",
+                "id": sealed_report.id,
+                "target": "bunker",
+                "vault_path": sealed_report.vault_path,
+            },
+        )
+
+    if sealed_report is not None:
+        trace.update(
+            {
+                "bunker_status": "si",
+                "bunker_id": sealed_report.id,
+                "bunker_path_or_key": sealed_report.vault_path or sealed_report.id,
+            }
+        )
+    else:
+        missing_steps.append("bunker_id")
+
+    message = _sombra_message_from_row(row)
+    centinela_action = _find_action(actions, "centinela_analysis_created")
+    if centinela_action is None:
+        centinela_action = notify_centinela(message)
+        changed |= _append_trace_action(actions, centinela_action)
+    centinela_alert = _find_action(actions, "centinela_alert_created", "alert_created")
+    if centinela_alert is None:
+        centinela_alert = _create_centinela_trace_alert(message, centinela_action)
+        changed |= _append_trace_action(actions, centinela_alert)
+    if centinela_alert:
+        trace["centinela_status"] = "si"
+        trace["centinela_alert_id"] = centinela_alert.get("id")
+    else:
+        missing_steps.append("centinela_alert_id")
+    trace["centinela_response_summary"] = (
+        (centinela_alert or {}).get("summary")
+        or (centinela_action or {}).get("recommendation")
+        or (centinela_action or {}).get("impact")
+    )
+
+    forja_action = _find_action(actions, "forja_task_created")
+    centinela_requires_forja = (centinela_action or {}).get("requires_forja_task") == "true"
+    if forja_action is None and centinela_requires_forja:
+        created_forja = create_forja_task(message, centinela_action or {}, apply_cyber_intelligence_protocol(message), service_actor())
+        if created_forja:
+            forja_action = created_forja
+            changed |= _append_trace_action(actions, created_forja)
+    if forja_action:
+        trace["forja_status"] = "si"
+        trace["forja_task_id"] = forja_action.get("id")
+    elif centinela_requires_forja:
+        trace["forja_status"] = "pendiente"
+        missing_steps.append("forja_task_id")
+
+    arsenal_action = _find_action(actions, "arsenal_artifact_registered")
+    if arsenal_action is None and forja_action is not None:
+        created_arsenal = register_arsenal_artifact(message, centinela_action or {}, forja_action, service_actor())
+        if created_arsenal and created_arsenal.get("type") == "arsenal_artifact_registered":
+            arsenal_action = created_arsenal
+            changed |= _append_trace_action(actions, created_arsenal)
+    if arsenal_action:
+        trace["arsenal_status"] = "si"
+        trace["arsenal_artifact_id"] = arsenal_action.get("id")
+    else:
+        reusable_requested = any(
+            (centinela_action or {}).get(key) == "true"
+            for key in ("requires_api", "requires_skill", "requires_tool", "requires_defensive_rule")
+        )
+        trace["arsenal_status"] = "pendiente" if forja_action and reusable_requested else "no aplica"
+        if trace["arsenal_status"] == "pendiente":
+            missing_steps.append("arsenal_artifact_id")
+
+    draft_action = _find_action(actions, "commercial_draft_created")
+    draft_id = draft_action.get("id") if draft_action else _find_draft_for_message(normalized_id)
+    if draft_id:
+        trace["linkedin_status"] = "si"
+        trace["draft_id"] = draft_id
+    else:
+        trace["linkedin_status"] = "no aplica"
+
+    trace["missing_steps"] = missing_steps
+    audit_action = _find_action(actions, "event_trace_audit_registered", "auditoria_flow_registered")
+    if audit_action is None:
+        audit_action = _create_trace_audit_action(trace)
+        changed |= _append_trace_action(actions, audit_action)
+    if audit_action:
+        trace["audit_status"] = "si"
+        trace["audit_id"] = audit_action.get("id")
+    else:
+        missing_steps.append("audit_id")
+        trace["missing_steps"] = missing_steps
+
+    trace["decision_ceo"] = _event_trace_decision(trace)
+    if changed:
+        _persist_trace_actions(row, actions)
+    return {key: trace[key] for key in EVENT_TRACE_FIELDS}
+
+
+def event_trace_reply(trace: dict[str, object]) -> str:
+    return json.dumps(
+        {key: trace.get(key) for key in EVENT_TRACE_FIELDS},
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
 def _safe_int(value: object) -> int | None:
@@ -3715,11 +4134,56 @@ def message_requests_operational_board(message: str) -> bool:
     )
 
 
+def extract_trace_event_message_id(message: str) -> str | None:
+    text = " ".join(str(message or "").strip().split())
+    if not text:
+        return None
+    patterns = (
+        r"(?:trace event|trace_event|estado del evento|estatus del evento|con el evento|evento|message_id|mensaje)\s*[:=#-]?\s*([A-Za-z0-9][A-Za-z0-9_.:-]{8,180})",
+        r"\b([A-Za-z0-9][A-Za-z0-9_.:-]*20[0-9]{6}T[0-9]{6}Z[A-Za-z0-9_.:-]*)\b",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            candidate = match.group(1).strip(" \t\r\n,;.()[]{}<>\"'")
+            if len(candidate) >= 8 and candidate.lower() not in {"trazabilidad", "responde"}:
+                return candidate
+    normalized = _normalized_metric_text(text)
+    if not any(token in normalized for token in ("trazabilidad", "trace event", "estado del evento")):
+        return None
+    for token in re.findall(r"[A-Za-z0-9][A-Za-z0-9_.:-]{8,180}", text):
+        candidate = token.strip(" \t\r\n,;.()[]{}<>\"'")
+        if any(character.isdigit() for character in candidate) and any(
+            separator in candidate for separator in ("-", "_", ":")
+        ):
+            return candidate
+    return None
+
+
+def message_requests_event_trace(message: str) -> bool:
+    normalized = _normalized_metric_text(message)
+    asks_for_trace = any(
+        token in normalized
+        for token in (
+            "trazabilidad",
+            "trace event",
+            "estado del evento",
+            "estatus del evento",
+            "responde solo trazabilidad",
+        )
+    )
+    return asks_for_trace and extract_trace_event_message_id(message) is not None
+
+
 def cerebro_chat_intent(request: CerebroChatRequest) -> str:
     message = _normalized_metric_text(request.message)
+    if message_requests_event_trace(request.message):
+        return "event_trace"
     if request.action == "operational_board":
         return "operational_board"
     if request.action != "auto":
+        if request.action == "event_trace":
+            return "event_trace"
         if message_requests_sombra_inbox(message):
             return "sombra_inbox"
         return request.action
@@ -3807,7 +4271,27 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
         "runtime_connected": False,
     }
 
-    if intent == "operational_board":
+    if intent == "event_trace":
+        traced_message_id = extract_trace_event_message_id(message) or ""
+        trace = trace_event(traced_message_id)
+        reply = event_trace_reply(trace)
+        used_context.update(
+            {
+                "event_trace_message_id": traced_message_id,
+                "event_trace": trace,
+                "used_sombra_context": bool(trace.get("source")),
+            }
+        )
+        actions.append(
+            CerebroChatAction(
+                type="event_trace",
+                status="prepared",
+                id=traced_message_id or str(trace.get("message_id") or "event-trace"),
+                label="Trazabilidad exacta de evento",
+                detail="CEREBRO devolvio solo trazabilidad por message_id; no creo borrador ni tarea desde el prompt CEO.",
+            )
+        )
+    elif intent == "operational_board":
         reply, board_context = build_operational_board_reply()
         used_context.update(board_context)
         actions.append(
@@ -3981,7 +4465,7 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
 
     state = cerebro_chat_state()
     provider = "internal"
-    if intent not in {"sombra_inbox", "operational_board"}:
+    if intent not in {"sombra_inbox", "operational_board", "event_trace"}:
         llm_reply = generate_cerebro_reply(
             message=message,
             intent=intent,

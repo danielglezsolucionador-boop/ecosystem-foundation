@@ -55,8 +55,7 @@ def analyze_operational_report(message: SombraInboxMessageCreate) -> CentinelaRe
     requires_skill = bool(metadata.get("requires_skill")) or "skill" in blob
     requires_tool = bool(metadata.get("requires_tool")) or "herramienta" in blob or "tool" in blob
     requires_update = (
-        message.type.value in {"scan_report", "order_result"}
-        or bool(metadata.get("requires_update"))
+        bool(metadata.get("requires_update"))
         or any(token in blob for token in ("patch", "parche", "update", "actualizacion", "vulnerab", "hardening"))
     )
     requires_defensive_rule = (

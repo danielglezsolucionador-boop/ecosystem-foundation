@@ -74,6 +74,7 @@ from app.services.cerebro import (
     list_revenue_opportunities,
     receive_sombra_inbox_message,
     run_cerebro_chat,
+    trace_event,
     update_approval_request_status,
     update_cerebro_task_state,
 )
@@ -187,6 +188,15 @@ def write_cerebro_chat(
 ) -> CerebroChatResponse:
     require_cerebro_write(current_user)
     return run_cerebro_chat(request, current_user)
+
+
+@router.get("/events/{message_id}/trace", response_model=dict[str, object])
+def read_cerebro_event_trace(
+    message_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> dict[str, object]:
+    require_cerebro_read(current_user)
+    return trace_event(message_id)
 
 
 @router.get("/conversations", response_model=list[CerebroConversationSummary])

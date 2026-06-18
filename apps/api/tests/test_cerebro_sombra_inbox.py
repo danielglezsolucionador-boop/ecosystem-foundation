@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import json
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -422,6 +423,86 @@ def test_sombra_operational_defensive_report_runs_double_channel_operational_flo
     audit = next(event for event in list_audit_events() if event.id == actions["auditoria_flow_registered"]["id"])
     assert audit.action == "sombra_operational_report_flow"
     assert audit.metadata["destination"] == "centinela_forja_arsenal_pluma_auditoria"
+
+
+def test_trace_event_returns_exact_trace_without_local_path_or_prompt_side_effects(monkeypatch) -> None:
+    monkeypatch.setattr(cerebro_service, "generate_cerebro_reply", lambda **_kwargs: None)
+    token = enable_sombra_inbox(monkeypatch)
+    message_id = f"bug-bounty-hunter-20260618T123146Z-09c6fa327386-{uuid4().hex[:8]}"
+    message = sample_message(
+        message_id=message_id,
+        classification="OPERATIVO_DEFENSIVO",
+        type="scan_report",
+        severity="medium",
+        title="Bug bounty hunter opportunities",
+        summary=(
+            "SOMBRA genero un informe operativo de oportunidades bug bounty. "
+            "No hay construccion tecnica solicitada por CENTINELA."
+        ),
+        audience=["cerebro", "centinela", "bunker"],
+        safe_for_commercial_use=False,
+        metadata={
+            "case": "trace-event",
+            "report_path": r"C:\Users\admin\Documents\CENTINELA\reportes\bugbounty\opportunities_2026-06-18.pdf",
+        },
+    )
+
+    stored = client.post(
+        "/api/v1/cerebro/inbox/sombra",
+        json=message,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert stored.status_code == 200
+
+    tasks_before = {item.id for item in list_cerebro_tasks()}
+    drafts_before = {item.id for item in list_commercial_drafts()}
+
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={
+            "message": (
+                f"CEREBRO, con el evento {message_id} responde solo trazabilidad: "
+                "BUNKER / CENTINELA / FORJA / ARSENAL / LINKEDIN / AUDITORIA."
+            )
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["actions"][0]["type"] == "event_trace"
+    assert payload["used_context"]["intent_detected"] == "event_trace"
+    assert "dinero:" not in payload["reply"].lower()
+    trace = json.loads(payload["reply"])
+    assert list(trace.keys()) == list(cerebro_service.EVENT_TRACE_FIELDS)
+    assert trace["message_id"] == message_id
+    assert trace["source"] == "sombra"
+    assert trace["classification"] == "OPERATIVO_DEFENSIVO"
+    assert trace["bunker_status"] == "si"
+    assert trace["bunker_id"]
+    assert trace["bunker_path_or_key"].startswith("BUNKER/SOMBRA/")
+    assert r"C:\Users\admin" not in trace["bunker_path_or_key"]
+    assert "opportunities_2026-06-18.pdf" not in trace["bunker_path_or_key"]
+    assert trace["centinela_status"] == "si"
+    assert trace["centinela_alert_id"]
+    assert trace["audit_status"] == "si"
+    assert trace["audit_id"]
+    assert trace["forja_status"] == "no aplica"
+    assert trace["forja_task_id"] is None
+    assert trace["arsenal_status"] == "no aplica"
+    assert trace["arsenal_artifact_id"] is None
+    assert trace["linkedin_status"] == "no aplica"
+    assert trace["draft_id"] is None
+    assert trace["missing_steps"] == []
+
+    direct_trace = cerebro_service.trace_event(message_id)
+    assert direct_trace == trace
+    endpoint = client.get(f"/api/v1/cerebro/events/{message_id}/trace", headers=CEO_HEADERS)
+    assert endpoint.status_code == 200
+    assert endpoint.json() == trace
+
+    assert {item.id for item in list_cerebro_tasks()} == tasks_before
+    assert {item.id for item in list_commercial_drafts()} == drafts_before
 
 
 def test_sombra_secret_military_ceo_report_is_sealed_without_cerebro_reading(monkeypatch) -> None:

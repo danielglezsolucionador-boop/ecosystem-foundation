@@ -4,6 +4,7 @@ import base64
 from datetime import UTC, datetime
 import hashlib
 import json
+import re
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -70,6 +71,25 @@ def sealed_vault_path(now: datetime | None = None) -> str:
     return f"BUNKER/SOMBRA/{current:%Y-%m-%d}/{current:%H-%M-%S}/"
 
 
+def _parse_vault_datetime(value: str | None) -> datetime:
+    text = str(value or "").strip()
+    if not text:
+        return bunker_now()
+    try:
+        normalized = text.removesuffix("Z") + "+00:00" if text.endswith("Z") else text
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return bunker_now()
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(PERU_TZ)
+
+
+def _filename_leaf(value: object, fallback: str) -> str:
+    candidate = " ".join(str(value or fallback).split()) or fallback
+    return re.split(r"[\\/]+", candidate)[-1][:160] or fallback
+
+
 def sealed_bytes(message: SombraInboxMessageCreate, raw_body: bytes) -> bytes:
     if raw_body:
         return raw_body
@@ -83,7 +103,7 @@ def filename_or_id(message: SombraInboxMessageCreate) -> str:
         or message.metadata.get("name")
         or message.message_id
     )
-    return " ".join(str(candidate or message.message_id).split())[:160] or message.message_id
+    return _filename_leaf(candidate, message.message_id)
 
 
 def sealed_report_metadata(message: SombraInboxMessageCreate, content_hash: str, content_size: int) -> dict[str, object]:
@@ -287,6 +307,135 @@ def get_sealed_report(report_id: str) -> SealedReport | None:
             (report_id,),
         ).fetchone()
     return row_to_sealed_report(row) if row else None
+
+
+def get_sealed_report_by_original_message_id(message_id: str) -> SealedReport | None:
+    ensure_bunker_vault_schema()
+    placeholder = sql_placeholder()
+    with connect() as connection:
+        row = connection.execute(
+            f"SELECT * FROM {BUNKER_SEALED_REPORTS_TABLE} WHERE original_message_id = {placeholder}",
+            (message_id,),
+        ).fetchone()
+    return row_to_sealed_report(row) if row else None
+
+
+def archive_sombra_event_metadata(
+    *,
+    message_id: str,
+    classification: str,
+    message_type: str,
+    severity: str,
+    source_created_at: str | None,
+    received_at: str | None,
+    filename_or_id_value: object = None,
+    content_hash: str | None = None,
+    content_size_bytes: int = 0,
+    metadata: dict[str, object] | None = None,
+) -> SealedReport:
+    ensure_bunker_vault_schema()
+    placeholder = sql_placeholder()
+    existing = get_sealed_report_by_original_message_id(message_id)
+    if existing is not None:
+        return existing
+
+    now = utc_now()
+    metadata_payload: dict[str, object] = {
+        "origin": "SOMBRA",
+        "classification": classification,
+        "message_type": message_type,
+        "severity": severity,
+        "hash": content_hash or "",
+        "size_bytes": content_size_bytes,
+        "status": BunkerSealedStatus.archived.value,
+        "access": BunkerSealedAccess.ceo_only.value,
+        "content_indexed": False,
+        "content_included": False,
+        "llm_allowed": False,
+        "embeddings_allowed": False,
+        "preview_allowed": False,
+        "local_path_is_bunker": False,
+    }
+    metadata_payload.update(metadata or {})
+    stable_hash = content_hash or hashlib.sha256(
+        _json_dump(
+            {
+                "message_id": message_id,
+                "classification": classification,
+                "message_type": message_type,
+                "severity": severity,
+                "source_created_at": source_created_at,
+                "received_at": received_at,
+                "metadata": metadata_payload,
+            }
+        ).encode("utf-8")
+    ).hexdigest()
+    metadata_payload["hash"] = stable_hash
+
+    report_id = f"bunker-sombra-{uuid4()}"
+    path = sealed_vault_path(_parse_vault_datetime(received_at or source_created_at))
+    with connect() as connection:
+        connection.execute(
+            f"""
+            INSERT INTO {BUNKER_SEALED_REPORTS_TABLE} (
+                id,
+                source,
+                classification,
+                original_message_id,
+                filename_or_id,
+                vault_path,
+                content_sha256,
+                content_size_bytes,
+                content_blob_base64,
+                status,
+                access,
+                source_created_at,
+                received_at,
+                updated_at,
+                audit_access_count,
+                metadata_json
+            )
+            VALUES (
+                {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                {placeholder}, {placeholder}, {placeholder}, {placeholder}
+            )
+            """,
+            (
+                report_id,
+                "SOMBRA",
+                classification,
+                message_id,
+                _filename_leaf(filename_or_id_value, message_id),
+                path,
+                stable_hash,
+                int(content_size_bytes or 0),
+                "",
+                BunkerSealedStatus.archived.value,
+                BunkerSealedAccess.ceo_only.value,
+                source_created_at,
+                received_at or now,
+                now,
+                0,
+                _json_dump(metadata_payload),
+            ),
+        )
+        connection.commit()
+        row = connection.execute(
+            f"SELECT * FROM {BUNKER_SEALED_REPORTS_TABLE} WHERE id = {placeholder}",
+            (report_id,),
+        ).fetchone()
+
+    report = row_to_sealed_report(row)
+    audit_bunker_event(
+        action="sombra_event_metadata_archived",
+        status=report.status.value,
+        detail="BUNKER archived SOMBRA event metadata with a cloud vault key; no local path counted as proof.",
+        report=report,
+        metadata={"classification": classification, "content_included": False},
+    )
+    return report
 
 
 def update_sealed_report_status(

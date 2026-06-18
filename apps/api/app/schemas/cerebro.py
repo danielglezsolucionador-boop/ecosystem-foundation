@@ -101,6 +101,7 @@ class CerebroChatRequest(BaseModel):
         "commercial",
         "sombra_inbox",
         "operational_board",
+        "event_trace",
         "info",
     ] = "auto"
     priority: str = Field(default="p1", pattern="^p[0-3]$")
@@ -114,6 +115,7 @@ class CerebroChatAction(BaseModel):
         "commercial_draft_created",
         "sombra_inbox_reviewed",
         "operational_board",
+        "event_trace",
         "info",
     ]
     status: Literal["created", "prepared", "blocked", "failed"]
