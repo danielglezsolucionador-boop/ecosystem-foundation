@@ -44,6 +44,49 @@ def test_cerebro_chat_authenticated_message_returns_reply() -> None:
     assert payload["state"]["sombra_connected"] is False
 
 
+def test_cerebro_productive_state_uses_complete_operational_board() -> None:
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={
+            "message": (
+                "CEREBRO, dame el estado productivo real del ecosistema: "
+                "DINERO / INFORMES / FORJA / LINKEDIN / CENTINELA / "
+                "AUDITORÍA / DECISIÓN CEO."
+            )
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "internal"
+    assert payload["actions"][0]["type"] == "operational_board"
+    assert payload["used_context"]["operational_board"] is True
+    for heading in [
+        "DINERO:",
+        "INFORMES:",
+        "FORJA:",
+        "LINKEDIN:",
+        "CENTINELA:",
+        "AUDITORÍA:",
+        "DECISIÓN CEO:",
+    ]:
+        assert heading in payload["reply"]
+    assert "- dinero reclamable confirmado: no" in payload["reply"]
+    assert "sin datos suficientes todavía" in payload["reply"]
+
+
+def test_cerebro_linkedin_draft_request_is_not_misclassified_as_board() -> None:
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": "Redacta un post para LinkedIn."},
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["actions"][0]["type"] == "commercial_draft_created"
+
+
 def test_cerebro_chat_mission_message_creates_action() -> None:
     response = client.post(
         "/api/v1/cerebro/chat",
@@ -187,7 +230,7 @@ def test_cerebro_chat_uses_llm_reply_when_available(monkeypatch: pytest.MonkeyPa
 
     response = client.post(
         "/api/v1/cerebro/chat",
-        json={"message": "Dame el estado interno del ecosistema."},
+        json={"message": "Explícame la prioridad interna de hoy."},
         headers=CEO_HEADERS,
     )
 

@@ -1,10 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.schemas.arsenal import (
+    ArsenalBrokerRequest,
+    ArsenalBrokerResponse,
+    ArsenalBrokerStatus,
     ArsenalCatalogItem,
     ArsenalCatalogItemCreate,
     ArsenalCatalogItemEvaluateRequest,
     ArsenalCategory,
+    ArsenalLinkedInOAuthStartResponse,
+    ArsenalLinkedInPostRequest,
+    ArsenalLinkedInPostResponse,
+    ArsenalLinkedInStatus,
     ArsenalReadiness,
     ArsenalRisk,
     ArsenalRiskCreate,
@@ -13,15 +20,20 @@ from app.schemas.arsenal import (
 from app.schemas.auth import AuthenticatedUser, ControlCenterRole
 from app.services.arsenal import (
     ArsenalError,
+    build_linkedin_oauth_start,
     create_catalog_item,
     create_risk,
     evaluate_catalog_item,
+    get_broker_status,
     get_catalog_item,
+    get_linkedin_status,
     get_readiness,
     get_status,
     list_catalog_items,
     list_categories,
     list_risks,
+    prepare_linkedin_post,
+    run_broker_request,
     send_catalog_item_to_forja,
 )
 from app.services.auth import get_current_user, require_control_center_user
@@ -85,6 +97,57 @@ def read_arsenal_status(
 ) -> ArsenalStatus:
     require_arsenal_read(current_user)
     return get_status()
+
+
+@router.get("/broker/status", response_model=ArsenalBrokerStatus)
+def read_arsenal_broker_status(
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalBrokerStatus:
+    require_arsenal_read(current_user)
+    return get_broker_status()
+
+
+@router.post("/broker/complete", response_model=ArsenalBrokerResponse)
+def write_arsenal_broker_completion(
+    request: ArsenalBrokerRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalBrokerResponse:
+    require_arsenal_write(current_user)
+    try:
+        return run_broker_request(request, current_user)
+    except ArsenalError as error:
+        raise_arsenal_error(error)
+
+
+@router.get("/linkedin/status", response_model=ArsenalLinkedInStatus)
+def read_arsenal_linkedin_status(
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalLinkedInStatus:
+    require_arsenal_read(current_user)
+    return get_linkedin_status()
+
+
+@router.get(
+    "/linkedin/oauth/start",
+    response_model=ArsenalLinkedInOAuthStartResponse,
+)
+def read_arsenal_linkedin_oauth_start(
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalLinkedInOAuthStartResponse:
+    require_arsenal_read(current_user)
+    return build_linkedin_oauth_start()
+
+
+@router.post("/linkedin/posts", response_model=ArsenalLinkedInPostResponse)
+def write_arsenal_linkedin_post(
+    request: ArsenalLinkedInPostRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ArsenalLinkedInPostResponse:
+    require_arsenal_write(current_user)
+    try:
+        return prepare_linkedin_post(request, current_user)
+    except ArsenalError as error:
+        raise_arsenal_error(error)
 
 
 @router.get("/catalog", response_model=list[ArsenalCatalogItem])

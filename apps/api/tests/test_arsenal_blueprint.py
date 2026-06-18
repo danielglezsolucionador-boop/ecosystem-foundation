@@ -32,6 +32,11 @@ def blueprint_payload(**overrides):
 def test_arsenal_endpoints_require_auth() -> None:
     paths = [
         ("GET", "/api/v1/arsenal/status"),
+        ("GET", "/api/v1/arsenal/broker/status"),
+        ("POST", "/api/v1/arsenal/broker/complete"),
+        ("GET", "/api/v1/arsenal/linkedin/status"),
+        ("GET", "/api/v1/arsenal/linkedin/oauth/start"),
+        ("POST", "/api/v1/arsenal/linkedin/posts"),
         ("GET", "/api/v1/arsenal/catalog"),
         ("POST", "/api/v1/arsenal/catalog"),
         ("GET", "/api/v1/arsenal/categories"),
@@ -42,6 +47,136 @@ def test_arsenal_endpoints_require_auth() -> None:
 
     for method, path in paths:
         assert client.request(method, path, json={}).status_code == 401
+
+
+def test_api_broker_status_is_prepared_without_runtime_claims() -> None:
+    response = client.get("/api/v1/arsenal/broker/status", headers=CEO_HEADERS)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "integrated_prepared_pending_credentials"
+    assert payload["execution_enabled"] is False
+    assert payload["external_call_executed"] is False
+    assert payload["runtime_connected"] is False
+    assert payload["secrets_stored"] is False
+    assert "PLUMA" in payload["permissions"]
+    assert "posts" in payload["permissions"]["PLUMA"]
+
+
+def test_api_broker_stays_disabled_even_if_enablement_is_requested(
+    monkeypatch,
+) -> None:
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("ARSENAL_API_BROKER_ENABLED", "true")
+    get_settings.cache_clear()
+    response = client.get("/api/v1/arsenal/broker/status", headers=CEO_HEADERS)
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    assert response.json()["execution_enabled"] is False
+
+
+def test_api_broker_validates_permissions_without_calling_provider() -> None:
+    response = client.post(
+        "/api/v1/arsenal/broker/complete",
+        headers=CEO_HEADERS,
+        json={
+            "office": "PLUMA",
+            "capability": "posts",
+            "prompt": "Redacta un post interno seguro.",
+            "metadata": {"source": "test"},
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["office"] == "PLUMA"
+    assert payload["capability"] == "posts"
+    assert payload["cost_usd"] == 0
+    assert payload["external_call_executed"] is False
+    assert payload["runtime_connected"] is False
+    assert payload["secrets_stored"] is False
+
+
+def test_api_broker_rejects_cross_office_capability() -> None:
+    response = client.post(
+        "/api/v1/arsenal/broker/complete",
+        headers=CEO_HEADERS,
+        json={
+            "office": "PLUMA",
+            "capability": "riesgo",
+            "prompt": "Analiza riesgo.",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["error"] == "arsenal_broker_permission_denied"
+
+
+def test_api_broker_rejects_secrets_in_metadata() -> None:
+    response = client.post(
+        "/api/v1/arsenal/broker/complete",
+        headers=CEO_HEADERS,
+        json={
+            "office": "CENTINELA",
+            "capability": "riesgo",
+            "prompt": "Analiza riesgo.",
+            "metadata": {"api_key": "sk-testsecretvalue"},
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["error"] == "arsenal_secret_payload_rejected"
+
+
+def test_linkedin_is_pending_credentials_and_cannot_publish(
+    monkeypatch,
+) -> None:
+    from app.core.config import get_settings
+
+    for name in [
+        "LINKEDIN_CLIENT_ID",
+        "LINKEDIN_CLIENT_SECRET",
+        "LINKEDIN_REDIRECT_URI",
+        "LINKEDIN_ACCESS_TOKEN",
+        "LINKEDIN_PERSON_URN",
+    ]:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("LINKEDIN_POSTING_ENABLED", "true")
+    get_settings.cache_clear()
+
+    status = client.get("/api/v1/arsenal/linkedin/status", headers=CEO_HEADERS)
+    oauth = client.get(
+        "/api/v1/arsenal/linkedin/oauth/start",
+        headers=CEO_HEADERS,
+    )
+    post = client.post(
+        "/api/v1/arsenal/linkedin/posts",
+        headers=CEO_HEADERS,
+        json={
+            "content": "Borrador seguro para revisión CEO.",
+            "publish_now": True,
+        },
+    )
+
+    get_settings.cache_clear()
+
+    assert status.status_code == 200
+    status_payload = status.json()
+    assert status_payload["status"] == "prepared_pending_credentials"
+    assert status_payload["posting_requested"] is True
+    assert status_payload["posting_enabled"] is False
+    assert status_payload["publication_allowed"] is False
+    assert "LINKEDIN_CLIENT_ID" in status_payload["pending_credentials"]
+    assert oauth.status_code == 200
+    assert oauth.json()["authorization_url"] is None
+    assert oauth.json()["activation_required"] is True
+    assert post.status_code == 200
+    post_payload = post.json()
+    assert post_payload["ok"] is False
+    assert post_payload["status"] == "blocked_publication_disabled"
+    assert post_payload["external_call_executed"] is False
 
 
 def test_catalog_lists_and_categories_are_prepared() -> None:

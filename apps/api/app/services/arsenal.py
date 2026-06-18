@@ -3,15 +3,25 @@ import json
 import re
 from uuid import uuid4
 
+from app.core.config import get_settings
 from app.core.database import connect, initialize_database, sql_placeholder
 from app.core.safe_data import safe_payload
 from app.schemas.arsenal import (
     ArsenalAuditStatus,
+    ArsenalBrokerCapability,
+    ArsenalBrokerOffice,
+    ArsenalBrokerRequest,
+    ArsenalBrokerResponse,
+    ArsenalBrokerStatus,
     ArsenalCatalogItem,
     ArsenalCatalogItemCreate,
     ArsenalCatalogItemEvaluateRequest,
     ArsenalCatalogItemStatus,
     ArsenalCategory,
+    ArsenalLinkedInOAuthStartResponse,
+    ArsenalLinkedInPostRequest,
+    ArsenalLinkedInPostResponse,
+    ArsenalLinkedInStatus,
     ArsenalPermissionRule,
     ArsenalReadiness,
     ArsenalRisk,
@@ -62,6 +72,33 @@ CATEGORIES = [
     ("herramientas_investigacion", "Herramientas de investigacion", "Buscador de tendencias e investigacion."),
     ("experimentos", "Experimentos", "Ideas y pruebas preparadas sin runtime."),
 ]
+
+BROKER_PERMISSIONS = {
+    ArsenalBrokerOffice.pluma: {
+        ArsenalBrokerCapability.redaccion,
+        ArsenalBrokerCapability.narrativa,
+        ArsenalBrokerCapability.posts,
+        ArsenalBrokerCapability.articulos,
+    },
+    ArsenalBrokerOffice.marca_personal: {
+        ArsenalBrokerCapability.calendario,
+        ArsenalBrokerCapability.adaptacion_posts,
+        ArsenalBrokerCapability.posts,
+        ArsenalBrokerCapability.linkedin_publicacion,
+    },
+    ArsenalBrokerOffice.centinela: {
+        ArsenalBrokerCapability.riesgo,
+        ArsenalBrokerCapability.alerta,
+        ArsenalBrokerCapability.defensa,
+    },
+    ArsenalBrokerOffice.auditoria: {
+        ArsenalBrokerCapability.resumen,
+        ArsenalBrokerCapability.evidencias,
+        ArsenalBrokerCapability.trazabilidad,
+        ArsenalBrokerCapability.registro,
+    },
+    ArsenalBrokerOffice.cerebro: set(ArsenalBrokerCapability),
+}
 
 
 class ArsenalError(Exception):
@@ -538,6 +575,192 @@ def get_readiness() -> ArsenalReadiness:
         sellable_items=len(sellable),
         items_requiring_ceo_approval=len(cost_or_secret),
         risks_open=len([risk for risk in risks if risk.status == "open"]),
+    )
+
+
+def broker_provider_credentials() -> dict[str, bool]:
+    settings = get_settings()
+    return {
+        "openrouter": bool(settings.openrouter_api_key),
+        "anthropic": bool(settings.anthropic_api_key),
+        "openai": bool(settings.openai_api_key),
+    }
+
+
+def broker_permission_payload() -> dict[str, list[str]]:
+    return {
+        office.value: sorted(capability.value for capability in capabilities)
+        for office, capabilities in BROKER_PERMISSIONS.items()
+    }
+
+
+def get_broker_status() -> ArsenalBrokerStatus:
+    settings = get_settings()
+    return ArsenalBrokerStatus(
+        status="integrated_prepared_pending_credentials",
+        mode="central_api_broker_prepared_no_external_execution",
+        default_provider=settings.arsenal_default_provider,
+        default_model=settings.arsenal_default_model,
+        execution_enabled=False,
+        providers_configured=broker_provider_credentials(),
+        permissions=broker_permission_payload(),
+        offices=[office.value for office in ArsenalBrokerOffice],
+        generated_at=utc_now(),
+    )
+
+
+def require_broker_permission(
+    office: ArsenalBrokerOffice,
+    capability: ArsenalBrokerCapability,
+) -> None:
+    allowed = BROKER_PERMISSIONS.get(office, set())
+    if capability not in allowed:
+        raise ArsenalError(
+            403,
+            {
+                "error": "arsenal_broker_permission_denied",
+                "office": office.value,
+                "capability": capability.value,
+            },
+        )
+
+
+def run_broker_request(
+    request: ArsenalBrokerRequest,
+    actor: AuthenticatedUser,
+) -> ArsenalBrokerResponse:
+    assert_no_secret_payload(request.model_dump(mode="json"))
+    require_broker_permission(request.office, request.capability)
+    settings = get_settings()
+    provider = request.provider or settings.arsenal_default_provider
+    model = request.model or settings.arsenal_default_model
+    provider_ready = broker_provider_credentials().get(normalize(provider), False)
+    status = (
+        "prepared_pending_activation"
+        if provider_ready
+        else "prepared_pending_provider_credentials"
+    )
+    audit_event_id = audit_arsenal_action(
+        actor=actor,
+        action="api_broker_request_prepared",
+        status=status,
+        detail=(
+            "ARSENAL/API Broker validated and audited an internal request in "
+            "preparation mode; no external provider call was executed."
+        ),
+        metadata={
+            "office": request.office.value,
+            "capability": request.capability.value,
+            "provider": provider,
+            "model": model,
+            "prompt_length": len(request.prompt),
+            "provider_ready": provider_ready,
+            "broker_execution_requested": settings.arsenal_api_broker_enabled,
+            "external_call_executed": False,
+        },
+    )
+    return ArsenalBrokerResponse(
+        ok=True,
+        status=status,
+        office=request.office,
+        capability=request.capability,
+        provider=provider,
+        model=model,
+        result=(
+            "ARSENAL/API Broker integrado y preparado. La solicitud fue validada "
+            "por permisos, auditada y retenida sin llamada externa."
+        ),
+        cost_usd=0,
+        audit_event_id=audit_event_id,
+        generated_at=utc_now(),
+    )
+
+
+def linkedin_pending_credentials() -> list[str]:
+    settings = get_settings()
+    pending: list[str] = []
+    if not settings.linkedin_client_id:
+        pending.append("LINKEDIN_CLIENT_ID")
+    if not settings.linkedin_client_secret:
+        pending.append("LINKEDIN_CLIENT_SECRET")
+    if not settings.linkedin_redirect_uri:
+        pending.append("LINKEDIN_REDIRECT_URI")
+    if not settings.linkedin_access_token:
+        pending.append("LINKEDIN_ACCESS_TOKEN")
+    if not settings.linkedin_person_urn:
+        pending.append("LINKEDIN_PERSON_URN")
+    return pending
+
+
+def get_linkedin_status() -> ArsenalLinkedInStatus:
+    settings = get_settings()
+    pending = linkedin_pending_credentials()
+    return ArsenalLinkedInStatus(
+        status=(
+            "prepared_pending_credentials"
+            if pending
+            else "prepared_pending_activation"
+        ),
+        client_configured=bool(
+            settings.linkedin_client_id and settings.linkedin_client_secret
+        ),
+        redirect_configured=bool(settings.linkedin_redirect_uri),
+        access_token_configured=bool(settings.linkedin_access_token),
+        person_urn_configured=bool(settings.linkedin_person_urn),
+        posting_requested=settings.linkedin_posting_enabled,
+        posting_enabled=False,
+        publication_allowed=False,
+        pending_credentials=pending,
+        generated_at=utc_now(),
+    )
+
+
+def build_linkedin_oauth_start() -> ArsenalLinkedInOAuthStartResponse:
+    status = get_linkedin_status()
+    return ArsenalLinkedInOAuthStartResponse(
+        status=(
+            "prepared_pending_credentials"
+            if status.pending_credentials
+            else "prepared_pending_activation"
+        ),
+        authorization_url=None,
+        pending_credentials=status.pending_credentials,
+        activation_required=True,
+    )
+
+
+def prepare_linkedin_post(
+    request: ArsenalLinkedInPostRequest,
+    actor: AuthenticatedUser,
+) -> ArsenalLinkedInPostResponse:
+    assert_no_secret_payload(request.model_dump(mode="json"))
+    publish_blocked = request.publish_now
+    result_status = (
+        "blocked_publication_disabled"
+        if publish_blocked
+        else "draft_prepared_pending_ceo"
+    )
+    audit_event_id = audit_arsenal_action(
+        actor=actor,
+        action="linkedin_post_prepared",
+        status=result_status,
+        detail="ARSENAL prepared LinkedIn post metadata without publishing.",
+        metadata={
+            "content_length": len(request.content),
+            "publish_now_requested": request.publish_now,
+            "scheduled_for": request.scheduled_for,
+            "publication_allowed": False,
+            "external_call_executed": False,
+        },
+    )
+    return ArsenalLinkedInPostResponse(
+        ok=not publish_blocked,
+        status=result_status,
+        publication_allowed=False,
+        publish_now_requested=request.publish_now,
+        scheduled_for=request.scheduled_for,
+        audit_event_id=audit_event_id,
+        generated_at=utc_now(),
     )
 
 

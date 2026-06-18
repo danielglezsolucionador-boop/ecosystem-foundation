@@ -93,7 +93,16 @@ class CerebroChatRequest(BaseModel):
     context: str = Field(default="control_center", max_length=120)
     app_context: dict[str, Any] = Field(default_factory=dict)
     office: str = Field(default="cerebro", max_length=120)
-    action: Literal["auto", "mission", "forja", "centinela", "commercial", "sombra_inbox", "info"] = "auto"
+    action: Literal[
+        "auto",
+        "mission",
+        "forja",
+        "centinela",
+        "commercial",
+        "sombra_inbox",
+        "operational_board",
+        "info",
+    ] = "auto"
     priority: str = Field(default="p1", pattern="^p[0-3]$")
 
 
@@ -104,6 +113,7 @@ class CerebroChatAction(BaseModel):
         "centinela_status",
         "commercial_draft_created",
         "sombra_inbox_reviewed",
+        "operational_board",
         "info",
     ]
     status: Literal["created", "prepared", "blocked", "failed"]

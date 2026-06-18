@@ -1745,6 +1745,234 @@ def build_sombra_context_reply(events: list[dict[str, object]]) -> tuple[str, di
     )
 
 
+def _board_join(
+    items: list[str],
+    fallback: str = "sin datos suficientes todavía",
+    limit: int = 3,
+) -> str:
+    clean: list[str] = []
+    for item in items:
+        value = " ".join(str(item or "").split())
+        if value and value not in clean:
+            clean.append(value)
+        if len(clean) >= limit:
+            break
+    return "; ".join(clean) if clean else fallback
+
+
+def _pending_evidence_count(events: list[dict[str, object]]) -> int:
+    return sum(
+        1
+        for event in events
+        if classify_sombra_productive_event(
+            event,
+            extract_sombra_scan_metrics(event),
+        )
+        == "PENDIENTE_EVIDENCIA"
+    )
+
+
+def _discarded_count(events: list[dict[str, object]]) -> int:
+    return sum(
+        1
+        for event in events
+        if classify_sombra_productive_event(
+            event,
+            extract_sombra_scan_metrics(event),
+        )
+        == "DESCARTADO"
+    )
+
+
+def _ready_report_titles(events: list[dict[str, object]]) -> list[str]:
+    titles: list[str] = []
+    for event in events:
+        metrics = extract_sombra_scan_metrics(event)
+        if classify_sombra_productive_event(event, metrics) != "INFORME_BUG_BOUNTY":
+            continue
+        count = _metric_value_or_zero(metrics, "reportable_opportunities")
+        title = str(event.get("title") or event.get("message_id") or "informe sin título")
+        titles.append(f"{title} ({count} oportunidad(es) reportable(s))")
+    return titles
+
+
+def _paid_programs_from_events(events: list[dict[str, object]]) -> list[str]:
+    paid_programs: list[str] = []
+    for event in events:
+        metrics = extract_sombra_scan_metrics(event)
+        value = metrics.get("paid_programs")
+        if isinstance(value, list):
+            paid_programs.extend(str(item) for item in value[:6])
+        elif _metric_value_or_zero(metrics, "paid_program_count") > 0:
+            paid_programs.append(
+                f"{_metric_value_or_zero(metrics, 'paid_program_count')} "
+                "programa(s) pagado(s) detectado(s)"
+            )
+    return paid_programs
+
+
+def _money_claimable_from_events(events: list[dict[str, object]]) -> bool:
+    return any(
+        _money_claimable_confirmed(event, extract_sombra_scan_metrics(event))
+        for event in events
+    )
+
+
+def _economic_potential(
+    revenue_opportunities: list[CerebroRevenueOpportunity],
+    events: list[dict[str, object]],
+) -> str:
+    expected_revenue = sum(
+        float(item.economic_matrix.expected_revenue or 0)
+        for item in revenue_opportunities
+    )
+    reportable = sum(
+        _metric_value_or_zero(
+            extract_sombra_scan_metrics(event),
+            "reportable_opportunities",
+        )
+        for event in events
+    )
+    if expected_revenue > 0:
+        return f"potencial registrado en oportunidades internas: USD {expected_revenue:.0f}"
+    if reportable > 0:
+        return (
+            f"{reportable} oportunidad(es) reportable(s) potencial(es), "
+            "pendiente evidencia y scope"
+        )
+    return "sin datos suficientes todavía"
+
+
+def build_operational_board_reply() -> tuple[str, dict[str, object]]:
+    revenue_opportunities = safe_call(list_revenue_opportunities, [])
+    commercial_drafts = safe_call(list_commercial_drafts, [])
+    tasks = safe_call(list_cerebro_tasks, [])
+    decisions = safe_call(list_cerebro_decisions, [])
+    approval_requests = safe_call(list_approval_requests, [])
+    alerts = safe_call(lambda: list_alerts(include_low=True), [])
+    sombra_events = safe_call(lambda: list_sombra_inbox_context(limit=20), [])
+
+    try:
+        from app.services.audit import list_audit_events, list_auditoria_reviews
+
+        audit_events = safe_call(list_audit_events, [])
+        auditoria_reviews = safe_call(lambda: list_auditoria_reviews(limit=100), [])
+    except Exception:
+        audit_events = []
+        auditoria_reviews = []
+
+    confirmed_money = _money_claimable_from_events(sombra_events)
+    paid_programs = _paid_programs_from_events(sombra_events)
+    ready_reports = _ready_report_titles(sombra_events)
+    pending_evidence = _pending_evidence_count(sombra_events)
+    discarded = _discarded_count(sombra_events)
+
+    forja_tasks = [
+        f"{task.title} ({task.state.value})"
+        for task in tasks
+        if normalize_destination(task.destination) == "forja"
+        and not task.blocked
+        and task.state not in {CerebroState.completed, CerebroState.rejected}
+    ]
+    linkedin_drafts = [
+        f"{draft.title} ({draft.status})"
+        for draft in commercial_drafts
+        if "linkedin"
+        in _normalized_metric_text(
+            f"{draft.draft_type} {draft.title} {draft.source}"
+        )
+        or draft.draft_type == "linkedin_post"
+    ]
+    alert_lines = [
+        f"{alert.title} ({alert.risk_level})"
+        for alert in alerts
+        if alert.interrupt_ceo
+        or alert.risk_level in {"medium", "high", "critical"}
+    ]
+    pending_decisions = [
+        f"{decision.title} ({decision.state.value})"
+        for decision in decisions
+        if decision.state
+        in {CerebroState.draft, CerebroState.proposed, CerebroState.waiting_ceo}
+        or (
+            decision.requires_ceo_approval
+            and decision.state
+            not in {CerebroState.completed, CerebroState.rejected}
+        )
+    ] + [
+        f"{approval.title} ({approval.status})"
+        for approval in approval_requests
+        if approval.status in {"pending_ceo", "waiting_ceo", "proposed"}
+    ]
+    risk_level = (
+        "alto"
+        if any(alert.risk_level in {"high", "critical"} for alert in alerts)
+        else "medio"
+        if alert_lines or pending_evidence or forja_tasks
+        else "bajo"
+    )
+    centinela_action = (
+        "resolver alertas de riesgo alto antes de afirmar cierre productivo."
+        if risk_level == "alto"
+        else "revisar evidencia interna antes de reclamar, publicar o ejecutar cambios."
+    )
+    linkedin_status = (
+        "pendiente CEO"
+        if linkedin_drafts
+        else "pendiente CEO - sin datos suficientes todavía"
+    )
+
+    context = {
+        "operational_board": True,
+        "money_claimable_confirmed": confirmed_money,
+        "paid_programs_detected": len(paid_programs),
+        "reports_ready": len(ready_reports),
+        "reports_pending_evidence": pending_evidence,
+        "reports_discarded": discarded,
+        "forja_tasks": len(forja_tasks),
+        "linkedin_drafts": len(linkedin_drafts),
+        "centinela_alerts": len(alert_lines),
+        "audit_events": len(audit_events),
+        "auditoria_reviews": len(auditoria_reviews),
+        "external_connection_enabled": False,
+        "runtime_connected": False,
+    }
+
+    reply = (
+        "DINERO:\n"
+        f"- dinero reclamable confirmado: {'sí' if confirmed_money else 'no'}\n"
+        f"- potencial económico: {_economic_potential(revenue_opportunities, sombra_events)}\n"
+        f"- programas pagados detectados: {_board_join(paid_programs)}\n\n"
+        "INFORMES:\n"
+        f"- informes listos para revisión CEO: {_board_join(ready_reports)}\n"
+        "- informes pendientes por evidencia: "
+        f"{pending_evidence if sombra_events else 'sin datos suficientes todavía'}\n"
+        f"- descartados: {discarded if sombra_events else 'sin datos suficientes todavía'}\n\n"
+        "FORJA:\n"
+        f"- tareas técnicas necesarias: {_board_join(forja_tasks, 'sin tarea técnica inmediata')}\n\n"
+        "LINKEDIN:\n"
+        f"- borradores disponibles: {_board_join(linkedin_drafts)}\n"
+        f"- estado: {linkedin_status}\n\n"
+        "CENTINELA:\n"
+        f"- alertas defensivas: {_board_join(alert_lines)}\n"
+        f"- nivel de riesgo: {risk_level}\n"
+        f"- acción recomendada: {centinela_action}\n\n"
+        "AUDITORÍA:\n"
+        f"- eventos registrados: {len(audit_events)} evento(s) centrales; "
+        f"{len(auditoria_reviews)} revisión(es) de AUDITORÍA\n"
+        f"- decisiones pendientes: {_board_join(pending_decisions)}\n"
+        "- evidencia disponible: "
+        f"SOMBRA inbox={len(sombra_events)}; borradores={len(commercial_drafts)}; "
+        f"tareas={len(tasks)}; oportunidades={len(revenue_opportunities)}\n\n"
+        "DECISIÓN CEO:\n"
+        "- qué debe aprobar, subir o decidir Daniel ahora: aprobar o rechazar "
+        "decisiones pendientes; subir evidencia solo si existe informe listo; "
+        "mantener LinkedIn en revisión CEO hasta confirmar datos; no reclamar "
+        "dinero sin evidencia suficiente."
+    )
+    return reply, context
+
+
 def cerebro_conversation_owner_id(actor: AuthenticatedUser) -> str:
     return str(actor.id or actor.email or actor.name or "unknown")
 
@@ -3213,6 +3441,16 @@ SOMBRA_CHAT_NAME_ONLY_OPTOUTS = (
     "no consultar sombra",
 )
 
+OPERATIONAL_BOARD_SECTIONS = (
+    "dinero",
+    "informes",
+    "forja",
+    "linkedin",
+    "centinela",
+    "auditoria",
+    "decision ceo",
+)
+
 
 def message_requests_sombra_inbox(message: str) -> bool:
     if any(token in message for token in SOMBRA_CHAT_STRONG_TRIGGERS):
@@ -3222,12 +3460,79 @@ def message_requests_sombra_inbox(message: str) -> bool:
     )
 
 
+def message_requests_operational_board(message: str) -> bool:
+    section_matches = sum(
+        1 for section in OPERATIONAL_BOARD_SECTIONS if section in message
+    )
+    asks_for_state = any(
+        token in message
+        for token in (
+            "estado",
+            "estatus",
+            "tablero",
+            "diagnostico",
+            "situacion",
+            "dame",
+            "muestra",
+            "resume",
+            "resumen",
+            "como estamos",
+        )
+    )
+    asks_for_productive_state = any(
+        token in message
+        for token in (
+            "estado productivo",
+            "estado operativo",
+            "estado real",
+            "tablero operativo",
+            "flujo operativo",
+            "productivo real",
+        )
+    )
+    board_topics = (
+        "inteligencia externa",
+        "bug bounty",
+        "reportes",
+        "informes",
+        "dinero",
+        "sombra",
+        "ecosistema",
+        "flujo operativo",
+    )
+    creates_content = any(
+        token in message
+        for token in (
+            "genera post",
+            "generar post",
+            "redacta",
+            "escribe",
+            "publica",
+            "programa",
+            "borrador linkedin",
+        )
+    )
+    if creates_content and not asks_for_state and section_matches < 2:
+        return False
+    return (
+        asks_for_productive_state
+        or section_matches >= 3
+        or (asks_for_state and any(topic in message for topic in board_topics))
+    )
+
+
 def cerebro_chat_intent(request: CerebroChatRequest) -> str:
     message = _normalized_metric_text(request.message)
+    if request.action == "operational_board":
+        return "operational_board"
+    if request.action != "auto":
+        if message_requests_sombra_inbox(message):
+            return "sombra_inbox"
+        return request.action
+    if message_requests_operational_board(message):
+        return "operational_board"
     if message_requests_sombra_inbox(message):
         return "sombra_inbox"
-    if request.action != "auto":
-        return request.action
     office = normalize_destination(request.office)
     if office == "centinela":
         return "centinela"
@@ -3308,7 +3613,22 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
         "runtime_connected": False,
     }
 
-    if intent == "mission":
+    if intent == "operational_board":
+        reply, board_context = build_operational_board_reply()
+        used_context.update(board_context)
+        actions.append(
+            CerebroChatAction(
+                type="operational_board",
+                status="prepared",
+                id="cerebro-operational-board",
+                label="Tablero operativo CEREBRO",
+                detail=(
+                    "CEREBRO devolvió DINERO / INFORMES / FORJA / LINKEDIN / "
+                    "CENTINELA / AUDITORÍA / DECISIÓN CEO desde datos internos."
+                ),
+            )
+        )
+    elif intent == "mission":
         mission = create_mission(
             CerebroMissionCreate(
                 title=cerebro_chat_title(message, "Mision interna desde CEREBRO"),
@@ -3467,7 +3787,7 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
 
     state = cerebro_chat_state()
     provider = "internal"
-    if intent != "sombra_inbox":
+    if intent not in {"sombra_inbox", "operational_board"}:
         llm_reply = generate_cerebro_reply(
             message=message,
             intent=intent,

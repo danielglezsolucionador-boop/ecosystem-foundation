@@ -13,6 +13,25 @@ ECOSYSTEM_API_DEBUG=false
 ECOSYSTEM_API_DATABASE_URL=sqlite:///./var/ecosystem_foundation.db
 # DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DBNAME
 
+# CEREBRO / ARSENAL AI provider preparation.
+CEREBRO_LLM_ENABLED=true
+CEREBRO_LLM_MODEL=claude-sonnet-4-6
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+OPENROUTER_API_KEY=
+ARSENAL_API_BROKER_ENABLED=false
+ARSENAL_DEFAULT_PROVIDER=openrouter
+ARSENAL_DEFAULT_MODEL=prepared-router-v1
+
+# LinkedIn official OAuth preparation.
+# Never configure email/password here. Publication remains disabled in this release.
+LINKEDIN_CLIENT_ID=
+LINKEDIN_CLIENT_SECRET=
+LINKEDIN_REDIRECT_URI=
+LINKEDIN_ACCESS_TOKEN=
+LINKEDIN_PERSON_URN=
+LINKEDIN_POSTING_ENABLED=false
+
 # Control Center initial CEO bootstrap.
 # Set to false when the CEO cabin must open directly without email/password.
 CONTROL_CENTER_AUTH_ENABLED=true

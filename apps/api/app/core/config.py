@@ -17,10 +17,20 @@ class Settings:
     database_url: str
     database_url_source: str
     anthropic_api_key: str | None
+    openai_api_key: str | None
     cerebro_llm_model: str
     cerebro_llm_enabled: bool
     openrouter_api_key: str | None
     cerebro_openrouter_models: tuple[str, ...]
+    arsenal_default_provider: str
+    arsenal_default_model: str
+    arsenal_api_broker_enabled: bool
+    linkedin_client_id: str | None
+    linkedin_client_secret: str | None
+    linkedin_redirect_uri: str | None
+    linkedin_access_token: str | None
+    linkedin_person_urn: str | None
+    linkedin_posting_enabled: bool
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str] | None = None) -> "Settings":
@@ -52,6 +62,7 @@ class Settings:
             database_url=database_url,
             database_url_source=database_url_source,
             anthropic_api_key=optional_env_value(source, "ANTHROPIC_API_KEY"),
+            openai_api_key=optional_env_value(source, "OPENAI_API_KEY"),
             cerebro_llm_model=env_value(source, "CEREBRO_LLM_MODEL", "claude-sonnet-4-6"),
             cerebro_llm_enabled=parse_bool(env_value(source, "CEREBRO_LLM_ENABLED", "true")),
             openrouter_api_key=optional_env_value(source, "OPENROUTER_API_KEY"),
@@ -60,6 +71,15 @@ class Settings:
                 "CEREBRO_OPENROUTER_MODELS",
                 "deepseek/deepseek-chat,google/gemini-flash-1.5,meta-llama/llama-3.1-8b-instruct,anthropic/claude-sonnet-4-6",
             )),
+            arsenal_default_provider=env_value(source, "ARSENAL_DEFAULT_PROVIDER", "openrouter"),
+            arsenal_default_model=env_value(source, "ARSENAL_DEFAULT_MODEL", "prepared-router-v1"),
+            arsenal_api_broker_enabled=parse_bool(env_value(source, "ARSENAL_API_BROKER_ENABLED", "false")),
+            linkedin_client_id=optional_env_value(source, "LINKEDIN_CLIENT_ID"),
+            linkedin_client_secret=optional_env_value(source, "LINKEDIN_CLIENT_SECRET"),
+            linkedin_redirect_uri=optional_env_value(source, "LINKEDIN_REDIRECT_URI"),
+            linkedin_access_token=optional_env_value(source, "LINKEDIN_ACCESS_TOKEN"),
+            linkedin_person_urn=optional_env_value(source, "LINKEDIN_PERSON_URN"),
+            linkedin_posting_enabled=parse_bool(env_value(source, "LINKEDIN_POSTING_ENABLED", "false")),
         )
 
 
