@@ -5,6 +5,7 @@ import app.services.cerebro as cerebro_service
 from app.main import app
 from app.schemas.auth import ControlCenterRole
 from auth_helpers import auth_headers
+from app.services.arsenal import list_resources_for_office
 
 
 client = TestClient(app)
@@ -207,6 +208,109 @@ def test_cerebro_chat_reviews_internal_sombra_inbox_without_external_runtime() -
     payload = response.json()
     assert payload["actions"][0]["type"] == "sombra_inbox_reviewed"
     assert "no consulte" in payload["reply"].lower() or "inbox interno" in payload["reply"].lower()
+
+
+def test_cerebro_chat_lists_arsenal_resources_without_operational_side_effects() -> None:
+    tasks_before = len(cerebro_service.list_cerebro_tasks())
+    drafts_before = len(cerebro_service.list_commercial_drafts())
+    resources_before = {
+        resource.id for resource in list_resources_for_office("CEREBRO")
+    }
+
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": "arsenal recursos"},
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "internal"
+    assert payload["actions"][0]["type"] == "arsenal_resources"
+    assert payload["used_context"]["arsenal_office"] == "CEREBRO"
+    assert payload["used_context"]["arsenal_resource_count"] == len(resources_before)
+    assert "ARSENAL: PASS" in payload["reply"]
+    assert "oficina consultada: CEREBRO" in payload["reply"]
+    assert f"recursos visibles: {len(resources_before)}" in payload["reply"]
+    assert "OpenAI API provider" in payload["reply"]
+    assert "Centinela Defensive Rules" in payload["reply"]
+    assert "secrets_stored=false" in payload["reply"]
+    assert "sin acciones externas" in payload["reply"]
+    assert "sin crear tareas" in payload["reply"]
+    assert "sin crear borradores" in payload["reply"]
+    assert len(cerebro_service.list_cerebro_tasks()) == tasks_before
+    assert len(cerebro_service.list_commercial_drafts()) == drafts_before
+    assert {
+        resource.id for resource in list_resources_for_office("CEREBRO")
+    } == resources_before
+
+
+def test_cerebro_chat_routes_sombra_tool_requests_to_authorized_arsenal_view() -> None:
+    expected_resources = list_resources_for_office("SOMBRA")
+    expected_names = {resource.name for resource in expected_resources}
+    tasks_before = len(cerebro_service.list_cerebro_tasks())
+    drafts_before = len(cerebro_service.list_commercial_drafts())
+
+    for message in (
+        "recursos sombra arsenal",
+        "herramientas sombra",
+        "lista herramientas sombra",
+    ):
+        response = client.post(
+            "/api/v1/cerebro/chat",
+            json={"message": message},
+            headers=CEO_HEADERS,
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["actions"][0]["type"] == "arsenal_resources"
+        assert payload["used_context"]["arsenal_office"] == "SOMBRA"
+        assert payload["used_context"]["arsenal_resource_count"] == len(
+            expected_resources
+        )
+        assert "oficina consultada: SOMBRA" in payload["reply"]
+        assert "Header/CSP Auditor" in payload["reply"]
+        assert "Sombra Toolbelt" in payload["reply"]
+        assert "OpenAI API provider" not in payload["reply"]
+        assert "Report Normalizer" not in payload["reply"]
+        assert "Centinela Defensive Rules" not in payload["reply"]
+        assert {
+            line.split(" | ", 1)[0].removeprefix("- ")
+            for line in payload["reply"].splitlines()
+            if line.startswith("- ")
+        } == expected_names
+
+    assert len(cerebro_service.list_cerebro_tasks()) == tasks_before
+    assert len(cerebro_service.list_commercial_drafts()) == drafts_before
+
+
+@pytest.mark.parametrize(
+    "message,office",
+    [
+        ("arsenal", "CEREBRO"),
+        ("recursos arsenal", "CEREBRO"),
+        ("recursos centinela", "CENTINELA"),
+        ("herramientas centinela", "CENTINELA"),
+        ("APIs disponibles", "CEREBRO"),
+        ("skills disponibles", "CEREBRO"),
+    ],
+)
+def test_cerebro_chat_recognizes_arsenal_resource_phrases(
+    message: str,
+    office: str,
+) -> None:
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": message},
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["actions"][0]["type"] == "arsenal_resources"
+    assert payload["used_context"]["arsenal_office"] == office
+    assert f"oficina consultada: {office}" in payload["reply"]
 
 
 def test_centinela_status_endpoint_is_internal_only() -> None:

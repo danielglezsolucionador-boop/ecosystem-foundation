@@ -4054,6 +4054,16 @@ SOMBRA_CHAT_NAME_ONLY_OPTOUTS = (
     "no consultar sombra",
 )
 
+ARSENAL_CHAT_TRIGGERS = (
+    "recursos sombra",
+    "herramientas sombra",
+    "lista herramientas sombra",
+    "recursos centinela",
+    "herramientas centinela",
+    "apis disponibles",
+    "skills disponibles",
+)
+
 OPERATIONAL_BOARD_SECTIONS = (
     "dinero",
     "informes",
@@ -4071,6 +4081,79 @@ def message_requests_sombra_inbox(message: str) -> bool:
     return "sombra" in message and not any(
         token in message for token in SOMBRA_CHAT_NAME_ONLY_OPTOUTS
     )
+
+
+def message_requests_arsenal_resources(message: str) -> bool:
+    normalized = _normalized_metric_text(message)
+    return "arsenal" in normalized or any(
+        token in normalized for token in ARSENAL_CHAT_TRIGGERS
+    )
+
+
+def arsenal_office_from_message(message: str) -> str:
+    normalized = _normalized_metric_text(message)
+    office_aliases = (
+        ("sombra", "SOMBRA"),
+        ("centinela", "CENTINELA"),
+        ("sentinela", "CENTINELA"),
+        ("forja", "FORJA"),
+        ("pluma", "PLUMA"),
+        ("marca personal", "MARCA_PERSONAL"),
+        ("auditoria", "AUDITORIA"),
+        ("nube", "NUBE"),
+        ("ceo", "CEO"),
+    )
+    for token, office in office_aliases:
+        if token in normalized:
+            return office
+    return "CEREBRO"
+
+
+def arsenal_resources_for_chat(
+    office: str,
+    actor: AuthenticatedUser,
+) -> list[object]:
+    # Deferred import is intentional. app.services.arsenal imports task helpers
+    # from this module, so importing it at module load time would be circular.
+    from app.services.arsenal import list_resources_for_office
+
+    return list(list_resources_for_office(office, actor=actor))
+
+
+def arsenal_resources_reply(
+    office: str,
+    resources: list[object],
+) -> str:
+    def resource_value(resource: object, key: str, default: object = None) -> object:
+        if isinstance(resource, dict):
+            return resource.get(key, default)
+        return getattr(resource, key, default)
+
+    lines = [
+        "ARSENAL: PASS",
+        f"oficina consultada: {office}",
+        f"recursos visibles: {len(resources)}",
+    ]
+    for resource in resources:
+        name = resource_value(resource, "name", "sin nombre")
+        resource_type = resource_value(resource, "type", "sin tipo")
+        status = resource_value(resource, "status", "sin estado")
+        readiness = resource_value(resource, "readiness", "sin readiness")
+        type_value = getattr(resource_type, "value", resource_type)
+        status_value = getattr(status, "value", status)
+        lines.append(
+            f"- {name} | type={type_value} | status={status_value} | "
+            f"readiness={readiness} | secrets_stored=false"
+        )
+    lines.extend(
+        [
+            "secrets_stored=false",
+            "sin acciones externas",
+            "sin crear tareas",
+            "sin crear borradores",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def message_requests_operational_board(message: str) -> bool:
@@ -4179,6 +4262,8 @@ def cerebro_chat_intent(request: CerebroChatRequest) -> str:
     message = _normalized_metric_text(request.message)
     if message_requests_event_trace(request.message):
         return "event_trace"
+    if message_requests_arsenal_resources(message):
+        return "arsenal_resources"
     if request.action == "operational_board":
         return "operational_board"
     if request.action != "auto":
@@ -4289,6 +4374,32 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
                 id=traced_message_id or str(trace.get("message_id") or "event-trace"),
                 label="Trazabilidad exacta de evento",
                 detail="CEREBRO devolvio solo trazabilidad por message_id; no creo borrador ni tarea desde el prompt CEO.",
+            )
+        )
+    elif intent == "arsenal_resources":
+        office = arsenal_office_from_message(message)
+        resources = arsenal_resources_for_chat(office, actor)
+        reply = arsenal_resources_reply(office, resources)
+        used_context.update(
+            {
+                "arsenal_office": office,
+                "arsenal_resource_count": len(resources),
+                "arsenal_secrets_stored": False,
+                "arsenal_external_actions": False,
+                "arsenal_tasks_created": 0,
+                "arsenal_drafts_created": 0,
+            }
+        )
+        actions.append(
+            CerebroChatAction(
+                type="arsenal_resources",
+                status="prepared",
+                id=f"arsenal-resources-{office.lower()}",
+                label=f"Recursos ARSENAL para {office}",
+                detail=(
+                    "Consulta interna de inventario autorizado; sin acciones externas, "
+                    "sin tareas FORJA y sin borradores LinkedIn."
+                ),
             )
         )
     elif intent == "operational_board":
@@ -4465,7 +4576,12 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
 
     state = cerebro_chat_state()
     provider = "internal"
-    if intent not in {"sombra_inbox", "operational_board", "event_trace"}:
+    if intent not in {
+        "sombra_inbox",
+        "arsenal_resources",
+        "operational_board",
+        "event_trace",
+    }:
         llm_reply = generate_cerebro_reply(
             message=message,
             intent=intent,
