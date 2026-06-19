@@ -4177,17 +4177,6 @@ def message_requests_event_trace(message: str) -> bool:
 
 def cerebro_chat_intent(request: CerebroChatRequest) -> str:
     message = _normalized_metric_text(request.message)
-        if (
-        "arsenal" in message
-        or "recursos sombra" in message
-        or "herramientas sombra" in message
-        or "lista herramientas sombra" in message
-        or "recursos centinela" in message
-        or "herramientas centinela" in message
-        or "apis disponibles" in message
-        or "skills disponibles" in message
-    ):
-        return "arsenal_resources"
     if message_requests_event_trace(request.message):
         return "event_trace"
     if request.action == "operational_board":
@@ -4281,58 +4270,7 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
         "external_connection_enabled": False,
         "runtime_connected": False,
     }
-        if intent == "arsenal_resources":
-        from app.services.arsenal import list_resources_for_office
 
-        office = "CEREBRO"
-        if "sombra" in message:
-            office = "SOMBRA"
-        elif "centinela" in message:
-            office = "CENTINELA"
-        elif "forja" in message:
-            office = "FORJA"
-        elif "pluma" in message:
-            office = "PLUMA"
-        elif "linkedin" in message or "marca personal" in message:
-            office = "MARCA_PERSONAL"
-
-        resources = list_resources_for_office(office)
-
-        def _resource_value(resource: object, key: str, default: object = None) -> object:
-            if isinstance(resource, dict):
-                return resource.get(key, default)
-            return getattr(resource, key, default)
-
-        lines = [
-            f"ARSENAL: PASS",
-            f"oficina_consultada: {office}",
-            f"recursos_visibles: {len(resources)}",
-        ]
-
-        for resource in resources:
-            resource_id = _resource_value(resource, "id", "sin_id")
-            name = _resource_value(resource, "name", "sin_nombre")
-            resource_type = _resource_value(resource, "type", "sin_tipo")
-            status = _resource_value(resource, "status", "sin_estado")
-            readiness = _resource_value(resource, "readiness", "sin_readiness")
-            available_for_sombra = _resource_value(resource, "available_for_sombra", False)
-            secrets_stored = _resource_value(resource, "secrets_stored", False)
-
-            lines.append(
-                f"- {name} | id={resource_id} | type={resource_type} | "
-                f"status={status} | readiness={readiness} | "
-                f"available_for_sombra={available_for_sombra} | secrets_stored={secrets_stored}"
-            )
-
-        reply = "\n".join(lines)
-        used_context.update(
-            {
-                "arsenal_office": office,
-                "arsenal_resource_count": len(resources),
-                "external_connection_enabled": False,
-                "runtime_connected": False,
-            }
-        ) 
     if intent == "event_trace":
         traced_message_id = extract_trace_event_message_id(message) or ""
         trace = trace_event(traced_message_id)
@@ -4527,7 +4465,7 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
 
     state = cerebro_chat_state()
     provider = "internal"
-    if intent not in ("sombra_inbox", "operational_board", "event_trace", "arsenal_resources"):
+    if intent not in {"sombra_inbox", "operational_board", "event_trace"}:
         llm_reply = generate_cerebro_reply(
             message=message,
             intent=intent,
