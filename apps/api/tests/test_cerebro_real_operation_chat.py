@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 import app.services.cerebro as cerebro_service
 from app.main import app
 from app.schemas.auth import ControlCenterRole
+from app.schemas.cerebro import CerebroChatRequest
 from auth_helpers import auth_headers
 from app.services.arsenal import list_resources_for_office
 
@@ -311,6 +312,43 @@ def test_cerebro_chat_recognizes_arsenal_resource_phrases(
     assert payload["actions"][0]["type"] == "arsenal_resources"
     assert payload["used_context"]["arsenal_office"] == office
     assert f"oficina consultada: {office}" in payload["reply"]
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    [
+        "dame decision ejecutiva por oficina",
+        "decision ejecutiva por oficina",
+        "que aplica por oficina",
+        "aplica ARSENAL",
+        "aplica CENTINELA",
+        "aplica SENTINELA",
+        "aplica FORJA",
+        "aplica PLUMA",
+    ],
+)
+def test_cerebro_chat_recognizes_event_office_decision_before_arsenal(
+    phrase: str,
+) -> None:
+    message_id = "bug-bounty-hunter-20260618T123146Z-09c6fa327386"
+
+    intent = cerebro_service.cerebro_chat_intent(
+        CerebroChatRequest(message=f"con el evento {message_id} {phrase}")
+    )
+
+    assert intent == "event_office_decision"
+
+
+def test_cerebro_chat_keeps_event_trace_priority_over_office_decision() -> None:
+    message_id = "bug-bounty-hunter-20260618T123146Z-09c6fa327386"
+
+    intent = cerebro_service.cerebro_chat_intent(
+        CerebroChatRequest(
+            message=f"estado del evento {message_id}; dame decision ejecutiva por oficina"
+        )
+    )
+
+    assert intent == "event_trace"
 
 
 def test_centinela_status_endpoint_is_internal_only() -> None:

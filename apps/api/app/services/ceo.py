@@ -225,15 +225,23 @@ def safe_snapshot_batch(
     }
     results: dict[str, Any] = {}
     for label, (future, default) in futures.items():
-        remaining = max(0.001, deadline - time.perf_counter())
+        remaining = deadline - time.perf_counter()
+        if remaining <= 0:
+            future.cancel()
+            warnings.append(f"{label}_timeout_fallback")
+            results[label] = default
+            continue
         try:
-            results[label] = future.result(timeout=remaining)
+            results[label] = future.result(timeout=max(0.001, remaining))
         except FuturesTimeoutError:
             future.cancel()
             warnings.append(f"{label}_timeout_fallback")
             results[label] = default
         except Exception:
-            warnings.append(f"{label}_fallback")
+            if time.perf_counter() >= deadline:
+                warnings.append(f"{label}_timeout_fallback")
+            else:
+                warnings.append(f"{label}_fallback")
             results[label] = default
     return results
 

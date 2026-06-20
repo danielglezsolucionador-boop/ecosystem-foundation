@@ -103,6 +103,7 @@ class CerebroChatRequest(BaseModel):
         "arsenal_resources",
         "operational_board",
         "event_trace",
+        "event_office_decision",
         "info",
     ] = "auto"
     priority: str = Field(default="p1", pattern="^p[0-3]$")
@@ -118,6 +119,7 @@ class CerebroChatAction(BaseModel):
         "arsenal_resources",
         "operational_board",
         "event_trace",
+        "event_office_decision",
         "info",
     ]
     status: Literal["created", "prepared", "blocked", "failed"]

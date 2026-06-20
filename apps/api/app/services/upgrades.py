@@ -33,7 +33,6 @@ from app.services.departments import (
     DepartmentError,
     get_department,
     get_department_audit,
-    list_departments,
     normalize_id,
 )
 
@@ -158,12 +157,7 @@ def actor_name(actor: AuthenticatedUser) -> str:
 
 
 def supported_department_ids() -> list[str]:
-    known = {department.id for department in list_departments()}
-    ids = list(SUPPORTED_DEPARTMENTS)
-    for department_id in known:
-        if department_id not in ids:
-            ids.append(department_id)
-    return ids
+    return list(SUPPORTED_DEPARTMENTS)
 
 
 def department_metadata(raw_department_id: str) -> tuple[str, str, str, bool]:

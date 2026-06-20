@@ -1538,6 +1538,179 @@ def event_trace_reply(trace: dict[str, object]) -> str:
     )
 
 
+def inspect_event_trace(message_id: str) -> dict[str, object]:
+    normalized_id = " ".join(str(message_id or "").strip().split())
+    trace = _empty_event_trace(normalized_id)
+    if not normalized_id:
+        return {key: trace[key] for key in EVENT_TRACE_FIELDS}
+
+    row = get_sombra_inbox_row_by_message_id(normalized_id)
+    sealed_report = get_sealed_report_by_original_message_id(normalized_id)
+    if sealed_report is not None:
+        trace.update(
+            {
+                "received_at": sealed_report.received_at,
+                "source": sealed_report.source,
+                "classification": sealed_report.classification,
+                "bunker_status": "si",
+                "bunker_id": sealed_report.id,
+                "bunker_path_or_key": sealed_report.vault_path or sealed_report.id,
+            }
+        )
+
+    if row is None:
+        if sealed_report is not None:
+            trace.update(
+                {
+                    "centinela_status": "no aplica",
+                    "forja_status": "no aplica",
+                    "arsenal_status": "no aplica",
+                    "linkedin_status": "no aplica",
+                    "missing_steps": ["inbox_row_not_found"],
+                    "decision_ceo": "Evento sellado en BUNKER; revisar permisos CEO antes de abrir contenido.",
+                }
+            )
+        return {key: trace[key] for key in EVENT_TRACE_FIELDS}
+
+    actions = _row_internal_actions(row)
+    classification = _classification_from_row(row)
+    trace.update(
+        {
+            "received_at": get_row_value(row, "received_at"),
+            "source": get_row_value(row, "source"),
+            "classification": classification,
+        }
+    )
+
+    if sealed_report is None:
+        trace["missing_steps"] = ["bunker_id"]
+    else:
+        trace["missing_steps"] = []
+
+    centinela_alert = _find_action(actions, "centinela_alert_created", "alert_created")
+    centinela_analysis = _find_action(actions, "centinela_analysis_created")
+    if centinela_alert:
+        trace["centinela_status"] = "si"
+        trace["centinela_alert_id"] = centinela_alert.get("id")
+        trace["centinela_response_summary"] = centinela_alert.get("summary")
+    elif centinela_analysis:
+        trace["centinela_status"] = "si"
+        trace["centinela_response_summary"] = (
+            centinela_analysis.get("recommendation")
+            or centinela_analysis.get("impact")
+        )
+        trace["missing_steps"].append("centinela_alert_id")
+    else:
+        trace["missing_steps"].append("centinela_alert_id")
+
+    forja_action = _find_action(actions, "forja_task_created")
+    if forja_action:
+        trace["forja_status"] = "si"
+        trace["forja_task_id"] = forja_action.get("id")
+
+    arsenal_action = _find_action(actions, "arsenal_artifact_registered")
+    if arsenal_action:
+        trace["arsenal_status"] = "si"
+        trace["arsenal_artifact_id"] = arsenal_action.get("id")
+
+    draft_action = _find_action(actions, "commercial_draft_created")
+    draft_id = draft_action.get("id") if draft_action else _find_draft_for_message(normalized_id)
+    if draft_id:
+        trace["linkedin_status"] = "si"
+        trace["draft_id"] = draft_id
+
+    audit_action = _find_action(actions, "event_trace_audit_registered", "auditoria_flow_registered")
+    if audit_action:
+        trace["audit_status"] = "si"
+        trace["audit_id"] = audit_action.get("id")
+    else:
+        trace["missing_steps"].append("audit_id")
+
+    trace["decision_ceo"] = _event_trace_decision(trace)
+    return {key: trace[key] for key in EVENT_TRACE_FIELDS}
+
+
+def _resource_name(resource: object) -> str:
+    if isinstance(resource, dict):
+        return str(resource.get("name") or "sin nombre")
+    return str(getattr(resource, "name", "sin nombre"))
+
+
+def event_office_decision_reply(
+    trace: dict[str, object],
+    sombra_resources: list[object],
+) -> str:
+    resource_names = {_resource_name(resource) for resource in sombra_resources}
+    recommended_resource = (
+        "Header/CSP Auditor" if "Header/CSP Auditor" in resource_names else "pendiente en ARSENAL"
+    )
+    registered_resource = (
+        "Sombra Toolbelt" if "Sombra Toolbelt" in resource_names else "pendiente en ARSENAL"
+    )
+    forja_task_id = trace.get("forja_task_id") or "no existente"
+    draft_id = trace.get("draft_id") or "no existente"
+    audit_id = trace.get("audit_id") or "no existente"
+    bunker_id = trace.get("bunker_id") or "no existente"
+    bunker_path = trace.get("bunker_path_or_key") or "no existente"
+    centinela_alert_id = trace.get("centinela_alert_id") or "no existente"
+
+    return "\n".join(
+        [
+            "DECISION EJECUTIVA POR OFICINA: PASS",
+            "",
+            "EVENTO:",
+            f"- message_id: {trace.get('message_id') or 'no encontrado'}",
+            f"- source: {trace.get('source') or 'no encontrado'}",
+            f"- classification: {trace.get('classification') or 'no encontrado'}",
+            f"- bunker_status: {trace.get('bunker_status')}",
+            f"- audit_status: {trace.get('audit_status')}",
+            f"- centinela_status: {trace.get('centinela_status')}",
+            "",
+            "ARSENAL:",
+            "- aplica: si, como consulta de recursos disponibles",
+            f"- recurso recomendado para SOMBRA/CENTINELA: {recommended_resource}",
+            f"- recurso registrado: {registered_resource}",
+            "- no crear recurso nuevo sin aprobacion CEO",
+            "",
+            "CENTINELA:",
+            "- aplica: si",
+            "- accion: seguimiento defensivo",
+            f"- usar centinela_alert_id existente: {centinela_alert_id}",
+            "- no ejecutar accion externa",
+            "",
+            "FORJA:",
+            "- aplica: solo si CEO aprueba construccion o mejora tecnica",
+            "- no crear tarea nueva automaticamente",
+            f"- forja_task_id existente/legado: {forja_task_id}",
+            "",
+            "PLUMA / LINKEDIN:",
+            "- aplica: solo borrador educativo si CEO lo aprueba",
+            "- no crear borrador nuevo automaticamente",
+            f"- draft_id existente/legado: {draft_id}",
+            "",
+            "AUDITORIA:",
+            "- aplica: si",
+            f"- usar audit_id existente: {audit_id}",
+            "",
+            "BUNKER:",
+            "- aplica: si",
+            f"- usar bunker_id existente: {bunker_id}",
+            f"- bunker_path_or_key: {bunker_path}",
+            "",
+            "DECISION CEO:",
+            "- no hay dinero reclamable confirmado",
+            "- no hay informe reportable listo sin evidencia",
+            "- siguiente paso: validar evidencia y decidir si se autoriza FORJA o PLUMA",
+            "",
+            "CERO EFECTOS SECUNDARIOS:",
+            "- no crear FORJA task nueva",
+            "- no crear LinkedIn draft nuevo",
+            "- no duplicar ARSENAL resources",
+            "- no tocar SOMBRA runtime",
+        ]
+    )
+
+
 def _safe_int(value: object) -> int | None:
     if value is None or isinstance(value, bool):
         return None
@@ -4074,6 +4247,16 @@ OPERATIONAL_BOARD_SECTIONS = (
     "decision ceo",
 )
 
+EVENT_OFFICE_DECISION_TRIGGERS = (
+    "decision ejecutiva por oficina",
+    "que aplica por oficina",
+    "aplica arsenal",
+    "aplica centinela",
+    "aplica sentinela",
+    "aplica forja",
+    "aplica pluma",
+)
+
 
 def message_requests_sombra_inbox(message: str) -> bool:
     if any(token in message for token in SOMBRA_CHAT_STRONG_TRIGGERS):
@@ -4258,10 +4441,24 @@ def message_requests_event_trace(message: str) -> bool:
     return asks_for_trace and extract_trace_event_message_id(message) is not None
 
 
+def message_id_is_bug_bounty_event(message_id: str | None) -> bool:
+    return str(message_id or "").lower().startswith("bug-bounty-hunter-")
+
+
+def message_requests_event_office_decision(message: str) -> bool:
+    normalized = _normalized_metric_text(message)
+    message_id = extract_trace_event_message_id(message)
+    if not message_id_is_bug_bounty_event(message_id):
+        return False
+    return any(token in normalized for token in EVENT_OFFICE_DECISION_TRIGGERS)
+
+
 def cerebro_chat_intent(request: CerebroChatRequest) -> str:
     message = _normalized_metric_text(request.message)
     if message_requests_event_trace(request.message):
         return "event_trace"
+    if message_requests_event_office_decision(request.message):
+        return "event_office_decision"
     if message_requests_arsenal_resources(message):
         return "arsenal_resources"
     if request.action == "operational_board":
@@ -4269,6 +4466,8 @@ def cerebro_chat_intent(request: CerebroChatRequest) -> str:
     if request.action != "auto":
         if request.action == "event_trace":
             return "event_trace"
+        if request.action == "event_office_decision":
+            return "event_office_decision"
         if message_requests_sombra_inbox(message):
             return "sombra_inbox"
         return request.action
@@ -4374,6 +4573,37 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
                 id=traced_message_id or str(trace.get("message_id") or "event-trace"),
                 label="Trazabilidad exacta de evento",
                 detail="CEREBRO devolvio solo trazabilidad por message_id; no creo borrador ni tarea desde el prompt CEO.",
+            )
+        )
+    elif intent == "event_office_decision":
+        traced_message_id = extract_trace_event_message_id(message) or ""
+        trace = inspect_event_trace(traced_message_id)
+        sombra_resources = arsenal_resources_for_chat("SOMBRA", actor)
+        reply = event_office_decision_reply(trace, sombra_resources)
+        used_context.update(
+            {
+                "event_trace_message_id": traced_message_id,
+                "event_trace": trace,
+                "used_sombra_context": bool(trace.get("source")),
+                "arsenal_office": "SOMBRA",
+                "arsenal_resource_count": len(sombra_resources),
+                "forja_tasks_created": 0,
+                "linkedin_drafts_created": 0,
+                "arsenal_resources_created": 0,
+                "sombra_runtime_touched": False,
+            }
+        )
+        actions.append(
+            CerebroChatAction(
+                type="event_office_decision",
+                status="prepared",
+                id=traced_message_id or str(trace.get("message_id") or "event-office-decision"),
+                label="Decision ejecutiva por oficina",
+                detail=(
+                    "CEREBRO devolvio aplicacion por ARSENAL/CENTINELA/FORJA/PLUMA/"
+                    "BUNKER/AUDITORIA usando IDs existentes; sin tarea, borrador, recurso nuevo "
+                    "ni runtime SOMBRA."
+                ),
             )
         )
     elif intent == "arsenal_resources":
@@ -4581,6 +4811,7 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
         "arsenal_resources",
         "operational_board",
         "event_trace",
+        "event_office_decision",
     }:
         llm_reply = generate_cerebro_reply(
             message=message,

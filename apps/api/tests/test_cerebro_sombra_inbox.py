@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 import app.services.cerebro as cerebro_service
 from app.main import app
 from app.schemas.auth import ControlCenterRole
-from app.services.arsenal import get_catalog_item
+from app.services.arsenal import get_catalog_item, list_resources_for_office
 from app.services.audit import list_audit_events
 from app.services.bunker_vault import list_sealed_reports
 from app.services.cerebro import list_commercial_drafts, list_cerebro_tasks, list_sombra_inbox_messages
@@ -503,6 +503,102 @@ def test_trace_event_returns_exact_trace_without_local_path_or_prompt_side_effec
 
     assert {item.id for item in list_cerebro_tasks()} == tasks_before
     assert {item.id for item in list_commercial_drafts()} == drafts_before
+
+
+def test_event_office_decision_uses_existing_trace_without_side_effects(monkeypatch) -> None:
+    monkeypatch.setattr(cerebro_service, "generate_cerebro_reply", lambda **_kwargs: None)
+    token = enable_sombra_inbox(monkeypatch)
+    message_id = f"bug-bounty-hunter-20260618T123146Z-09c6fa327386-{uuid4().hex[:8]}"
+    message = sample_message(
+        message_id=message_id,
+        classification="OPERATIVO_DEFENSIVO",
+        type="scan_report",
+        severity="medium",
+        title="Bug bounty hunter office decision",
+        summary=(
+            "SOMBRA genero un informe operativo defensivo; no hay dinero reclamable "
+            "ni informe reportable sin evidencia adicional."
+        ),
+        audience=["cerebro", "centinela", "bunker"],
+        safe_for_commercial_use=False,
+        metadata={"case": "event-office-decision"},
+    )
+
+    stored = client.post(
+        "/api/v1/cerebro/inbox/sombra",
+        json=message,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert stored.status_code == 200
+
+    trace_response = client.post(
+        "/api/v1/cerebro/chat",
+        json={"message": f"estado del evento {message_id}"},
+        headers=CEO_HEADERS,
+    )
+    assert trace_response.status_code == 200
+    trace_payload = trace_response.json()
+    assert trace_payload["actions"][0]["type"] == "event_trace"
+    trace = json.loads(trace_payload["reply"])
+    assert trace["bunker_status"] == "si"
+    assert trace["audit_status"] == "si"
+    assert trace["centinela_status"] == "si"
+
+    tasks_before = {item.id for item in list_cerebro_tasks()}
+    drafts_before = {item.id for item in list_commercial_drafts()}
+    resources_before = {resource.id for resource in list_resources_for_office("SOMBRA")}
+
+    response = client.post(
+        "/api/v1/cerebro/chat",
+        json={
+            "message": (
+                f"con el evento {message_id} dame decision ejecutiva por oficina"
+            )
+        },
+        headers=CEO_HEADERS,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    reply = payload["reply"]
+    assert payload["provider"] == "internal"
+    assert payload["actions"][0]["type"] == "event_office_decision"
+    assert payload["used_context"]["intent_detected"] == "event_office_decision"
+    assert payload["used_context"]["event_trace_message_id"] == message_id
+    assert payload["used_context"]["forja_tasks_created"] == 0
+    assert payload["used_context"]["linkedin_drafts_created"] == 0
+    assert payload["used_context"]["arsenal_resources_created"] == 0
+    assert payload["used_context"]["sombra_runtime_touched"] is False
+    assert "Daniel, estoy operativo como centro de mando interno" not in reply
+    assert "DECISION EJECUTIVA POR OFICINA: PASS" in reply
+    for section in (
+        "EVENTO:",
+        "ARSENAL:",
+        "CENTINELA:",
+        "FORJA:",
+        "PLUMA / LINKEDIN:",
+        "AUDITORIA:",
+        "BUNKER:",
+        "DECISION CEO:",
+        "CERO EFECTOS SECUNDARIOS:",
+    ):
+        assert section in reply
+    assert f"message_id: {message_id}" in reply
+    assert "source: sombra" in reply
+    assert "classification: OPERATIVO_DEFENSIVO" in reply
+    assert "bunker_status: si" in reply
+    assert "audit_status: si" in reply
+    assert "centinela_status: si" in reply
+    assert "Header/CSP Auditor" in reply
+    assert "Sombra Toolbelt" in reply
+    assert "no crear FORJA task nueva" in reply
+    assert "no crear LinkedIn draft nuevo" in reply
+    assert "no duplicar ARSENAL resources" in reply
+    assert "no tocar SOMBRA runtime" in reply
+
+    assert {item.id for item in list_cerebro_tasks()} == tasks_before
+    assert {item.id for item in list_commercial_drafts()} == drafts_before
+    assert {resource.id for resource in list_resources_for_office("SOMBRA")} == resources_before
 
 
 def test_sombra_secret_military_ceo_report_is_sealed_without_cerebro_reading(monkeypatch) -> None:
