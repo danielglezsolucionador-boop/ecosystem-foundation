@@ -50,7 +50,12 @@ def test_arsenal_core_seeds_initial_resources_without_secrets() -> None:
         by_name["LinkedIn OAuth connector"]["readiness"]
         == "pending_credentials"
     )
-    assert by_name["Header/CSP Auditor"]["readiness"] == "planned"
+    assert by_name["Header/CSP Auditor"]["version"] == "1.0.0"
+    assert by_name["Header/CSP Auditor"]["status"] == "active"
+    assert (
+        by_name["Header/CSP Auditor"]["readiness"]
+        == "operational_defensive"
+    )
     assert by_name["Report Normalizer"]["readiness"] == "planned"
     assert by_name["Sombra Toolbelt"]["readiness"] == "external_registered"
     assert by_name["Centinela Defensive Rules"]["readiness"] == "planned"

@@ -44,6 +44,7 @@ from app.services.revenue import create_opportunity
 ARSENAL_CATALOG_TABLE = "arsenal_catalog_items"
 ARSENAL_RISKS_TABLE = "arsenal_risks"
 ARSENAL_RESOURCES_TABLE = "arsenal_core_resources"
+MANAGED_CORE_RESOURCE_IDS = {"arsenal-tool-header-csp-auditor"}
 
 SECRET_VALUE_PATTERN = re.compile(r"sk-[A-Za-z0-9_-]{8,}")
 SECRET_KEYS = {
@@ -176,8 +177,8 @@ INITIAL_CORE_RESOURCES: list[dict[str, object]] = [
         "name": "Header/CSP Auditor",
         "type": ArsenalResourceType.tool,
         "category": "herramientas_ciberseguridad",
-        "version": "planned-v1",
-        "status": ArsenalResourceStatus.testing,
+        "version": "1.0.0",
+        "status": ArsenalResourceStatus.active,
         "owner_office": ArsenalOffice.centinela,
         "allowed_offices": [
             ArsenalOffice.cerebro,
@@ -185,15 +186,26 @@ INITIAL_CORE_RESOURCES: list[dict[str, object]] = [
             ArsenalOffice.centinela,
             ArsenalOffice.auditoria,
         ],
-        "location": "internal://arsenal/tools/header-csp-auditor",
-        "runtime": "planned_internal_tool",
-        "description": "Auditor defensivo planificado para revisar cabeceras HTTP y politicas CSP.",
-        "input_schema": {"url": "string"},
-        "output_schema": {"findings": "list", "risk": "string"},
+        "location": "/api/v1/arsenal/tools/header-csp-auditor/analyze",
+        "runtime": "internal_defensive_http_header_auditor",
+        "description": "Auditor defensivo operativo para revisar headers HTTP, CSP, HSTS, framing, MIME, Referrer-Policy, Permissions-Policy y CORS basico dentro de scope autorizado.",
+        "input_schema": {
+            "url": "http_or_https_without_query",
+            "requesting_office": "CEREBRO|SOMBRA|CENTINELA|AUDITORIA",
+            "mode": "localhost|own_domain|authorized_scope",
+            "authorization_reference": "required_for_non_localhost",
+            "event_metadata": "optional_typed_event_metadata",
+        },
+        "output_schema": {
+            "json_output": "object",
+            "markdown_output": "string",
+            "findings": "list",
+            "classification": "defensivo|pendiente_evidencia|descartado|potencial_revision",
+        },
         "replaces": None,
-        "notes": "Herramienta defensiva planificada. No ejecuta runtime externo en ARSENAL CORE.",
+        "notes": "Herramienta activa con proteccion SSRF, sin credenciales, sin explotacion, sin publicacion y con auditoria de cada uso.",
         "available_for_sombra": True,
-        "readiness": "planned",
+        "readiness": "operational_defensive",
     },
     {
         "id": "arsenal-tool-report-normalizer",
@@ -310,13 +322,60 @@ def seed_initial_core_resources() -> None:
     placeholder = sql_placeholder()
     now = utc_now()
     created: list[ArsenalResource] = []
+    updated: list[ArsenalResource] = []
     with connect() as connection:
         for seed in INITIAL_CORE_RESOURCES:
             row = connection.execute(
-                f"SELECT id FROM {ARSENAL_RESOURCES_TABLE} WHERE id = {placeholder}",
+                f"SELECT payload_json FROM {ARSENAL_RESOURCES_TABLE} WHERE id = {placeholder}",
                 (seed["id"],),
             ).fetchone()
             if row:
+                if seed["id"] in MANAGED_CORE_RESOURCE_IDS:
+                    payload = safe_payload(row)
+                    if payload is not None:
+                        existing = ArsenalResource(**payload)
+                        desired = ArsenalResourceCreate(**seed)
+                        desired_payload = desired.model_dump(mode="json")
+                        current_payload = {
+                            key: getattr(existing, key)
+                            for key in desired_payload
+                        }
+                        current_payload = {
+                            key: (
+                                value.value
+                                if hasattr(value, "value")
+                                else [
+                                    item.value if hasattr(item, "value") else item
+                                    for item in value
+                                ]
+                                if isinstance(value, list)
+                                else value
+                            )
+                            for key, value in current_payload.items()
+                        }
+                        if current_payload != desired_payload:
+                            promoted = ArsenalResource(
+                                **{
+                                    **desired_payload,
+                                    "id": existing.id,
+                                    "replaced_by": existing.replaced_by,
+                                    "created_at": existing.created_at,
+                                    "updated_at": now,
+                                    "external_connection_enabled": False,
+                                    "runtime_connected": False,
+                                    "secrets_stored": False,
+                                    "audit_event_ids": list(existing.audit_event_ids),
+                                }
+                            )
+                            connection.execute(
+                                f"""
+                                UPDATE {ARSENAL_RESOURCES_TABLE}
+                                SET payload_json = {placeholder}, updated_at = {placeholder}
+                                WHERE id = {placeholder}
+                                """,
+                                (promoted.model_dump_json(), now, promoted.id),
+                            )
+                            updated.append(promoted)
                 continue
             resource = ArsenalResource(
                 **seed,
@@ -333,6 +392,23 @@ def seed_initial_core_resources() -> None:
             )
             created.append(resource)
         connection.commit()
+
+    for resource in updated:
+        event_id = audit_arsenal_action(
+            actor=None,
+            action="resource_promoted",
+            status=resource.status.value,
+            detail="ARSENAL CORE promoted Header/CSP Auditor to an operational defensive tool.",
+            metadata={
+                "resource_id": resource.id,
+                "resource_name": resource.name,
+                "version": resource.version,
+                "readiness": resource.readiness,
+                "available_for_sombra": resource.available_for_sombra,
+            },
+        )
+        resource.audit_event_ids.append(event_id)
+        _save_resource(resource)
 
     for resource in created:
         event_id = audit_arsenal_action(

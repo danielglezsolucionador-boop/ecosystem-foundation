@@ -4237,6 +4237,14 @@ ARSENAL_CHAT_TRIGGERS = (
     "skills disponibles",
 )
 
+HEADER_AUDIT_RESULT_TRIGGERS = (
+    "resultados header auditor",
+    "resultados header csp",
+    "resultados csp",
+    "auditorias de headers",
+    "auditorias csp",
+)
+
 OPERATIONAL_BOARD_SECTIONS = (
     "dinero",
     "informes",
@@ -4334,6 +4342,43 @@ def arsenal_resources_reply(
             "sin acciones externas",
             "sin crear tareas",
             "sin crear borradores",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def header_audit_results_for_chat(limit: int = 5) -> list[object]:
+    from app.services.header_csp_auditor import list_header_audits
+
+    return list(list_header_audits(limit=limit))
+
+
+def header_audit_results_reply(reports: list[object]) -> str:
+    lines = [
+        "HEADER/CSP AUDITOR: PASS",
+        f"resultados disponibles: {len(reports)}",
+    ]
+    if not reports:
+        lines.append("- sin auditorias ejecutadas")
+    for report in reports:
+        report_id = getattr(report, "id", "sin-id")
+        host = getattr(report, "host", "sin-host")
+        office = getattr(getattr(report, "requesting_office", None), "value", "sin-oficina")
+        classification = getattr(
+            getattr(report, "overall_classification", None),
+            "value",
+            "sin-clasificacion",
+        )
+        lines.append(
+            f"- {report_id} | host={host} | office={office} | "
+            f"classification={classification}"
+        )
+    lines.extend(
+        [
+            "consulta read-only",
+            "sin crear tareas",
+            "sin crear borradores",
+            "sin ejecutar nuevos escaneos",
         ]
     )
     return "\n".join(lines)
@@ -4459,6 +4504,8 @@ def cerebro_chat_intent(request: CerebroChatRequest) -> str:
         return "event_trace"
     if message_requests_event_office_decision(request.message):
         return "event_office_decision"
+    if any(token in message for token in HEADER_AUDIT_RESULT_TRIGGERS):
+        return "header_audit_results"
     if message_requests_arsenal_resources(message):
         return "arsenal_resources"
     if request.action == "operational_board":
@@ -4468,6 +4515,8 @@ def cerebro_chat_intent(request: CerebroChatRequest) -> str:
             return "event_trace"
         if request.action == "event_office_decision":
             return "event_office_decision"
+        if request.action == "header_audit_results":
+            return "header_audit_results"
         if message_requests_sombra_inbox(message):
             return "sombra_inbox"
         return request.action
@@ -4629,6 +4678,30 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
                 detail=(
                     "Consulta interna de inventario autorizado; sin acciones externas, "
                     "sin tareas FORJA y sin borradores LinkedIn."
+                ),
+            )
+        )
+    elif intent == "header_audit_results":
+        reports = header_audit_results_for_chat()
+        reply = header_audit_results_reply(reports)
+        used_context.update(
+            {
+                "header_audit_results": len(reports),
+                "header_audit_read_only": True,
+                "forja_tasks_created": 0,
+                "linkedin_drafts_created": 0,
+                "arsenal_resources_created": 0,
+            }
+        )
+        actions.append(
+            CerebroChatAction(
+                type="header_audit_results",
+                status="prepared",
+                id="header-csp-auditor-results",
+                label="Resultados Header/CSP Auditor",
+                detail=(
+                    "CEREBRO consulto resultados persistidos sin ejecutar un nuevo analisis, "
+                    "crear tareas o generar borradores."
                 ),
             )
         )
@@ -4809,6 +4882,7 @@ def run_cerebro_chat(request: CerebroChatRequest, actor: AuthenticatedUser) -> C
     if intent not in {
         "sombra_inbox",
         "arsenal_resources",
+        "header_audit_results",
         "operational_board",
         "event_trace",
         "event_office_decision",

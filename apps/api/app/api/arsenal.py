@@ -23,6 +23,7 @@ from app.schemas.arsenal import (
     ArsenalStatus,
 )
 from app.schemas.auth import AuthenticatedUser, ControlCenterRole
+from app.schemas.header_audit import HeaderAuditReport, HeaderAuditRequest
 from app.services.arsenal import (
     ArsenalError,
     build_linkedin_oauth_start,
@@ -48,6 +49,12 @@ from app.services.arsenal import (
     send_catalog_item_to_forja,
 )
 from app.services.auth import get_current_user, require_control_center_user
+from app.services.header_csp_auditor import (
+    HeaderAuditError,
+    get_header_audit,
+    list_header_audits,
+    run_header_audit,
+)
 
 router = APIRouter(
     prefix="/api/v1/arsenal",
@@ -99,6 +106,10 @@ def require_arsenal_audit(user: AuthenticatedUser) -> None:
 
 
 def raise_arsenal_error(error: ArsenalError) -> None:
+    raise HTTPException(status_code=error.status_code, detail=error.detail) from error
+
+
+def raise_header_audit_error(error: HeaderAuditError) -> None:
     raise HTTPException(status_code=error.status_code, detail=error.detail) from error
 
 
@@ -202,6 +213,48 @@ def read_arsenal_resource(
         return get_resource(resource_id)
     except ArsenalError as error:
         raise_arsenal_error(error)
+
+
+@router.post(
+    "/tools/header-csp-auditor/analyze",
+    response_model=HeaderAuditReport,
+)
+def analyze_headers_with_arsenal(
+    request: HeaderAuditRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> HeaderAuditReport:
+    require_arsenal_write(current_user)
+    try:
+        return run_header_audit(request, current_user)
+    except HeaderAuditError as error:
+        raise_header_audit_error(error)
+
+
+@router.get(
+    "/tools/header-csp-auditor/results",
+    response_model=list[HeaderAuditReport],
+)
+def read_header_audit_results(
+    limit: int = Query(default=20, ge=1, le=100),
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> list[HeaderAuditReport]:
+    require_arsenal_read(current_user)
+    return list_header_audits(limit=limit)
+
+
+@router.get(
+    "/tools/header-csp-auditor/results/{report_id}",
+    response_model=HeaderAuditReport,
+)
+def read_header_audit_result(
+    report_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> HeaderAuditReport:
+    require_arsenal_read(current_user)
+    try:
+        return get_header_audit(report_id)
+    except HeaderAuditError as error:
+        raise_header_audit_error(error)
 
 
 @router.post(
