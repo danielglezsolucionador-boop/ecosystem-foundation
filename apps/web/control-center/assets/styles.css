@@ -1,6 +1,6 @@
 ﻿* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', sans-serif; }
 body { background-color: #000; color: #fff; height: 100vh; overflow: hidden; }
-.main-office-active { display: flex; flex-direction: column; height: 100vh; padding: 20px 30px; position: relative; z-index: 10; background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.9) 100%), url('fondo.jpg') no-repeat center bottom fixed; background-size: cover; }
+.main-office-active { display: flex; flex-direction: column; height: 100vh; padding: 20px 30px; position: relative; z-index: 10; background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.9) 100%), url('/control-center/assets/fondo.jpg') no-repeat center bottom fixed; background-size: cover; }
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0; }
 .ceo-title { color: #d4af37; font-size: 1.2rem; letter-spacing: 6px; font-weight: 300; }
 .header-spacer { width: 150px; }
@@ -120,3 +120,4 @@ footer { display: flex; justify-content: space-between; align-items: flex-end; m
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
 ::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.5); border-radius: 10px; }
+
