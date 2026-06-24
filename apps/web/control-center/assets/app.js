@@ -233,13 +233,26 @@ function sendWidgetMsg() {
     area.appendChild(userMsg);
     input.value = '';
     area.scrollTop = area.scrollHeight;
-    setTimeout(() => {
-        const aiMsg = document.createElement('div');
-        aiMsg.className = 'widget-msg ai';
-        aiMsg.innerText = 'CEREBRO: Analizando datos en ' + currentView.toUpperCase() + '. Todo segun lo planificado. Avance confirmado.';
-        area.appendChild(aiMsg);
+
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'widget-msg ai';
+    loadingMsg.innerText = 'CEREBRO: Procesando...';
+    area.appendChild(loadingMsg);
+
+    fetch('/api/v1/cerebro/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+    })
+    .then(res => res.json())
+    .then(data => {
+        loadingMsg.innerText = 'CEREBRO: ' + (data.response || data.message || data.reply || 'Recibido.');
         area.scrollTop = area.scrollHeight;
-    }, 1000);
+    })
+    .catch(err => {
+        loadingMsg.innerText = 'CEREBRO: Conexion con backend en mantenimiento.';
+        area.scrollTop = area.scrollHeight;
+    });
 }
 
 // --- Logica Chat Cerebro ---
@@ -255,13 +268,26 @@ function sendMessage() {
     chatArea.appendChild(userMsg);
     input.value = '';
     chatArea.scrollTop = chatArea.scrollHeight;
-    setTimeout(() => {
-        const aiMsg = document.createElement('div');
-        aiMsg.className = 'msg ai';
-        aiMsg.innerText = 'CEREBRO: Entendido, CEO. Coordinando con las oficinas y ejecutando tu orden.';
-        chatArea.appendChild(aiMsg);
+
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'msg ai';
+    loadingMsg.innerText = 'CEREBRO: Procesando...';
+    chatArea.appendChild(loadingMsg);
+
+    fetch('/api/v1/cerebro/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+    })
+    .then(res => res.json())
+    .then(data => {
+        loadingMsg.innerText = 'CEREBRO: ' + (data.response || data.message || data.reply || 'Recibido.');
         chatArea.scrollTop = chatArea.scrollHeight;
-    }, 1000);
+    })
+    .catch(err => {
+        loadingMsg.innerText = 'CEREBRO: Conexion con backend en mantenimiento.';
+        chatArea.scrollTop = chatArea.scrollHeight;
+    });
 }
 
 function showContext(type) {
@@ -276,3 +302,4 @@ function showContext(type) {
     chatArea.appendChild(aiMsg);
     chatArea.scrollTop = chatArea.scrollHeight;
 }
+
