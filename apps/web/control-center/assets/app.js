@@ -147,12 +147,46 @@ function navigateTo(view) {
     } else if (view === 'cerebro') {
         document.getElementById('cerebro-office').style.display = 'flex';
         document.getElementById('chatWidget').style.display = 'none';
-    } else {
-        renderDynamicOffice(view);
+    } else if (view === 'more') { renderMoreApps(); document.getElementById('dynamic-office').style.display = 'flex'; document.getElementById('chatWidget').style.display = 'none'; } else { renderDynamicOffice(view);
         document.getElementById('dynamic-office').style.display = 'flex';
         document.getElementById('chatWidget').style.display = 'flex';
         widgetTitle.innerText = 'CEREBRO en ' + view.toUpperCase();
     }
+}
+
+function renderMoreApps() {
+    const dyn = document.getElementById('dynamic-office');
+    dyn.innerHTML = 
+        <header class="sub-office-header">
+            <button class="apple-back-btn" onclick="navigateTo('main')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver</button>
+            <div class="pulse-container"><span>Mas Espacios</span><div class="ekg-monitor"><div class="ekg-line"></div></div></div>
+            <div class="header-icons">[ Config ]</div>
+        </header>
+        <div class="more-apps-grid">
+            <div class="glass-card more-card" onclick="navigateTo('marca')">
+                <h3>MARCA PERSONAL</h3>
+                <p>Identidad, autoridad e influencia del CEO.</p>
+                <span class="enter-btn">Entrar</span>
+            </div>
+            <div class="glass-card more-card" onclick="navigateTo('ecommer')">
+                <h3>E-COMMER</h3>
+                <p>Ventas, Amazon y backselling del ecosistema.</p>
+                <span class="enter-btn">Entrar</span>
+            </div>
+            <div class="glass-card more-card disabled">
+                <h3>NUBE</h3>
+                <p>Proximamente.</p>
+            </div>
+            <div class="glass-card more-card disabled">
+                <h3>HERMES</h3>
+                <p>Proximamente.</p>
+            </div>
+        </div>
+        <footer class="sub-office-footer">
+            <div class="quote">"El ecosistema crece. Estas son las aplicaciones del futuro."</div>
+            <button class="signature" onclick="navigateTo('bunker')">Daniel</button>
+        </footer>
+    ;
 }
 
 function renderDynamicOffice(view) {
@@ -302,4 +336,5 @@ function showContext(type) {
     chatArea.appendChild(aiMsg);
     chatArea.scrollTop = chatArea.scrollHeight;
 }
+
 
