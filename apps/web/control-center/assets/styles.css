@@ -131,3 +131,6 @@ footer { display: flex; justify-content: space-between; align-items: flex-end; m
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; -webkit-appearance: none !important; }
 ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3) !important; border-radius: 10px !important; }
 ::-webkit-scrollbar-thumb { background: #d4af37 !important; border-radius: 10px !important; }
+
+.chat-area, .widget-chat-area { scrollbar-width: thin !important; scrollbar-color: #d4af37 rgba(0,0,0,0.3) !important; }
+
