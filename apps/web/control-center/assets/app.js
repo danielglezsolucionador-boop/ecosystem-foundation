@@ -13,32 +13,7 @@
 
 let currentView = 'main';
 
-function fixChatHeights() {
-    // Arreglar Chat Principal de CEREBRO
-    const chatArea = document.getElementById('chatArea');
-    if (chatArea && chatArea.offsetParent !== null) {
-        const parent = chatArea.parentElement;
-        const parentHeight = parent.clientHeight;
-        const title = parent.querySelector('h4');
-        const inputArea = parent.querySelector('.chat-input-area');
-        let usedHeight = 40; // padding base
-        if (title) usedHeight += title.offsetHeight;
-        if (inputArea) usedHeight += inputArea.offsetHeight;
-        chatArea.style.height = (parentHeight - usedHeight) + 'px';
-    }
 
-    // Arreglar Chat Flotante (Widget)
-    const widgetArea = document.getElementById('widgetChatArea');
-    if (widgetArea && widgetArea.offsetParent !== null) {
-        const parent = widgetArea.parentElement;
-        const parentHeight = parent.clientHeight;
-        const inputArea = parent.querySelector('.widget-input-area');
-        let usedHeight = 20;
-        if (inputArea) usedHeight += inputArea.offsetHeight;
-        widgetArea.style.height = (parentHeight - usedHeight) + 'px';
-    }
-}
-window.addEventListener('resize', fixChatHeights);
 
 function navigateTo(view) {
     currentView = view;
@@ -52,14 +27,14 @@ function navigateTo(view) {
         document.getElementById('main-office').style.display = 'flex';
         document.getElementById('chatWidget').style.display = 'none';
     } else if (view === 'cerebro') {
-        document.getElementById('cerebro-office').style.display = 'flex'; setTimeout(fixChatHeights, 50);
+        document.getElementById('cerebro-office').style.display = 'flex'; 
         document.getElementById('chatWidget').style.display = 'none';
     } else if (view === 'more') {
         renderMoreApps();
         document.getElementById('dynamic-office').style.display = 'flex';
         document.getElementById('chatWidget').style.display = 'none';
     } else {
-        renderDynamicOffice(view); setTimeout(fixChatHeights, 50);
+        renderDynamicOffice(view); 
         document.getElementById('dynamic-office').style.display = 'flex';
         document.getElementById('chatWidget').style.display = 'flex';
         widgetTitle.innerText = 'CEREBRO en ' + view.toUpperCase();
@@ -133,7 +108,7 @@ function toggleChat() {
     const icon = document.getElementById('chatToggleIcon');
     const widget = document.getElementById('chatWidget');
     if (body.style.display === 'flex') { body.style.display = 'none'; widget.style.height = '50px'; icon.innerText = '+'; }
-    else { body.style.display = 'flex'; widget.style.height = '350px'; setTimeout(fixChatHeights, 50); icon.innerText = 'x'; }
+    else { body.style.display = 'flex'; widget.style.height = '350px';  icon.innerText = 'x'; }
 }
 function handleWidgetChat(event) { if (event.key === 'Enter') sendWidgetMsg(); }
 function sendWidgetMsg() {
@@ -195,4 +170,5 @@ function showContext(type) {
     chatArea.appendChild(aiMsg);
     chatArea.scrollTop = chatArea.scrollHeight;
 }
+
 
