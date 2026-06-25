@@ -135,3 +135,41 @@ footer { display: flex; justify-content: space-between; align-items: flex-end; m
 .chat-area, .widget-chat-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 10px; scroll-behavior: smooth; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
 
 
+
+/* --- SOLUCIÓN FLEXBOX CONTAINMENT (Scroll Definitivo) --- */
+html, body { height: 100% !important; margin: 0 !important; overflow: hidden !important; }
+.cerebro-flex-layout { display: flex !important; flex: 1 !important; height: 100vh !important; min-height: 0 !important; overflow: hidden !important; }
+.panel-right { display: flex !important; flex-direction: column !important; height: 100% !important; min-height: 0 !important; overflow: hidden !important; }
+.panel-right .glass-panel { display: flex !important; flex-direction: column !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+
+.chat-area {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #d4af37 rgba(0, 0, 0, 0.3) !important;
+}
+.chat-area::-webkit-scrollbar { width: 6px !important; }
+.chat-area::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3) !important; border-radius: 999px !important; }
+.chat-area::-webkit-scrollbar-thumb { background: #d4af37 !important; border-radius: 999px !important; }
+.chat-area::-webkit-scrollbar-thumb:hover { background: #f1cf5a !important; }
+.chat-input-area { flex-shrink: 0 !important; }
+
+.chat-body { display: flex !important; flex-direction: column !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+.widget-chat-area {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #d4af37 rgba(0, 0, 0, 0.3) !important;
+}
+.widget-chat-area::-webkit-scrollbar { width: 6px !important; }
+.widget-chat-area::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3) !important; border-radius: 999px !important; }
+.widget-chat-area::-webkit-scrollbar-thumb { background: #d4af37 !important; border-radius: 999px !important; }
+.widget-chat-area::-webkit-scrollbar-thumb:hover { background: #f1cf5a !important; }
+.widget-input-area { flex-shrink: 0 !important; }
