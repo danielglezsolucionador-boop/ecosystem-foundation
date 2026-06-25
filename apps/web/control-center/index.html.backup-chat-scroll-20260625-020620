@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CEO Operating System</title>
-    <link rel="stylesheet" href="/control-center/assets/styles.css?v=js_pixel_fix">
+    <link rel="stylesheet" href="/control-center/assets/styles.css?v=flex_containment_final">
 </head>
 <body>
     <!-- VISTA: OFICINA PRINCIPAL CEO -->
@@ -60,63 +60,14 @@
         </div>
     </div>
 
-    <script src="/control-center/assets/app.js?v=js_pixel_fix"></script>
-
-<!-- CEREBRO CHAT AUTO SCROLL FIX START -->
-<script>
-(function () {
-  function isNearBottom(el) {
-    return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-  }
-
-  function scrollToBottom(el) {
-    el.scrollTop = el.scrollHeight;
-  }
-
-  function bindChatScroll(el) {
-    if (!el || el.dataset.cerebroScrollFix === "1") return;
-
-    el.dataset.cerebroScrollFix = "1";
-
-    var stickToBottom = true;
-
-    el.addEventListener("scroll", function () {
-      stickToBottom = isNearBottom(el);
-    }, { passive: true });
-
-    var observer = new MutationObserver(function () {
-      if (stickToBottom) {
-        requestAnimationFrame(function () {
-          scrollToBottom(el);
-        });
-      }
-    });
-
-    observer.observe(el, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
-
-    requestAnimationFrame(function () {
-      scrollToBottom(el);
-    });
-  }
-
-  function initChatScrollFix() {
-    document.querySelectorAll(".chat-area, .widget-chat-area").forEach(bindChatScroll);
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initChatScrollFix);
-  } else {
-    initChatScrollFix();
-  }
-
-  setInterval(initChatScrollFix, 1000);
-})();
-</script>
-<!-- CEREBRO CHAT AUTO SCROLL FIX END -->
+    <script src="/control-center/assets/app.js?v=chat_fix_final"></script>
 </body>
 </html>
+
+
+
+
+
+
+
 
