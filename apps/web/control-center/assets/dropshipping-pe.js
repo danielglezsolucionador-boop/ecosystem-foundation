@@ -14,7 +14,7 @@ async function api(path, data, authenticated = true) {
   return response.json();
 }
 function list(id, values) { $(id).replaceChildren(...values.map(v => {const li=document.createElement("li");li.textContent=v;return li;})); }
-function clearSession(){sessionEpoch++;for(const id of ["growth-plan-result","growth-review-result","growth-campaign-result"])$(id).textContent="";$("growth-review").reset();currentRole="";$("evidence-rows").replaceChildren();$("evidence-candidate").replaceChildren();$("playbook-list").replaceChildren();$("evidence-message").textContent="";$("playbook-message").textContent="";token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
+function clearSession(){sessionEpoch++;resetDurable();for(const id of ["growth-plan-result","growth-review-result","growth-campaign-result"])$(id).textContent="";$("growth-review").reset();currentRole="";$("evidence-rows").replaceChildren();$("evidence-candidate").replaceChildren();$("playbook-list").replaceChildren();$("evidence-message").textContent="";$("playbook-message").textContent="";token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
 $("login").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget;const data=Object.fromEntries(new FormData(form));
   $("message").textContent="Comprobando acceso…";
@@ -238,3 +238,68 @@ growthForm("growth-campaign","growth-campaign-result",async data=>{
     "Contribución por entrega cerrada: "+pen(result.contribution_per_delivery_pen),"Presupuesto restante: "+pipelineMoney(result.budget_remaining_cents),
     "Revisión CEO requerida; no se cambió ninguna campaña."].join("\n");
 });
+
+const durablePath=prefix+"/persistent-orders";
+let durableBusy=false,durablePaused=true,durableAvailable=false;
+function resetDurable(){
+  durableBusy=false;durablePaused=true;durableAvailable=false;
+  $("durable-form").reset();
+  for(const id of ["durable-rows","durable-audit"])$(id).replaceChildren();
+  for(const id of ["durable-message","durable-detail"])$(id).textContent="";
+  $("durable-status").textContent="Sin consultar.";
+  durableButtons();
+}
+function durableButtons(){
+  $("durable-refresh").disabled=durableBusy;
+  $("durable-form").querySelector("button").disabled=durableBusy||!durableAvailable||durablePaused||!["CEO","ADMIN","OPERATOR"].includes(currentRole);
+  $("durable-pause").disabled=durableBusy||!durableAvailable||currentRole!=="CEO"||durablePaused;
+  $("durable-resume").disabled=durableBusy||!durableAvailable||currentRole!=="CEO"||!durablePaused;
+}
+function assertDurable(data){
+  if(data.mode!=="simulation"||data.live_enabled!==false||data.real_order_created!==false)throw Error("Modo no seguro.");
+}
+async function refreshDurable(epoch){
+  const data=await api(durablePath);
+  if(epoch!==sessionEpoch)return;
+  assertDurable(data);
+  durableAvailable=true;durablePaused=data.paused;
+  $("durable-status").textContent=durablePaused?"Ensayo pausado":"Ensayo activo · ventas reales bloqueadas";
+  $("durable-rows").replaceChildren(...data.items.map(item=>{
+    const row=document.createElement("tr");
+    for(const value of [item.reference,item.provider,names[item.state]||item.state]){
+      const cell=document.createElement("td");cell.textContent=value;row.append(cell);
+    }
+    const cell=document.createElement("td"),btn=document.createElement("button");
+    btn.type="button";btn.textContent="Ver "+item.reference;
+    btn.addEventListener("click",()=>durableAction(async ep=>{
+      const result=await api(durablePath+"/"+encodeURIComponent(item.id));
+      if(ep!==sessionEpoch)return;assertDurable(result);
+      $("durable-detail").textContent=result.reference+" · "+pipelineMoney(result.quote.total_cents)+" · "+(names[result.state]||result.state)+"\n"+result.events.map(e=>e.event_id+" · "+e.state+" · "+e.created_at).join("\n");
+    }));
+    cell.append(btn);row.append(cell);return row;
+  }));
+  list("durable-audit",data.audit.map(e=>e.action+" · "+(e.order_id||"control")+" · "+e.actor+" · "+e.created_at));
+}
+async function durableAction(run){
+  if(!token||durableBusy)return;const epoch=sessionEpoch;durableBusy=true;durableButtons();
+  $("durable-message").textContent="";
+  try{await run(epoch);}
+  catch(err){if(epoch===sessionEpoch){$("durable-message").textContent=err.message;}}
+  finally{if(epoch===sessionEpoch){durableBusy=false;durableButtons();}}
+}
+$("durable-refresh").addEventListener("click",()=>durableAction(refreshDurable));
+$("durable-form").addEventListener("submit",e=>{
+  e.preventDefault();const values=new FormData(e.currentTarget);
+  durableAction(async epoch=>{
+    const result=await api(durablePath,{reference:values.get("reference"),provider:values.get("provider"),cart:{lines:[{product_id:values.get("product_id"),pack:Number(values.get("pack")),quantity:1}],region:values.get("region")}});
+    if(epoch!==sessionEpoch)return;assertDurable(result);
+    $("durable-message").textContent=result.duplicate?"Referencia recuperada sin duplicar.":"Pedido de ensayo registrado.";
+    await refreshDurable(epoch);
+  });
+});
+for(const [id,paused] of [["durable-pause",true],["durable-resume",false]]){
+  $(id).addEventListener("click",()=>durableAction(async epoch=>{
+    const result=await api(prefix+"/demo-pause",{paused});
+    if(epoch!==sessionEpoch)return;assertDurable(result);await refreshDurable(epoch);
+  }));
+}
