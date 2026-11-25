@@ -14,7 +14,7 @@ async function api(path, data, authenticated = true) {
   return response.json();
 }
 function list(id, values) { $(id).replaceChildren(...values.map(v => {const li=document.createElement("li");li.textContent=v;return li;})); }
-function clearSession(){sessionEpoch++;currentRole="";$("evidence-rows").replaceChildren();$("evidence-candidate").replaceChildren();$("playbook-list").replaceChildren();$("evidence-message").textContent="";$("playbook-message").textContent="";token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
+function clearSession(){sessionEpoch++;for(const id of ["growth-plan-result","growth-review-result","growth-campaign-result"])$(id).textContent="";$("growth-review").reset();currentRole="";$("evidence-rows").replaceChildren();$("evidence-candidate").replaceChildren();$("playbook-list").replaceChildren();$("evidence-message").textContent="";$("playbook-message").textContent="";token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
 $("login").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget;const data=Object.fromEntries(new FormData(form));
   $("message").textContent="Comprobando acceso…";
@@ -200,4 +200,41 @@ $("evidence-form").addEventListener("submit",async e=>{
     form.elements.reference.value="";await loadEvidence();
   }catch(err){if(epoch===sessionEpoch)$("evidence-message").textContent=err.message;}
   finally{if(epoch===sessionEpoch)btn.disabled=false;}
+});
+
+const growthPath=prefix+"/growth";
+const growthChecks={sample_verified:"Muestra verificada",claims_verified:"Afirmaciones verificadas",price_verified:"Precio verificado",media_rights_verified:"Derechos de uso verificados",policy_reviewed:"Políticas revisadas",clear_hook:"Gancho claro",clear_cta:"Llamada a la acción clara",mobile_readable:"Legibilidad móvil"};
+for(const [key,label] of Object.entries(growthChecks)){const wrapper=document.createElement("label"),span=document.createElement("span"),input=document.createElement("input");input.type="checkbox";input.name=key;input.style.width="auto";span.append(input,document.createTextNode(" "+label));wrapper.append(span);$("growth-checks").append(wrapper);}
+function growthForm(id,output,run){
+  $(id).addEventListener("submit",async e=>{
+    e.preventDefault();if(!token)return;
+    const form=e.currentTarget,button=form.querySelector("button"),epoch=sessionEpoch;
+    if(button.disabled)return;button.disabled=true;$(output).textContent="Procesando ensayo…";
+    try{const text=await run(new FormData(form));if(epoch===sessionEpoch)$(output).textContent=text;}
+    catch(err){if(epoch===sessionEpoch)$(output).textContent=err.message;}
+    finally{button.disabled=false;}
+  });
+}
+growthForm("growth-plan","growth-plan-result",async data=>{
+  const result=await api(growthPath+"/creative-plan?"+new URLSearchParams(data));
+  if(result.live_enabled!==false||result.published!==false)throw Error("Modo no seguro.");
+  return result.scripts.map(s=>s.angle+" · "+s.duration_seconds+" s · "+s.format+"\n"+s.shots.map(x=>x.seconds+" s: "+x.text).join("\n")).join("\n\n")+"\n\nPendiente de MARKETING / PLUMA / LENTE; sin publicación.";
+});
+growthForm("growth-review","growth-review-result",async data=>{
+  const result=await api(growthPath+"/creative-review",Object.fromEntries(Object.keys(growthChecks).map(key=>[key,data.has(key)])));
+  if(result.approved_for_publication!==false)throw Error("Modo no seguro.");
+  return "Puntuación: "+result.score+"/"+result.max_score+"\nBloqueos: "+(result.blockers.map(key=>growthChecks[key]).join(", ")||"ninguno declarado")+
+    "\n"+(result.review_ready?"Preparado para revisión humana.":"Completar verificación.")+" Sin aprobación de publicación.";
+});
+const growthDecisions={pause_budget_cap:"Pausar: límite de presupuesto",wait_for_settlement:"Esperar cierre de pedidos",insufficient_sample:"Muestra insuficiente",pause_loss:"Pausar: pérdida",revise_campaign:"Revisar campaña",review_scaling_with_ceo:"Evaluar escalamiento con CEO"};
+growthForm("growth-campaign","growth-campaign-result",async data=>{
+  const payload={};
+  for(const [key,value] of data){const n=Number(value);if(!Number.isFinite(n)||n<0)throw Error("Importe no válido.");payload[key]=key.endsWith("_cents")?Math.round(n*100):n;}
+  const result=await api(growthPath+"/campaign-simulation",payload);
+  if(result.live_enabled!==false||result.spend_executed!==false||result.campaign_changed!==false)throw Error("Modo no seguro.");
+  const pen=v=>v===null?"No disponible":"S/ "+v;
+  return [growthDecisions[result.decision],"CPA pedido: "+pen(result.cpa_order_pen),"CPA entrega cobrada: "+pen(result.cpa_delivered_pen),
+    "ROAS ventas netas: "+(result.net_sales_roas??"No disponible"),"Contribución observada: "+pipelineMoney(result.contribution_cents),
+    "Contribución por entrega cerrada: "+pen(result.contribution_per_delivery_pen),"Presupuesto restante: "+pipelineMoney(result.budget_remaining_cents),
+    "Revisión CEO requerida; no se cambió ninguna campaña."].join("\n");
 });
