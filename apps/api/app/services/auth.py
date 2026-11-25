@@ -45,6 +45,7 @@ AUTH_DISABLED_SENSITIVE_PREFIXES = (
     "/api/v1/auditoria",
     "/api/v1/observability",
     "/api/v1/security",
+    "/api/v1/ecommerce-readiness/dropshipping-pe",
 )
 
 

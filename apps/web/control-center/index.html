@@ -41,9 +41,9 @@
             <button class="apple-icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
         </header>
         <main class="cerebro-flex-layout">
-            <div class="panel-left glass-panel"><h4>HISTORIAL</h4><div class="history-list"><div class="glass-card history-btn">Reunion matutina</div><div class="glass-card history-btn">Revision de ingresos</div><div class="glass-card history-btn">Estrategia Q4</div></div><input type="text" class="search-input" placeholder="Buscar..."></div>
+            <div class="panel-left glass-panel"><h4>HISTORIAL DE EJEMPLO</h4><div class="history-list"><div class="glass-card history-btn">Reunion matutina</div><div class="glass-card history-btn">Revision de ingresos</div><div class="glass-card history-btn">Estrategia Q4</div></div><input type="text" class="search-input" placeholder="Buscar..."></div>
             <div class="panel-center-cerebro"><div class="cerebro-core"><div class="orbit orbit1"><div class="neuron n1"></div></div><div class="orbit orbit2"><div class="neuron n1"></div></div><div class="brain-orb"><div class="face-container"><div class="eyes-row"><div class="eye"></div><div class="eye"></div></div><div class="smile"></div></div></div></div><div class="hologram-base"><div class="holo-core"></div><div class="ray r1"></div><div class="ray r2"></div><div class="ray r3"></div><div class="ray r4"></div><div class="ray r5"></div></div><div class="bottom-nav-container"><div class="glass-card mini" onclick="showContext('manana')"><h3>Agenda</h3></div><div class="glass-card mini" onclick="showContext('tarde')"><h3>Revision</h3></div><div class="glass-card mini" onclick="showContext('ingresos')"><h3>Ingresos</h3></div></div></div>
-            <div class="panel-right glass-panel"><h4>CHAT CON CEREBRO</h4><div class="chat-area" id="chatArea"><div class="msg ai">CEREBRO: Buenos dias CEO. Tenemos 3 tareas criticas hoy.</div></div><div class="chat-input-area"><input type="text" id="chatInput" class="chat-input" placeholder="Escribe o habla..." onkeypress="handleKeyPress(event)"><button class="apple-icon-btn" onclick="sendMessage()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button></div></div>
+            <div class="panel-right glass-panel"><h4>CHAT CON CEREBRO</h4><div class="chat-area" id="chatArea"><div class="msg ai">CEREBRO: Vista de demostración. No hay tareas verificadas en esta pantalla.</div></div><div class="chat-input-area"><input type="text" id="chatInput" class="chat-input" placeholder="Escribe o habla..." onkeypress="handleKeyPress(event)"><button class="apple-icon-btn" onclick="sendMessage()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button></div></div>
         </main>
         <footer class="sub-office-footer"><div class="quote">"No se trata de tener mas informacion, se trata de conectarla para crear lo extraordinario."</div><button class="signature cerebro-signature" onclick="navigateTo('bunker')">Daniel</button></footer>
     </div>
@@ -55,12 +55,12 @@
     <div class="cerebro-chat-widget" id="chatWidget">
         <div class="chat-header" onclick="toggleChat()"><span id="widgetTitle">Hablar con CEREBRO</span><span id="chatToggleIcon">+</span></div>
         <div class="chat-body" id="chatBody">
-            <div class="widget-chat-area" id="widgetChatArea"><div class="widget-msg ai">CEREBRO: Estoy conectado a todas las oficinas. Que necesitas?</div></div>
+            <div class="widget-chat-area" id="widgetChatArea"><div class="widget-msg ai">CEREBRO: Vista de demostración. Conexiones no verificadas.</div></div>
             <div class="widget-input-area"><input type="text" id="widgetInput" class="widget-input" placeholder="Preguntale a CEREBRO..." onkeypress="handleWidgetChat(event)"><button class="widget-send" onclick="sendWidgetMsg()">></button></div>
         </div>
     </div>
 
-    <script src="/control-center/assets/app.js?v=absolute_definitive"></script>
+    <script src="/control-center/assets/app.js?v=dropshipping-audit-c5"></script>
 
 <!-- CEREBRO CHAT AUTO SCROLL FIX START -->
 <script>
