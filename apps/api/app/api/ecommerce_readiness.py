@@ -170,3 +170,22 @@ def dropshipping_provider_comparison(
         ])
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+from app.services.dropshipping_pe_pipeline import PipelineScenario, pipeline_contract, simulate_pipeline
+
+
+@ecommerce_router.get("/dropshipping-pe/pipeline-contract")
+def dropshipping_pipeline_contract(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_commerce_read(current_user)
+    return pipeline_contract()
+
+
+@ecommerce_router.post("/dropshipping-pe/pipeline-simulation")
+def dropshipping_pipeline_simulation(
+    payload: PipelineScenario, current_user: AuthenticatedUser = Depends(get_current_user)
+) -> dict:
+    require_commerce_read(current_user)
+    try:
+        return simulate_pipeline(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
