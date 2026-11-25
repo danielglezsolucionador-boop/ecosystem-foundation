@@ -32,5 +32,12 @@
 <label>Liquidación recibida simulada (S/)<input name="observed_remittance_cents" type="number" min="0" max="1000000" step=".01" value="96" required></label>
 </div><label><span><input type="checkbox" name="duplicate" style="width:auto"> Repetir el primer evento para probar deduplicación</span></label><button>Ejecutar escenario COD</button></form><output id="pipeline-result" aria-live="polite"></output>
 <p class="muted">La contribución bruta de caja no es beneficio contable: no separa IGV, renta ni gastos fijos. La deduplicación solo abarca los eventos de una misma ejecución.</p></section>
+<section><h2>Agentes operativos — protocolos</h2><p>Reglas de trabajo deterministas; no se llama a modelos de IA ni se envían mensajes.</p><button id="load-playbooks" type="button">Consultar protocolos</button><ul id="playbook-list"></ul><p id="playbook-message" role="status"></p></section>
+<section><h2>Registro de evidencias de prueba</h2><p>Disponible únicamente con autenticación habilitada en entorno local SQLite. Usa identificadores ficticios DEMO-; no introduzcas archivos, tokens ni datos reales. Una aceptación de ensayo no autoriza ventas.</p><form id="evidence-form"><div class="fields">
+<label>Candidato<select name="candidate" id="evidence-candidate" required></select></label>
+<label>Proveedor<select name="provider"><option>Dropi</option><option>Aliclik</option><option>Easydrop</option></select></label>
+<label>Tipo<select name="kind"><option value="stock">Stock</option><option value="cost">Coste</option><option value="logistics">Logística y devoluciones</option><option value="sample">Muestra</option><option value="checkout">Checkout</option><option value="legal">Legal</option></select></label>
+<label>Referencia de prueba<input name="reference" pattern="DEMO-[0-9]{1,8}" maxlength="13" placeholder="DEMO-1" required></label></div><button>Registrar ensayo</button></form>
+<button id="refresh-evidence" type="button">Consultar registro</button><div class="table-wrap"><table><thead><tr><th>Producto</th><th>Proveedor</th><th>Tipo</th><th>Referencia</th><th>Revisión</th></tr></thead><tbody id="evidence-rows"></tbody></table></div><p id="evidence-message" role="status"></p></section>
 <section><h2>Simulador de pedidos</h2><p>Prueba el recorrido de una compra sin enviar nada a un proveedor.</p><div id="actions"></div><button id="reset-order" type="button">Reiniciar simulación</button><ol id="history"></ol><output id="order-result" aria-live="polite"></output></section></div>
 </main><script src="dropshipping-pe.js" defer></script></body></html>

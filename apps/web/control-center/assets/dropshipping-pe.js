@@ -1,7 +1,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const prefix = "/api/v1/ecommerce-readiness/dropshipping-pe";
-let token = "", events = [], orderBusy = false, sessionEpoch = 0, candidates = [];
+let token = "", events = [], orderBusy = false, sessionEpoch = 0, candidates = [], currentRole = "";
 const actionNames = {confirm:"Confirmar",cancel:"Cancelar",dispatch:"Despachar (sim.)",deliver:"Entregar (sim.)",reject:"Rechazar",request_return:"Solicitar devolución",resolve_return:"Resolver devolución"};
 const available = {received:["confirm","cancel"],confirmed:["dispatch","cancel"],dispatched:["deliver","reject"],delivered:["request_return"],return_requested:["resolve_return"]};
 const names = {received:"Recibido",confirmed:"Confirmado",cancelled:"Cancelado",dispatched:"Despachado",delivered:"Entregado",rejected:"Rechazado",return_requested:"Devolución solicitada",return_resolved:"Devolución resuelta"};
@@ -14,11 +14,11 @@ async function api(path, data, authenticated = true) {
   return response.json();
 }
 function list(id, values) { $(id).replaceChildren(...values.map(v => {const li=document.createElement("li");li.textContent=v;return li;})); }
-function clearSession(){sessionEpoch++;token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
+function clearSession(){sessionEpoch++;currentRole="";$("evidence-rows").replaceChildren();$("evidence-candidate").replaceChildren();$("playbook-list").replaceChildren();$("evidence-message").textContent="";$("playbook-message").textContent="";token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
 $("login").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget;const data=Object.fromEntries(new FormData(form));
   $("message").textContent="Comprobando acceso…";
-  try {const result=await api("/api/v1/auth/login",data,false);token=result.token;if(!token)throw Error("No se recibió sesión.");
+  try {const result=await api("/api/v1/auth/login",data,false);token=result.token;currentRole=result.user?.role||"";if(!token)throw Error("No se recibió sesión.");
     const status=await api(prefix+"/status");
     if(status.mode!=="simulation"||status.live_enabled!==false)throw Error("Modo no seguro.");
     list("providers",status.providers.map(p=>p.name+" — "+(p.connection==="not_connected"?"sin conexión":"revisar")));
@@ -65,6 +65,11 @@ async function loadCatalog(){
   const data=await api(prefix+"/catalog");
   if(data.live_enabled!==false)throw Error("Catálogo en modo no seguro.");
   candidates=data.items;
+  $("evidence-candidate").replaceChildren(...candidates.map(item=>{
+    const option=document.createElement("option");option.value=item.id;
+    option.textContent=item.id+" · "+item.name;return option;
+  }));
+  $("evidence-form").querySelector("button").disabled=!["CEO","ADMIN","OPERATOR"].includes(currentRole);
   $("candidate").replaceChildren(...candidates.map(item=>{
     const option=document.createElement("option");option.value=item.id;
     option.textContent=item.id+" · "+item.name;return option;
@@ -142,4 +147,57 @@ $("pipeline").addEventListener("submit",async e=>{
     ].join("\n");
   }catch(err){if(epoch===sessionEpoch)$("pipeline-result").textContent=err.message;}
   finally{button.disabled=false;}
+});
+
+$("load-playbooks").addEventListener("click",async()=>{
+  const epoch=sessionEpoch;
+  try{
+    const result=await api(prefix+"/playbooks");
+    if(epoch!==sessionEpoch)return;
+    if(result.live_enabled!==false)throw Error("Modo no seguro.");
+    list("playbook-list",result.items.map(p=>p.agent+" · "+p.reviewer+" · "+p.draft));
+    $("playbook-message").textContent="Protocolos de ensayo; sin mensajes enviados.";
+  }catch(err){if(epoch===sessionEpoch)$("playbook-message").textContent=err.message;}
+});
+async function loadEvidence(){
+  const epoch=sessionEpoch;
+  try{
+    const result=await api(prefix+"/evidence");
+    if(epoch!==sessionEpoch)return;
+    if(result.live_enabled!==false||result.approved_for_sale!==false)throw Error("Modo no seguro.");
+    $("evidence-rows").replaceChildren(...result.items.map(item=>{
+      const row=document.createElement("tr");
+      for(const value of [item.candidate,item.provider,item.kind,item.reference]){
+        const cell=document.createElement("td");cell.textContent=value;row.append(cell);
+      }
+      const cell=document.createElement("td");
+      if(item.decision)cell.textContent=item.decision==="accepted_demo"?"Aceptado (ensayo)":"Rechazado (ensayo)";
+      else if(currentRole==="CEO"){
+        for(const [label,decision] of [["Aceptar ensayo","accepted_demo"],["Rechazar ensayo","rejected_demo"]]){
+          const btn=document.createElement("button");btn.type="button";btn.textContent=label;
+          btn.addEventListener("click",async()=>{
+            const reviewEpoch=sessionEpoch;
+            cell.querySelectorAll("button").forEach(b=>b.disabled=true);
+            try{await api(prefix+"/evidence/"+encodeURIComponent(item.id)+"/review",{decision});if(reviewEpoch===sessionEpoch)await loadEvidence();}
+            catch(err){if(reviewEpoch===sessionEpoch)$("evidence-message").textContent=err.message;}
+            finally{if(reviewEpoch===sessionEpoch)cell.querySelectorAll("button").forEach(b=>b.disabled=false);}
+          });cell.append(btn);
+        }
+      }else cell.textContent="Pendiente de CEO";
+      row.append(cell);return row;
+    }));
+    $("evidence-message").textContent=result.items.length+" registros recientes. Ninguna autorización real.";
+  }catch(err){if(epoch===sessionEpoch)$("evidence-message").textContent=err.message;}
+}
+$("refresh-evidence").addEventListener("click",loadEvidence);
+$("evidence-form").addEventListener("submit",async e=>{
+  e.preventDefault();if(!token)return;
+  const form=e.currentTarget,btn=form.querySelector("button"),epoch=sessionEpoch;
+  if(btn.disabled)return;btn.disabled=true;
+  try{
+    await api(prefix+"/evidence",Object.fromEntries(new FormData(form)));
+    if(epoch!==sessionEpoch)return;
+    form.elements.reference.value="";await loadEvidence();
+  }catch(err){if(epoch===sessionEpoch)$("evidence-message").textContent=err.message;}
+  finally{if(epoch===sessionEpoch)btn.disabled=false;}
 });

@@ -37,3 +37,9 @@ Tests added: service and API tests; full suite must run before merge. No product
 - 19 isolated pipeline unit tests passed in local environment. Pipeline, test and existing storefront source blob hashes match GitHub. New API auth integration test added but not run against entire repository.
 - Added operations and reconciliation form to existing lab; browser execution pending. No deployment, purchases, accounts or ads.
 - Next: evidence persistence/approval, verified provider contracts when accounts are activated, customer-service templates, accounting settlement model and full integration tests. Keep real commerce disabled.
+
+## C4.2 local evidence and operational protocols
+- Added six deterministic operational playbooks: availability, order confirmation, delivery delay, returns, settlement discrepancies and campaign approval. Drafts only; no model calls, notifications, messages or actual marketing.
+- Added local SQLite-only demo evidence store with separate submissions and immutable review rows. CEO/admin/operator may submit synthetic evidence; only CEO may review. Duplicate submission and repeat review rejected by database uniqueness. No real evidence, customer data or sale approval. Existing authentication must be enabled; staging/production and memory database are blocked.
+- Added authenticated /playbooks, /evidence and /evidence/{id}/review API routes and lab interface. Role enforced server-side. Actual documents, accounting evidence and persistent live-order idempotency remain pending.
+- 13 isolated tests passed on real local SQLite; service and test blob hashes matched GitHub (test import adjusted to repository package). API integration and browser not yet executed. No deployment or new paid tools.
