@@ -23,5 +23,7 @@ with tempfile.TemporaryDirectory(prefix="dropshipping-audit-") as work:
         [sys.executable, "-m", "compileall", "-q", "apps/api"],
         [sys.executable, "-m", "pytest", "-q", "apps/api/tests", "-k", "dropshipping"],
     ]
+    if "--full" in sys.argv[1:]:
+        commands[1] = [sys.executable, "-m", "pytest", "-q", "apps/api/tests"]
     for cmd in commands:
         subprocess.run(cmd, cwd=ROOT, env=env, check=True)

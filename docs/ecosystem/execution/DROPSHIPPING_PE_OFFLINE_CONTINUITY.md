@@ -57,3 +57,8 @@ Tests added: service and API tests; full suite must run before merge. No product
 - Restricted the dropshipping internal API prefix from the global auth-disabled bypass. Added integration regression test; not executed against full app yet. Public demo checkout is deliberately stateless and never accepts customer data or real payment.
 - Added scripts/validate_dropshipping_audit.py for reproducible local integration run with temporary SQLite and external model/publishing flags off. Full app integration and browser verification pending; do not mark C5 passed, merge, or activate real commerce.
 - Outstanding: real provider contract, product sample/stock/cost, legal/payment/logistics, actual agent integration, durable live-order idempotency, production database evidence migration, end-to-end security and browser tests. No new accounts or subscriptions.
+
+## C5.2 validation checkpoint
+- GitHub Actions run 45526879776 on commit 0ec9f62237515d1a017a559e2e74f971011079a5 completed successfully. Logs confirm 100 passed, 599 deselected (8.35s), Python compilation and all three JS syntax checks. Includes the actual application authentication/API tests. Not a full regression or browser test.
+- Added separate full regression and Chromium smoke jobs to the draft PR. Browser tests exercise the real local app, desktop and mobile demo storefront, authenticated lab, evidence review and logout using disposable SQLite and synthetic admin credentials. External browser requests blocked. Results must be checked on the new commit; not assumed passed.
+- No external accounts, payments, provider credentials, real orders, merge or deployment. GitHub runner usage is subject to existing account quota.
