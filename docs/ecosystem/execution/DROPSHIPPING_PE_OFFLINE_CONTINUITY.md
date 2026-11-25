@@ -29,3 +29,11 @@ Tests added: service and API tests; full suite must run before merge. No product
 - 19 isolated FastAPI/TestClient cases passed, with API and test file blob hashes matched to GitHub. JavaScript syntax check passed locally. Chromium navigation blocked by administrator; full browser flow and repository-wide integration remain unverified. No production deployment.
 - Catalog candidate display prices and shipping are hypothetical. No supplier stock, product photos or quality verified. Concept artwork intentionally abstract.
 - Next: provider-specific simulated adapters, evidence workflow, legal drafts and test integration; no account activation or paid tools until approved.
+
+## C4.1 offline provider operations checkpoint
+- Added authenticated GET /pipeline-contract and POST /pipeline-simulation under ecommerce-readiness/dropshipping-pe. Reuses server-side storefront cart pricing, normalizes explicitly fictional provider-specific event codes, checks legal state transitions, ignores identical duplicate IDs in a single replay and rejects conflicting IDs.
+- COD-only scenario: delivered order gross receipt includes fictional shipping; rejection/cancellation has zero receipt; returned order assumes full refund. User supplies all incurred costs and simulated remittance. Expected remittance assumes only the provider fee is withheld, not a verified provider settlement rule. Gross cash contribution is not accounting profit and does not separate taxes or fixed costs.
+- Evidence checklist exposed read-only; no actual evidence collection or persistent approval workflow yet. No network, actual provider API schema, external webhook, real order or persistent idempotency.
+- 19 isolated pipeline unit tests passed in local environment. Pipeline, test and existing storefront source blob hashes match GitHub. New API auth integration test added but not run against entire repository.
+- Added operations and reconciliation form to existing lab; browser execution pending. No deployment, purchases, accounts or ads.
+- Next: evidence persistence/approval, verified provider contracts when accounts are activated, customer-service templates, accounting settlement model and full integration tests. Keep real commerce disabled.

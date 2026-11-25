@@ -14,7 +14,7 @@ async function api(path, data, authenticated = true) {
   return response.json();
 }
 function list(id, values) { $(id).replaceChildren(...values.map(v => {const li=document.createElement("li");li.textContent=v;return li;})); }
-function clearSession(){sessionEpoch++;token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
+function clearSession(){sessionEpoch++;token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
 $("login").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget;const data=Object.fromEntries(new FormData(form));
   $("message").textContent="Comprobando acceso…";
@@ -103,5 +103,43 @@ $("comparison").addEventListener("submit",async e=>{
       (row.meets_provisional_target?" · alcanza objetivo":" · no alcanza objetivo")).join("\n")+
       "\nSin proveedor recomendado ni venta autorizada: falta evidencia real.";
   }catch(err){if(epoch===sessionEpoch)$("comparison-result").textContent=err.message;}
+  finally{button.disabled=false;}
+});
+
+const pipelineStates={delivered:["confirmed","dispatched","delivered"],rejected:["confirmed","dispatched","rejected"],returned:["confirmed","dispatched","delivered","returned"],cancelled:["cancelled"],confirmed:["confirmed"]};
+const pipelineMoney=c=>c===null?"Pendiente":"S/ "+(c/100).toFixed(2);
+$("pipeline").addEventListener("submit",async e=>{
+  e.preventDefault();if(!token)return;
+  const form=e.currentTarget,button=form.querySelector("button"),epoch=sessionEpoch;
+  if(button.disabled)return;
+  button.disabled=true;$("pipeline-result").textContent="Ejecutando escenario…";
+  try{
+    const values=new FormData(form),provider=values.get("provider");
+    const contract=await api(prefix+"/pipeline-contract");
+    if(epoch!==sessionEpoch)return;
+    const adapter=contract.providers.find(p=>p.name===provider);
+    if(contract.live_enabled!==false||!adapter||adapter.real_contract_verified!==false)throw Error("Contrato de simulación inválido.");
+    const events=pipelineStates[values.get("outcome")].map((state,i)=>({event_id:"DEMO-"+(i+1),code:adapter.codes[state]}));
+    if(values.has("duplicate"))events.splice(1,0,{...events[0]});
+    const payload={provider,cart:{lines:[{product_id:values.get("product"),pack:1,quantity:1}],region:values.get("region")},events};
+    for(const key of ["product_cost_cents","logistics_cost_cents","advertising_cost_cents","provider_fee_cents","observed_remittance_cents"]){
+      const amount=Number(values.get(key));if(!Number.isFinite(amount)||amount<0)throw Error("Importe no válido.");
+      payload[key]=Math.round(amount*100);
+    }
+    const result=await api(prefix+"/pipeline-simulation",payload);
+    if(epoch!==sessionEpoch)return;
+    if(result.live_enabled!==false||result.real_order_created!==false||result.payment_processed!==false||result.supplier_contacted!==false)throw Error("Resultado no seguro.");
+    $("pipeline-result").textContent=[
+      "Estado: "+(names[result.state]||result.state),
+      "Eventos duplicados ignorados: "+result.duplicates_ignored,
+      "Cobro bruto COD: "+pipelineMoney(result.gross_cod_cents),
+      "Liquidación esperada: "+pipelineMoney(result.expected_remittance_cents),
+      "Liquidación recibida: "+pipelineMoney(result.observed_remittance_cents),
+      "Diferencia: "+pipelineMoney(result.remittance_difference_cents),
+      "Conciliación: "+({matched:"Coincide",review:"Revisar diferencia",pending:"Pendiente"}[result.reconciliation]),
+      "Contribución bruta de caja (antes de ajuste tributario): "+pipelineMoney(result.gross_cash_contribution_cents),
+      "Simulación solamente; sin efecto real."
+    ].join("\n");
+  }catch(err){if(epoch===sessionEpoch)$("pipeline-result").textContent=err.message;}
   finally{button.disabled=false;}
 });
