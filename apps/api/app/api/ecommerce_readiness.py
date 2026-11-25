@@ -310,3 +310,87 @@ def dropshipping_campaign_simulation(
 ) -> dict:
     require_evidence_access(current_user)
     return evaluate_campaign(payload)
+
+import os
+from fastapi import Header
+from typing import Annotated
+from app.services.dropshipping_pe_order_store import (
+    DemoOrder, SignedDemoEvent, OrderStore, OrderId, Conflict, Paused,
+)
+
+
+@contextmanager
+def local_demo_order_store():
+    settings = get_settings()
+    if (settings.environment != "local" or not settings.database_url.startswith("sqlite:///")
+            or settings.database_url == "sqlite:///:memory:"):
+        raise HTTPException(status_code=503, detail="Persistent order rehearsal is local SQLite only")
+    db = connect(settings.database_url)
+    try:
+        store = OrderStore(db)
+        store.initialize()
+        yield store
+    finally:
+        db.close()
+
+
+def demo_order_error(exc):
+    code = 403 if isinstance(exc, PermissionError) else 409 if isinstance(exc, (Conflict, Paused)) else 422
+    if isinstance(exc, RuntimeError):
+        code = 503
+    return HTTPException(status_code=code, detail=str(exc))
+
+
+class DemoPause(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    paused: bool
+
+
+@ecommerce_router.get("/dropshipping-pe/persistent-orders")
+def list_demo_orders(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    with local_demo_order_store() as store:
+        return store.snapshot()
+
+
+@ecommerce_router.post("/dropshipping-pe/persistent-orders")
+def create_demo_order(payload: DemoOrder, current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_order_store() as store:
+            return store.create(payload,current_user.id,current_user.role.value)
+    except (PermissionError, ValueError) as exc:
+        raise demo_order_error(exc) from exc
+
+
+@ecommerce_router.get("/dropshipping-pe/persistent-orders/{order_id}")
+def get_demo_order(order_id: OrderId, current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_order_store() as store:
+            return store.get(order_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@ecommerce_router.post("/dropshipping-pe/demo-events")
+def receive_demo_event(payload: SignedDemoEvent,
+                       signature: Annotated[str | None, Header(alias="X-Demo-Signature")] = None,
+                       current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_order_store() as store:
+            return store.receive(payload,signature,os.environ.get("DROPSHIPPING_DEMO_EVENT_SECRET"),
+                                 current_user.id,current_user.role.value)
+    except (PermissionError, ValueError, RuntimeError) as exc:
+        raise demo_order_error(exc) from exc
+
+
+@ecommerce_router.post("/dropshipping-pe/demo-pause")
+def pause_demo_orders(payload: DemoPause, current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_order_store() as store:
+            return store.set_paused(payload.paused,current_user.id,current_user.role.value)
+    except PermissionError as exc:
+        raise demo_order_error(exc) from exc
