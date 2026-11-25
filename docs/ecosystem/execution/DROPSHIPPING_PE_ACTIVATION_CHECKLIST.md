@@ -1,7 +1,7 @@
 # Dropshipping PE 001 — activation dossier (not an authorization)
 Status: draft; real commerce disabled. No external accounts or paid trials activated.
 ## Sequence
-1. Close audit: compare baseline regression against branch and resolve new regressions; obtain owner acceptance for any explicitly deferred inherited defects. Review actual browser appearance, not only smoke tests.
+1. Close audit: baseline comparison confirmed 23 identical inherited failures and no new failures in run 45527344817. Targeted 100/100 and Chromium 3/3 passed. The full ecosystem still fails; obtain owner acceptance for any explicitly deferred inherited defects or repair separately. New automatic comparison gate requires validation. Review actual browser appearance, not only smoke tests.
 2. Validate legal identity and brand: NEXORA is a working name only; verify trademark and domain before use. Confirm taxpayer registration, tax regime, electronic receipts, applicable consumer disclosures, privacy, complaints book and return terms with owner. No legal clearance claimed.
 3. Open supplier accounts only after offline approval: Aliclik and Dropi first, Easydrop optional comparison. Obtain official account-specific API contracts, permissions, fees, settlement, coverage, shipping, returns, supplier documentation and stock. Do not paste credentials in chat or repository. Use secret storage and least privilege.
 4. Validate finalist samples and exact SKUs: PE-013, PE-019, PE-023. Record verified cost, shipping, stock, quality, photos/rights, claims and evidence date. Select one pilot only after owner approves the economics. No winning product claim.

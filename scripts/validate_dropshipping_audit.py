@@ -25,5 +25,8 @@ with tempfile.TemporaryDirectory(prefix="dropshipping-audit-") as work:
     ]
     if "--full" in sys.argv[1:]:
         commands[1] = [sys.executable, "-m", "pytest", "-q", "apps/api/tests"]
+    if "--junit" in sys.argv[1:]:
+        report = Path(sys.argv[sys.argv.index("--junit") + 1]).resolve()
+        commands[1].extend(["--junitxml", str(report)])
     for cmd in commands:
         subprocess.run(cmd, cwd=ROOT, env=env, check=True)

@@ -7,6 +7,8 @@ on:
       - 'apps/web/control-center/**'
       - 'scripts/validate_dropshipping_audit.py'
       - 'scripts/validate_dropshipping_browser.py'
+      - 'scripts/compare_dropshipping_regressions.py'
+      - 'scripts/test_compare_dropshipping_regressions.py'
       - '.github/workflows/dropshipping-offline-audit.yml'
 permissions:
   contents: read
@@ -40,7 +42,17 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install -r requirements.txt pytest httpx
-      - run: python scripts/validate_dropshipping_audit.py --full
+      - run: python scripts/validate_dropshipping_audit.py --full --junit current.xml
+      - name: Extract test inventory only
+        if: always()
+        run: python scripts/compare_dropshipping_regressions.py extract current.xml current.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current-test-inventory
+          path: current.json
+          if-no-files-found: error
+          retention-days: 7
   browser:
     if: github.head_ref == 'feature/dropshipping-pe-offline'
     runs-on: ubuntu-latest
@@ -63,12 +75,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: e8b3e87fdb6626f82f28b47c154c412df965ac08
+          path: baseline
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install -r requirements.txt pytest httpx
+      - run: python -m pip install -r baseline/requirements.txt pytest httpx
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+          persist-credentials: false
       - name: Run unchanged baseline without external services
+        working-directory: baseline
         env:
           ECOSYSTEM_API_ENVIRONMENT: local
           ECOSYSTEM_API_DATABASE_URL: sqlite:///./var/baseline-audit.db
@@ -76,4 +94,40 @@ jobs:
           CEREBRO_LLM_ENABLED: 'false'
           ARSENAL_API_BROKER_ENABLED: 'false'
           LINKEDIN_POSTING_ENABLED: 'false'
-        run: python -m pytest -q apps/api/tests
+        run: python -m pytest -q apps/api/tests --junitxml ../baseline.xml
+      - name: Extract baseline inventory only
+        if: always()
+        run: python candidate/scripts/compare_dropshipping_regressions.py extract baseline.xml baseline.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baseline-test-inventory
+          path: baseline.json
+          if-no-files-found: error
+          retention-days: 7
+  regression-comparison:
+    if: always() && github.head_ref == 'feature/dropshipping-pe-offline'
+    needs: [regression, baseline-regression, audit, browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - run: python -m pytest -q scripts/test_compare_dropshipping_regressions.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: baseline-test-inventory
+      - uses: actions/download-artifact@v4
+        with:
+          name: current-test-inventory
+      - run: python scripts/compare_dropshipping_regressions.py compare baseline.json current.json
+      - name: Require targeted audit and browser success
+        env:
+          AUDIT: ${{ needs.audit.result }}
+          BROWSER: ${{ needs.browser.result }}
+        run: test "$AUDIT" = success && test "$BROWSER" = success

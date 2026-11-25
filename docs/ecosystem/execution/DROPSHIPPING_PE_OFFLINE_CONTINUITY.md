@@ -69,3 +69,9 @@ Tests added: service and API tests; full suite must run before merge. No product
 - Added independent baseline regression job pinned to original base commit. Compare failure node IDs before making attribution. Do not weaken existing tests, invent placeholder panels or redesign unrelated departments to force a pass.
 - C5 remains open pending baseline comparison and remediation decision. No merge or production activation.
 - Activation checklist recorded separately; all commercial evidence remains pending.
+
+## C5.4 confirmed inherited regression diagnosis
+- Run 45527344817, pinned baseline e8b3e87fdb6626f82f28b47c154c412df965ac08: 576 passed / 23 failed. Candidate bc65ede62bb8672eb7b717ed368e26d45ef58812: 676 passed / 23 failed. Exact failure node IDs match, no new or resolved failures. Targeted 100/100 and three Chromium journeys passed again.
+- The 23 inherited legacy frontend failures are not waived or repaired. Keep regression job visibly failing; owner must decide separate repair/explicit deferral before deployment.
+- Added machine-readable test inventory comparison; blocks missing baseline tests, new failures, errors or newly skipped tests; requires targeted and browser jobs to pass. Only test IDs/status uploaded, not raw XML. Seven isolated comparison tests passed locally; new CI run not yet verified. Comparison of IDs does not prove absence of all bugs or changed failure causes.
+- No production merge, paid accounts, real orders or live approval. C5 prototype verification has strong evidence, but full ecosystem remains red and live functionality not implemented.
