@@ -14,7 +14,7 @@ async function api(path, data, authenticated = true) {
   return response.json();
 }
 function list(id, values) { $(id).replaceChildren(...values.map(v => {const li=document.createElement("li");li.textContent=v;return li;})); }
-function clearSession(){sessionEpoch++;resetDurable();for(const id of ["growth-plan-result","growth-review-result","growth-campaign-result"])$(id).textContent="";$("growth-review").reset();currentRole="";$("evidence-rows").replaceChildren();$("evidence-candidate").replaceChildren();$("playbook-list").replaceChildren();$("evidence-message").textContent="";$("playbook-message").textContent="";token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
+function clearSession(){sessionEpoch++;resetDurable();resetTasks();for(const id of ["growth-plan-result","growth-review-result","growth-campaign-result"])$(id).textContent="";$("growth-review").reset();currentRole="";$("evidence-rows").replaceChildren();$("evidence-candidate").replaceChildren();$("playbook-list").replaceChildren();$("evidence-message").textContent="";$("playbook-message").textContent="";token="";events=[];orderBusy=false;candidates=[];$("catalog-rows").replaceChildren();$("candidate").replaceChildren();$("comparison-result").textContent="";$("pipeline-result").textContent="";$("catalog-summary").textContent="";$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
 $("login").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget;const data=Object.fromEntries(new FormData(form));
   $("message").textContent="Comprobando acceso…";
@@ -303,3 +303,73 @@ for(const [id,paused] of [["durable-pause",true],["durable-resume",false]]){
     if(epoch!==sessionEpoch)return;assertDurable(result);await refreshDurable(epoch);
   }));
 }
+
+const tasksPath=prefix+"/tasks";
+let taskBusy=false,taskAvailable=false,taskPaused=true;
+const taskStates={queued:"En cola",retry_wait:"Reintento pendiente",escalated:"Escalado al CEO",awaiting_ceo:"Pendiente de revisión CEO",draft_ready:"Borrador preparado",reviewed_demo:"Revisado (ensayo)"};
+const taskIntents={order_confirmation:"Confirmación",delivery_delay:"Retraso",return_request:"Devolución",settlement_difference:"Conciliación"};
+function taskButtons(){
+  const write=["CEO","ADMIN","OPERATOR"].includes(currentRole);
+  $("tasks-refresh").disabled=taskBusy;
+  $("tasks-tick").disabled=taskBusy||!taskAvailable||taskPaused||!write;
+  $("tasks-form").querySelector("button").disabled=taskBusy||!taskAvailable||taskPaused||!write||!$("tasks-order").value;
+}
+function resetTasks(){
+  taskBusy=false;taskAvailable=false;taskPaused=true;
+  $("tasks-form").reset();
+  for(const id of ["tasks-order","tasks-rows","tasks-audit"])$(id).replaceChildren();
+  $("tasks-status").textContent="Sin consultar."; $("tasks-message").textContent="";
+  taskButtons();
+}
+function assertTasks(data){
+  if(data.mode!=="simulation"||data.live_enabled!==false||data.external_action_executed!==false)throw Error("Modo no seguro.");
+}
+async function refreshTasks(epoch){
+  const [data,orders]=await Promise.all([api(tasksPath),api(durablePath)]);
+  if(epoch!==sessionEpoch)return;assertTasks(data);assertDurable(orders);
+  taskAvailable=true;taskPaused=data.paused;
+  $("tasks-status").textContent=taskPaused?"Cola pausada":"Cola disponible · ciclo manual · acciones reales bloqueadas";
+  const selection=$("tasks-order").value;
+  $("tasks-order").replaceChildren(...orders.items.map(o=>{const option=document.createElement("option");option.value=o.id;option.textContent=o.reference+" · "+o.provider;return option;}));
+  if(orders.items.some(o=>o.id===selection))$("tasks-order").value=selection;
+  $("tasks-rows").replaceChildren(...data.items.map(item=>{
+    const row=document.createElement("tr");
+    const due=["queued","retry_wait"].includes(item.state)?new Date(item.due_at*1000).toLocaleString("es-PE"):"—";
+    for(const value of [item.reference,taskIntents[item.intent]||item.intent,taskStates[item.state]||item.state,item.attempts,due]){
+      const cell=document.createElement("td");cell.textContent=value;row.append(cell);
+    }
+    const cell=document.createElement("td");cell.textContent=item.result||"—";
+    if(currentRole==="CEO"&&["escalated","awaiting_ceo"].includes(item.state)){
+      const btn=document.createElement("button");btn.type="button";btn.textContent="Revisar "+item.reference;
+      btn.addEventListener("click",()=>taskAction(async ep=>{
+        const result=await api(tasksPath+"/"+encodeURIComponent(item.id)+"/acknowledge",{});
+        if(ep!==sessionEpoch)return;assertTasks(result);await refreshTasks(ep);
+      }));cell.append(document.createElement("br"),btn);
+    }
+    row.append(cell);return row;
+  }));
+  list("tasks-audit",data.audit.map(a=>a.action+" · "+a.task_id+" · "+a.actor+" · "+a.created_at));
+}
+async function taskAction(run){
+  if(!token||taskBusy)return;const epoch=sessionEpoch;taskBusy=true;taskButtons();$("tasks-message").textContent="";
+  try{await run(epoch);}catch(err){if(epoch===sessionEpoch)$("tasks-message").textContent=err.message;}
+  finally{if(epoch===sessionEpoch){taskBusy=false;taskButtons();}}
+}
+$("tasks-refresh").addEventListener("click",()=>taskAction(refreshTasks));
+$("tasks-order").addEventListener("change",taskButtons);
+$("tasks-form").addEventListener("submit",e=>{
+  e.preventDefault();const values=Object.fromEntries(new FormData(e.currentTarget));
+  values.simulated_failures=Number(values.simulated_failures);
+  taskAction(async ep=>{
+    const result=await api(tasksPath,values);
+    if(ep!==sessionEpoch)return;assertTasks(result);
+    $("tasks-message").textContent=result.duplicate?"Tarea recuperada sin duplicar.":"Tarea registrada.";
+    await refreshTasks(ep);
+  });
+});
+$("tasks-tick").addEventListener("click",()=>taskAction(async ep=>{
+  const result=await api(tasksPath+"/tick",{});
+  if(ep!==sessionEpoch)return;assertTasks(result);
+  $("tasks-message").textContent=result.task?(taskStates[result.task.state]||result.task.state):"No hay tareas vencidas.";
+  await refreshTasks(ep);
+}));
