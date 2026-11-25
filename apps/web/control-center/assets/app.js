@@ -52,6 +52,7 @@ function renderMoreApps() {
         <div class="more-apps-grid">
             <div class="glass-card more-card" onclick="navigateTo('marca')"><h3>MARCA PERSONAL</h3><p>Identidad, autoridad e influencia del CEO.</p><span class="enter-btn">Entrar</span></div>
             <div class="glass-card more-card" onclick="navigateTo('ecommer')"><h3>E-COMMER</h3><p>Ventas, Amazon y backselling del ecosistema.</p><span class="enter-btn">Entrar</span></div>
+            <a class="glass-card more-card" href="/control-center/assets/dropshipping-pe.html"><h3>DROPSHIPPING PERÚ</h3><p>Unidad 001 · Laboratorio de operaciones</p><span class="enter-btn">Entrar</span></a>
             <div class="glass-card more-card disabled"><h3>NUBE</h3><p>Proximamente.</p></div>
             <div class="glass-card more-card disabled"><h3>HERMES</h3><p>Proximamente.</p></div>
         </div>

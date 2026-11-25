@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dropshipping Perú | Ecosystem Foundation</title><link rel="stylesheet" href="dropshipping-pe.css"></head>
+<body><main><header><a href="/control-center">← Ecosystem Foundation</a><p class="eyebrow">UNIDAD 001 / OPERACIONES</p><h1>Dropshipping Perú</h1><p>Laboratorio de operaciones y rentabilidad. Ninguna acción crea pedidos reales.</p></header>
+<section id="session"><h2>Acceso al laboratorio</h2><p>Utiliza la cuenta existente de Ecosystem Foundation. No se requiere ninguna cuenta de proveedor.</p><form id="login"><label>Correo<input type="email" name="email" autocomplete="username" required></label><label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label><button>Entrar</button></form><p id="message" role="status"></p></section>
+<div id="workspace" hidden><div class="toolbar"><strong>SIMULACIÓN · VENTAS REALES NO VERIFICADAS</strong><button id="logout">Cerrar sesión</button></div>
+<section><h2>Estado operativo</h2><div class="columns"><div><h3>Proveedores</h3><ul id="providers"></ul></div><div><h3>Bloqueos de lanzamiento</h3><ul id="blockers"></ul></div></div></section>
+<section><h2>Rentabilidad por entrega</h2><p>Supuestos ilustrativos en soles; no son cotizaciones ni beneficios verificados.</p><form id="finance"><div class="fields">
+<label>Precio final<input name="price" type="number" step=".01" min=".01" value="89" required></label>
+<label>Producto<input name="supplier_cost" type="number" step=".01" min="0" value="20" required></label>
+<label>Envío entregado<input name="delivered_shipping" type="number" step=".01" min="0" value="15" required></label>
+<label>Coste envío fallido<input name="failed_shipping" type="number" step=".01" min="0" value="10" required></label>
+<label>Publicidad por pedido<input name="advertising_per_order" type="number" step=".01" min="0" value="12" required></label>
+<label>Entregas (0–1)<input name="delivery_rate" type="number" step=".0001" min=".0001" max="1" value=".8" required></label>
+<label>Comisión (0–1)<input name="payment_rate" type="number" step=".0001" min="0" max="1" value=".05" required></label>
+<label>Reserva por entrega<input name="reserve_per_delivery" type="number" step=".01" min="0" value="4" required></label>
+<label>IGV (0–1)<input name="vat_rate" type="number" step=".0001" min="0" max="1" value=".18" required></label>
+</div><button>Calcular escenario</button></form><output id="financial-result" aria-live="polite"></output><p class="muted">No incluye gastos fijos ni impuesto a la renta. Costes netos del IGV recuperable cuando corresponda.</p></section>
+<section><h2>Simulador de pedidos</h2><p>Prueba el recorrido de una compra sin enviar nada a un proveedor.</p><div id="actions"></div><button id="reset-order" type="button">Reiniciar simulación</button><ol id="history"></ol><output id="order-result" aria-live="polite"></output></section></div>
+</main><script src="dropshipping-pe.js" defer></script></body></html>
