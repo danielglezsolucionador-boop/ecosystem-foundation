@@ -1,7 +1,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const prefix = "/api/v1/ecommerce-readiness/dropshipping-pe";
-let token = "", events = [];
+let token = "", events = [], orderBusy = false, sessionEpoch = 0;
 const actionNames = {confirm:"Confirmar",cancel:"Cancelar",dispatch:"Despachar (sim.)",deliver:"Entregar (sim.)",reject:"Rechazar",request_return:"Solicitar devolución",resolve_return:"Resolver devolución"};
 const available = {received:["confirm","cancel"],confirmed:["dispatch","cancel"],dispatched:["deliver","reject"],delivered:["request_return"],return_requested:["resolve_return"]};
 const names = {received:"Recibido",confirmed:"Confirmado",cancelled:"Cancelado",dispatched:"Despachado",delivered:"Entregado",rejected:"Rechazado",return_requested:"Devolución solicitada",return_resolved:"Devolución resuelta"};
@@ -14,7 +14,7 @@ async function api(path, data, authenticated = true) {
   return response.json();
 }
 function list(id, values) { $(id).replaceChildren(...values.map(v => {const li=document.createElement("li");li.textContent=v;return li;})); }
-function clearSession(){token="";events=[];$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
+function clearSession(){sessionEpoch++;token="";events=[];orderBusy=false;$("workspace").hidden=true;$("session").hidden=false;$("financial-result").textContent="";$("order-result").textContent="";$("history").replaceChildren();$("message").textContent="Sesión cerrada.";}
 $("login").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget;const data=Object.fromEntries(new FormData(form));
   $("message").textContent="Comprobando acceso…";
@@ -29,9 +29,12 @@ $("login").addEventListener("submit",async e=>{
 $("logout").addEventListener("click",async()=>{try{await api("/api/v1/auth/logout",{});}catch{}finally{clearSession();}});
 $("finance").addEventListener("submit",async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));try{const result=await api(prefix+"/financial-scenario",data);$("financial-result").textContent="S/ "+result.contribution_per_delivery+" por entrega · "+(result.meets_provisional_target?"Alcanza":"No alcanza")+" el objetivo provisional de S/ 15.";}catch(err){$("financial-result").textContent=err.message;}});
 async function runOrder(next){
-  try{const result=await api(prefix+"/order-simulation",{events:next});events=next;
+  if(orderBusy||!token)return;
+  const epoch=sessionEpoch;orderBusy=true;
+  $("actions").querySelectorAll("button").forEach(btn=>btn.disabled=true);$("reset-order").disabled=true;
+  try{const result=await api(prefix+"/order-simulation",{events:next});if(epoch!==sessionEpoch)return;events=next;
     list("history",result.history.map(s=>names[s]||s));$("order-result").textContent="Estado simulado: "+(names[result.state]||result.state);
-    $("actions").replaceChildren(...(available[result.state]||[]).map(action=>{const btn=document.createElement("button");btn.type="button";btn.textContent=actionNames[action];btn.addEventListener("click",()=>{btn.disabled=true;runOrder([...events,action]).finally(()=>{btn.disabled=false;});});return btn;}));
-  }catch(err){$("order-result").textContent=err.message;}
+    $("actions").replaceChildren(...(available[result.state]||[]).map(action=>{const btn=document.createElement("button");btn.type="button";btn.textContent=actionNames[action];btn.addEventListener("click",()=>runOrder([...events,action]));return btn;}));
+  }catch(err){if(epoch===sessionEpoch)$("order-result").textContent=err.message;}finally{if(epoch===sessionEpoch){orderBusy=false;$("actions").querySelectorAll("button").forEach(btn=>btn.disabled=false);$("reset-order").disabled=false;}}
 }
 $("reset-order").addEventListener("click",()=>runOrder([]));
