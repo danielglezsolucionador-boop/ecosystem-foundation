@@ -394,3 +394,51 @@ def pause_demo_orders(payload: DemoPause, current_user: AuthenticatedUser = Depe
             return store.set_paused(payload.paused,current_user.id,current_user.role.value)
     except PermissionError as exc:
         raise demo_order_error(exc) from exc
+
+from app.services.dropshipping_pe_tasks import DemoTask, TaskStore
+
+
+@contextmanager
+def local_demo_task_store():
+    with local_demo_order_store() as order_store:
+        store = TaskStore(order_store.db)
+        store.initialize()
+        yield store
+
+
+@ecommerce_router.get("/dropshipping-pe/tasks")
+def list_demo_tasks(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    with local_demo_task_store() as store:
+        return store.snapshot()
+
+
+@ecommerce_router.post("/dropshipping-pe/tasks")
+def enqueue_demo_task(payload: DemoTask, current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_task_store() as store:
+            return store.enqueue(payload,current_user.id,current_user.role.value)
+    except (PermissionError, ValueError) as exc:
+        raise demo_order_error(exc) from exc
+
+
+@ecommerce_router.post("/dropshipping-pe/tasks/tick")
+def tick_demo_task(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_task_store() as store:
+            return store.tick(current_user.id,current_user.role.value)
+    except (PermissionError, ValueError) as exc:
+        raise demo_order_error(exc) from exc
+
+
+@ecommerce_router.post("/dropshipping-pe/tasks/{task_id}/acknowledge")
+def acknowledge_demo_task(task_id: Annotated[str, Field(pattern=r"^TASK-[0-9a-f]{32}$")],
+                          current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_task_store() as store:
+            return store.acknowledge(task_id,current_user.id,current_user.role.value)
+    except (PermissionError, ValueError) as exc:
+        raise demo_order_error(exc) from exc
