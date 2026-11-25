@@ -189,3 +189,92 @@ def dropshipping_pipeline_simulation(
         return simulate_pipeline(payload)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+from contextlib import contextmanager
+from typing import Literal
+from app.core.config import get_settings
+from app.core.database import connect
+from app.services.auth import control_center_auth_enabled
+from app.services.dropshipping_pe_evidence import EvidenceStore, PLAYBOOKS, playbook
+
+
+def require_evidence_access(user: AuthenticatedUser) -> None:
+    require_commerce_read(user)
+    if not control_center_auth_enabled():
+        raise HTTPException(status_code=403, detail="Real authentication required")
+
+
+@contextmanager
+def local_demo_evidence_store():
+    settings = get_settings()
+    if (settings.environment != "local" or not settings.database_url.startswith("sqlite:///")
+            or settings.database_url == "sqlite:///:memory:"):
+        raise HTTPException(status_code=503, detail="Persistent evidence rehearsal is local SQLite only")
+    db = connect(settings.database_url)
+    try:
+        with db:
+            store = EvidenceStore(db)
+            store.initialize()
+            yield store
+    finally:
+        db.close()
+
+
+class DemoEvidenceSubmission(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    candidate: str = Field(pattern=r"^PE-[0-9]{3}$")
+    provider: Provider
+    kind: Literal["stock", "cost", "logistics", "sample", "checkout", "legal"]
+    reference: str = Field(pattern=r"^DEMO-[0-9]{1,8}$")
+
+
+class DemoEvidenceReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decision: Literal["accepted_demo", "rejected_demo"]
+
+
+@ecommerce_router.get("/dropshipping-pe/playbooks")
+def dropshipping_playbooks(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    return {"mode": "simulation", "items": [{"intent": intent, **playbook(intent)} for intent in PLAYBOOKS],
+            "live_enabled": False}
+
+
+@ecommerce_router.get("/dropshipping-pe/evidence")
+def dropshipping_evidence(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    with local_demo_evidence_store() as store:
+        return store.snapshot()
+
+
+@ecommerce_router.post("/dropshipping-pe/evidence", status_code=201)
+def submit_dropshipping_evidence(
+    payload: DemoEvidenceSubmission, current_user: AuthenticatedUser = Depends(get_current_user)
+) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_evidence_store() as store:
+            eid = store.submit(payload.candidate, payload.provider.value, payload.kind,
+                               payload.reference, current_user.id, current_user.role.value)
+        return {"id": eid, "mode": "simulation", "live_enabled": False, "approved_for_sale": False}
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@ecommerce_router.post("/dropshipping-pe/evidence/{evidence_id}/review")
+def review_dropshipping_evidence(
+    evidence_id: str, payload: DemoEvidenceReview,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+) -> dict:
+    require_evidence_access(current_user)
+    try:
+        with local_demo_evidence_store() as store:
+            store.review(evidence_id, payload.decision, current_user.id, current_user.role.value)
+        return {"mode": "simulation", "decision": payload.decision,
+                "live_enabled": False, "approved_for_sale": False}
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
