@@ -10,3 +10,8 @@ Finance assumes supplier product cost incurred only for delivered orders; add un
 Next: authenticated control center UI, catalog with evidence, provider sandbox adapters, storefront and local checkout simulations, security review. Do not declare live status until authentic stock, cost, logistics, sample, legal review, checkout and owner approval are verified.
 External accounts and trials deferred until offline work passes validation. Five-day launch objective conditional on third-party lead times and evidence.
 Tests added: service and API tests; full suite must run before merge. No production change authorized.
+
+## Checkpoint
+- Added dedicated control center lab accessible from Más Apps. Uses existing login, bearer token held in memory only, authenticated simulation API, and explicit non-live state.
+- 11 isolated service tests passed; all four local test/service file Git blob hashes matched branch contents. Full integration suite and browser interaction still unverified because direct repository checkout/network unavailable in local test environment.
+- Remaining C2: complete browser and full repository test, reconcile existing demo metrics, then catalog evidence and supplier mock adapters. No real agents or provider connections claimed.
