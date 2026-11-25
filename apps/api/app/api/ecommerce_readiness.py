@@ -85,3 +85,54 @@ def read_amazon_readiness_risks(
 ) -> list[CommerceOpportunity]:
     require_commerce_read(current_user)
     return list_amazon_risks()
+
+# Dropshipping PE: stateless simulations only. Existing auth and role controls apply.
+from decimal import Decimal
+from pydantic import BaseModel, ConfigDict, Field
+from app.services.dropshipping_pe_offline import UnitEconomics
+from app.services.dropshipping_pe_operations import Event, operation_status, simulate_order
+
+
+class FinancialScenario(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    price: Decimal = Field(gt=0, le=100000, max_digits=12, decimal_places=2)
+    supplier_cost: Decimal = Field(ge=0, le=100000, max_digits=12, decimal_places=2)
+    delivered_shipping: Decimal = Field(ge=0, le=100000, max_digits=12, decimal_places=2)
+    failed_shipping: Decimal = Field(ge=0, le=100000, max_digits=12, decimal_places=2)
+    advertising_per_order: Decimal = Field(ge=0, le=100000, max_digits=12, decimal_places=2)
+    delivery_rate: Decimal = Field(gt=0, le=1, decimal_places=4)
+    payment_rate: Decimal = Field(ge=0, le=1, decimal_places=4)
+    reserve_per_delivery: Decimal = Field(ge=0, le=100000, max_digits=12, decimal_places=2)
+    vat_rate: Decimal = Field(default=Decimal("0.18"), ge=0, le=1, decimal_places=4)
+
+
+class OrderSimulation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    events: list[Event] = Field(default_factory=list, max_length=8)
+
+
+@ecommerce_router.get("/dropshipping-pe/status")
+def dropshipping_status(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_commerce_read(current_user)
+    return operation_status()
+
+
+@ecommerce_router.post("/dropshipping-pe/financial-scenario")
+def dropshipping_financial_scenario(
+    payload: FinancialScenario, current_user: AuthenticatedUser = Depends(get_current_user)
+) -> dict:
+    require_commerce_read(current_user)
+    value = UnitEconomics(**payload.model_dump()).contribution_per_delivery()
+    return {"mode": "simulation", "currency": "PEN", "contribution_per_delivery": str(value),
+            "meets_provisional_target": value >= Decimal("15"), "live_enabled": False}
+
+
+@ecommerce_router.post("/dropshipping-pe/order-simulation")
+def dropshipping_order_simulation(
+    payload: OrderSimulation, current_user: AuthenticatedUser = Depends(get_current_user)
+) -> dict:
+    require_commerce_read(current_user)
+    try:
+        return simulate_order(payload.events)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
