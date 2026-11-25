@@ -62,3 +62,10 @@ Tests added: service and API tests; full suite must run before merge. No product
 - GitHub Actions run 45526879776 on commit 0ec9f62237515d1a017a559e2e74f971011079a5 completed successfully. Logs confirm 100 passed, 599 deselected (8.35s), Python compilation and all three JS syntax checks. Includes the actual application authentication/API tests. Not a full regression or browser test.
 - Added separate full regression and Chromium smoke jobs to the draft PR. Browser tests exercise the real local app, desktop and mobile demo storefront, authenticated lab, evidence review and logout using disposable SQLite and synthetic admin credentials. External browser requests blocked. Results must be checked on the new commit; not assumed passed.
 - No external accounts, payments, provider credentials, real orders, merge or deployment. GitHub runner usage is subject to existing account quota.
+
+## C5.3 regression triage
+- Run 45527055640 on d5f7e5ab34349ebc2d8fb22e5d10543cefb320a8: targeted suite 100 passed / 599 deselected; Chromium desktop 1440px, mobile 390px and authenticated lab all passed. Full suite 676 passed / 23 failed in 55.27s. The failed assertions refer to legacy control-center frontend content (HTML/JS), including missing departmental, publishing and revenue panels.
+- Inspected exact original base e8b3e87fdb6626f82f28b47c154c412df965ac08: the original index.html and app.js already lack Centro Diario del CEO, /api/v1/control-center and ecommerce-amazon-readiness markers. This supports a pre-existing frontend mismatch; it does not by itself establish that all 23 failures are inherited.
+- Added independent baseline regression job pinned to original base commit. Compare failure node IDs before making attribution. Do not weaken existing tests, invent placeholder panels or redesign unrelated departments to force a pass.
+- C5 remains open pending baseline comparison and remediation decision. No merge or production activation.
+- Activation checklist recorded separately; all commercial evidence remains pending.
