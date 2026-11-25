@@ -278,3 +278,35 @@ def review_dropshipping_evidence(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+from app.services.dropshipping_pe_growth import (
+    CampaignScenario, CreativeChecklist, creative_plan, evaluate_campaign, evaluate_creative,
+)
+
+
+@ecommerce_router.get("/dropshipping-pe/growth/creative-plan")
+def dropshipping_creative_plan(
+    candidate: str, platform: Literal["facebook", "instagram", "tiktok"],
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> dict:
+    require_evidence_access(current_user)
+    try:
+        return creative_plan(candidate, platform)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@ecommerce_router.post("/dropshipping-pe/growth/creative-review")
+def dropshipping_creative_review(
+    payload: CreativeChecklist, current_user: AuthenticatedUser = Depends(get_current_user),
+) -> dict:
+    require_evidence_access(current_user)
+    return evaluate_creative(payload)
+
+
+@ecommerce_router.post("/dropshipping-pe/growth/campaign-simulation")
+def dropshipping_campaign_simulation(
+    payload: CampaignScenario, current_user: AuthenticatedUser = Depends(get_current_user),
+) -> dict:
+    require_evidence_access(current_user)
+    return evaluate_campaign(payload)
