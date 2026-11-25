@@ -1,0 +1,29 @@
+name: Dropshipping offline audit
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/control-center/**'
+      - 'scripts/validate_dropshipping_audit.py'
+      - '.github/workflows/dropshipping-offline-audit.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    if: github.head_ref == 'feature/dropshipping-pe-offline'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt pytest httpx
+      - run: python scripts/validate_dropshipping_audit.py
+      - run: |
+          node --check apps/web/control-center/assets/app.js
+          node --check apps/web/control-center/assets/dropshipping-pe.js
+          node --check apps/web/control-center/assets/storefront-pe.js
