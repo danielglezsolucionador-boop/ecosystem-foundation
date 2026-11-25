@@ -136,3 +136,37 @@ def dropshipping_order_simulation(
         return simulate_order(payload.events)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+from app.services.dropshipping_pe_catalog import MockQuote, Provider, catalog, compare
+
+
+class HypotheticalQuote(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    provider: Provider
+    economics: FinancialScenario
+
+
+class ProviderComparison(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    candidate_id: str = Field(pattern=r"^PE-[0-9]{3}$")
+    quotes: list[HypotheticalQuote] = Field(min_length=1, max_length=3)
+
+
+@ecommerce_router.get("/dropshipping-pe/catalog")
+def dropshipping_catalog(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_commerce_read(current_user)
+    return {"mode": "research", "items": catalog(), "live_enabled": False}
+
+
+@ecommerce_router.post("/dropshipping-pe/provider-comparison")
+def dropshipping_provider_comparison(
+    payload: ProviderComparison, current_user: AuthenticatedUser = Depends(get_current_user)
+) -> dict:
+    require_commerce_read(current_user)
+    try:
+        return compare(payload.candidate_id, [
+            MockQuote(q.provider, UnitEconomics(**q.economics.model_dump()))
+            for q in payload.quotes
+        ])
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
