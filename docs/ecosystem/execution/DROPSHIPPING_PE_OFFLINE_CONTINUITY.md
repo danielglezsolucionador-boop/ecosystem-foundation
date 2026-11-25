@@ -22,3 +22,10 @@ Tests added: service and API tests; full suite must run before merge. No product
 - Added search/filter and scenario comparison UI to the laboratory. Identical default scenarios for providers, no real quote values.
 - Six catalog/comparison unit tests passed locally; service and test blob hashes match the repository. API integration and browser execution remain pending; direct git clone failed DNS resolution.
 - Next: local storefront template with sales disabled, product evidence workflow and provider-specific sandbox contracts. No production deployment or subscriptions.
+
+## C3 storefront checkpoint
+- Added reusable concept storefront Nexora (provisional brand, trademark/domain not checked) in control-center assets, linked from the lab. Responsive CSS and dynamic catalog, product detail, three pack options, cart, regional mock shipping and two simulated payment modes.
+- Public demo-only API /api/v1/dropshipping-demo/catalog, /quote, /checkout; explicitly rejects personal data, client price overrides, unknown IDs, duplicate lines, invalid quantities and live flags. Server computes integer-cent amounts; no order persistence, provider contact or payment.
+- 19 isolated FastAPI/TestClient cases passed, with API and test file blob hashes matched to GitHub. JavaScript syntax check passed locally. Chromium navigation blocked by administrator; full browser flow and repository-wide integration remain unverified. No production deployment.
+- Catalog candidate display prices and shipping are hypothetical. No supplier stock, product photos or quality verified. Concept artwork intentionally abstract.
+- Next: provider-specific simulated adapters, evidence workflow, legal drafts and test integration; no account activation or paid tools until approved.
