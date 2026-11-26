@@ -442,3 +442,30 @@ def acknowledge_demo_task(task_id: Annotated[str, Field(pattern=r"^TASK-[0-9a-f]
             return store.acknowledge(task_id,current_user.id,current_user.role.value)
     except (PermissionError, ValueError) as exc:
         raise demo_order_error(exc) from exc
+
+from app.services.dropshipping_pe_integrations import (
+    SupplierChecklist, OfferScenario, integration_contract, assess_supplier, offer_scenario,
+)
+
+
+@ecommerce_router.get("/dropshipping-pe/integration-contract")
+def dropshipping_integration_contract(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    return integration_contract()
+
+
+@ecommerce_router.post("/dropshipping-pe/supplier-checklist")
+def dropshipping_supplier_checklist(payload: SupplierChecklist,
+                                   current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    try:
+        return assess_supplier(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@ecommerce_router.post("/dropshipping-pe/offer-scenario")
+def dropshipping_offer_scenario(payload: OfferScenario,
+                               current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
+    require_evidence_access(current_user)
+    return offer_scenario(payload)

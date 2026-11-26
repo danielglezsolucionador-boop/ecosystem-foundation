@@ -90,3 +90,8 @@ Tests added: service and API tests; full suite must run before merge. No product
 - New authenticated APIs /tasks, /tasks/tick, /tasks/{id}/acknowledge. No daemon, scheduler, real agents, external action or outbound network; each authorized manual tick handles one due task. SQLite local only. Real retryable handlers, leases and outbox for external side effects remain separate work.
 - Eight new tests (seven service plus one integration) added; await CI. No account, deployment, merge, or live enablement.
 - Added task queue lab interface with manual ticks, persisted status and CEO review. Extended Chromium flow. Browser validation pending; no real workflow dispatch. UI refreshes on demand.
+
+## C5.7 onboarding boundary and applied learning
+- Run 45616066048 on e0d9e19be96406d5989f2bf77e33862ba87093b2: 126 targeted tests passed, seven comparison tests passed, five Chromium checkpoints passed; no missing tests or new nonpasses (725 vs 599). 23 inherited failures remain.
+- Added four-provider internal checklist (including direct local suppliers), separate PE/US planning profiles, secret-handling restrictions, and acquisition cap/dual contribution target based on existing unit economics. No provider contract, credential or evidence verified. No live operation or automated pricing.
+- Added authenticated planning API endpoints and eight tests, pending CI. Recorded the four supplied transcripts as selective learning; no existing design replaced. Production migration design is documented, not executed or validated; real adapters, outbox, external webhooks and paid commerce remain blocked.
