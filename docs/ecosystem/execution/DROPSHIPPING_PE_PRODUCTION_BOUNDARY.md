@@ -1,0 +1,9 @@
+# Production integration boundary — design only
+No production DDL executed, no secrets obtained. SQLite demo remains intentionally isolated.
+- Preserve demo records as demo; do not migrate synthetic orders or evidence into real accounting.
+- Production PostgreSQL tables must use distinct namespaces and explicit schema migrations: merchant/market, verified SKU, real order, event receipt, settlement, audit, task/outbox. Use durable unique keys scoped to merchant/provider, explicit primary keys (no SQLite rowid), timestamptz, integer cents/currency, transaction and foreign-key constraints.
+- Replace BEGIN IMMEDIATE with PostgreSQL row-level locking / conditional atomic updates; task claims need leases and crash recovery. External side effects need transactional outbox, provider idempotency, reconciliation and replay tests. Never retry an ambiguous external create blindly.
+- Verify real provider contract before implementing webhook: authenticate exact raw payload per provider spec, replay protection, separate endpoint, payload limits, rate limits, event scope and audit. The fictional HMAC demo is not a production specification.
+- Secrets only via approved environment/secret manager, server-side least privilege, separate sandbox and production scopes, rotation/revocation; never repository, browser, log or response. Public repository contains only generic code.
+- Launch fails closed until owner approves cost/stock/sample, legal and payment flow, integration/authentication, persistence/backup/restore, real pilot and explicit spend. Real adapter not implemented.
+- Before deployment: run PostgreSQL migration on disposable test DB, concurrent duplicate/event/outbox tests, backup/restore and rollback tests, authenticated smoke and visual review, and resolve or explicitly defer inherited UI failures. No actual migration authorization.

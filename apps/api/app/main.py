@@ -15,6 +15,7 @@ from app.api.ceo import router as ceo_router
 from app.api.control_center import router as control_center_router
 from app.api.contracts import router as contracts_router
 from app.api.departments import router as departments_router
+from app.api.dropshipping_storefront import router as dropshipping_demo_router
 from app.api.ecommerce_readiness import amazon_router, ecommerce_router
 from app.api.events import router as events_router
 from app.api.governance import router as governance_router
@@ -67,6 +68,7 @@ app.include_router(control_center_router)
 app.include_router(contracts_router)
 app.include_router(departments_router)
 app.include_router(ecommerce_router)
+app.include_router(dropshipping_demo_router)
 app.include_router(amazon_router)
 app.include_router(events_router)
 app.include_router(governance_router)

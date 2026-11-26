@@ -7,7 +7,7 @@
     auditoria: { title: "AUDITORIA", sub: "VERDAD - CALIDAD - CONTROL", percent: 88, lbl: "Calidad Aprobada", metrics: [{num:"8", lbl:"Aprobados"},{num:"3", lbl:"Rechazados"},{num:"2", lbl:"En rev."},{num:"100%", lbl:"Transp."}], p1: "Transparencia, datos y verdad operativa.", p2: "Revisamos todo lo que produce FORJA.", cards: [ {t:"Revision FORJA", s:"Calidad codigo", l:["API King <span>Aprob.</span>","Skill <span>Rechaz.</span>"]}, {t:"Auditoria Ingresos", s:"Por aplicacion", l:["Amazon <span>$1.2k</span>","YT <span>$800</span>"]}, {t:"Control Calidad", s:"Estandares", l:["Seguridad <span>100%</span>","Rendim. <span>85%</span>"]}, {t:"En ARSENAL", s:"Aprobados", l:["API King <span>Lista</span>","CSP <span>Lista</span>"]}, {t:"Pendientes Cerebro", s:"Decision", l:["Aprobar App","Revisar Skill"]} ] },
     centinela: { title: "CENTINELA", sub: "ESCUDOS - VIGILANCIA - DEFENSA", percent: 98, lbl: "Seguridad Total", metrics: [{num:"0", lbl:"Brechas"},{num:"14", lbl:"Amenazas"},{num:"100%", lbl:"Escudos"},{num:"24/7", lbl:"Monitor"}], p1: "Protegemos lo que importa.", p2: "Somos el escudo del ecosistema.", cards: [ {t:"Monitoreo Red", s:"Trafico", l:["Anomalo <span>0</span>","Servers <span>100%</span>"]}, {t:"Proteccion Datos", s:"Clientes", l:["Cifrado <span>100%</span>","Backups <span>100%</span>"]}, {t:"Escudos Activos", s:"Defensas", l:["WAF <span>Activo</span>","Anti-DDoS <span>Activo</span>"]}, {t:"Gestion Riesgo", s:"Evaluacion", l:["Critico <span>0</span>","Medio <span>2</span>"]}, {t:"Pendientes Cerebro", s:"Decision", l:["Actualizar WAF","Pen Test"]} ] },
     marca: { title: "MARCA PERSONAL", sub: "IDENTIDAD - AUTORIDAD - INFLUENCIA", percent: 72, lbl: "Crecimiento Marca", metrics: [{num:"15k", lbl:"LinkedIn"},{num:"8k", lbl:"Twitter"},{num:"3", lbl:"Posts hoy"},{num:"4.2%", lbl:"Engage"}], p1: "Tu identidad como CEO es el activo mas valioso.", p2: "Gestionamos tu LinkedIn y redes.", cards: [ {t:"LinkedIn CEO", s:"Autoridad", l:["Post IA <span>100%</span>","Liderazgo <span>80%</span>"]}, {t:"Twitter/X", s:"Hilos", l:["Hilo IA <span>100%</span>","Thread <span>60%</span>"]}, {t:"YouTube Personal", s:"Vlogs", l:["Vlog CEO <span>40%</span>"]}, {t:"Reputacion", s:"Monitoreo", l:["Menciones <span>24</span>","Sentiment <span>Pos.</span>"]}, {t:"Pendientes Cerebro", s:"Decision", l:["Aprobar post","Responder"]} ] },
-    ecommer: { title: "E-COMMER", sub: "VENTAS - AMAZON - BACKSELLING", percent: 82, lbl: "Ventas del Mes", metrics: [{num:"$3.2k", lbl:"Ingresos"},{num:"147", lbl:"Ventas hoy"},{num:"12", lbl:"Productos"},{num:"4.8", lbl:"Rating"}], p1: "La tienda del ecosistema.", p2: "Gestionamos productos en Amazon y apps.", cards: [ {t:"Amazon Libros", s:"PLUMA produce", l:["IA Adultos <span>$1.2k</span>","Ninios <span>$400</span>"]}, {t:"Apps Comerciales", s:"Aprobadas", l:["API King <span>$800</span>","Financiera <span>$500</span>"]}, {t:"Backselling", s:"Recurrente", l:["Membresias <span>45</span>","Premium <span>12</span>"]}, {t:"Doctor Contable", s:"App propia", l:["Ventas <span>$200</span>"]}, {t:"Pendientes Cerebro", s:"Decision", l:["Precio libro","Promo","Nuevo"]} ] },
+    ecommer: { title: "E-COMMER", sub: "COMERCIO — DESARROLLO", percent: 0, lbl: "Avance real no medido", metrics: [{num:"—", lbl:"Ingresos verificados"},{num:"—", lbl:"Ventas verificadas"},{num:"—", lbl:"Productos aprobados"},{num:"—", lbl:"Rating verificado"}], p1: "Unidad comercial en preparación.", p2: "Sin cifras de ventas verificadas en esta pantalla.", cards: [ {t:"Dropshipping Perú", s:"Laboratorio", l:['<a href="/control-center/assets/dropshipping-pe.html">Abrir laboratorio de simulación</a>']}, {t:"Amazon Libros", s:"Estado no verificado", l:["Consultar evidencias"]}, {t:"Apps Comerciales", s:"Estado no verificado", l:["Consultar evidencias"]}, {t:"Backselling", s:"Estado no verificado", l:["Consultar evidencias"]}, {t:"Pendientes CEREBRO", s:"Decisión", l:["Validar evidencias","No ejecutar gasto"]} ] },
     bunker: { title: "BUNKER CEO", sub: "CONTROL - SEGURIDAD - EMERGENCIA", percent: 100, lbl: "DEFCON 1 (Riesgo Bajo)", metrics: [{num:"$0.50", lbl:"Costo IA"},{num:"0", lbl:"Amenazas"},{num:"2", lbl:"Cli Riesgo"},{num:"1", lbl:"Decision"}], p1: "Lo que otros no ven — tu ya lo sabes.", p2: "Centro de operaciones de emergencia.", cards: [ {t:"Riesgo Personal", s:"Exposicion CEO", l:["Doxxing <span>Bajo</span>","Phishing <span>Medio</span>"]}, {t:"Amenazas Activas", s:"Monitoreo", l:["Bots <span>12</span>","DDoS <span>0</span>"]}, {t:"Estado SOMBRA", s:"Coordinado", l:["Runtime <span>Estable</span>","Canal <span>Sellado</span>"]}, {t:"Inteligencia Hoy", s:"Estrategia", l:["Mercado <span>Alcista</span>","IA <span>3 nuevas</span>"]}, {t:"Codigos CEO", s:"Sin leer", l:["Codigo 001 <span>Alta</span>","Codigo 002 <span>Med.</span>"]} ] }
 };
 
@@ -52,6 +52,7 @@ function renderMoreApps() {
         <div class="more-apps-grid">
             <div class="glass-card more-card" onclick="navigateTo('marca')"><h3>MARCA PERSONAL</h3><p>Identidad, autoridad e influencia del CEO.</p><span class="enter-btn">Entrar</span></div>
             <div class="glass-card more-card" onclick="navigateTo('ecommer')"><h3>E-COMMER</h3><p>Ventas, Amazon y backselling del ecosistema.</p><span class="enter-btn">Entrar</span></div>
+            <a class="glass-card more-card" href="/control-center/assets/dropshipping-pe.html"><h3>DROPSHIPPING PERÚ</h3><p>Unidad 001 · Laboratorio de operaciones</p><span class="enter-btn">Entrar</span></a>
             <div class="glass-card more-card disabled"><h3>NUBE</h3><p>Proximamente.</p></div>
             <div class="glass-card more-card disabled"><h3>HERMES</h3><p>Proximamente.</p></div>
         </div>
@@ -81,7 +82,7 @@ function renderDynamicOffice(view) {
             <div class="glass-panel dyn-panel-center">
                 <div class="hero-bg-glow"></div>
                 <div class="hero-logo">${app.title}</div>
-                <div class="hero-sub">${app.sub}</div>
+                <div class="hero-sub">${app.sub}</div><p>VISTA DEMOSTRATIVA · Indicadores no verificados</p>
             </div>
             <div class="glass-panel" style="display:flex; flex-direction:column; gap:10px;">
                 <div class="dyn-panel-right-top">
@@ -92,9 +93,9 @@ function renderDynamicOffice(view) {
                 </div>
                 <div class="dyn-panel-right-bottom">
                     <h4>Impacto en Marcha</h4>
-                    <div class="list-item">Sistemas operativos al maximo</div>
-                    <div class="list-item">Reporte enviado a CEREBRO</div>
-                    <div class="list-item">Ingresos generados activamente</div>
+                    <div class="list-item">Estado operativo no verificado</div>
+                    <div class="list-item">Reporte no verificado</div>
+                    <div class="list-item">Ingresos no verificados</div>
                 </div>
             </div>
         </div>
